@@ -1,4 +1,4 @@
-package org.processmining.newpackageivy.dialogs;
+package org.processmining.alignment.dialogs;
 
 import info.clearthought.layout.TableLayout;
 import info.clearthought.layout.TableLayoutConstants;
@@ -19,11 +19,11 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import org.processmining.alignment.models.YourFirstInput;
+import org.processmining.alignment.models.YourSecondInput;
+import org.processmining.alignment.parameters.YourParameters;
 import org.processmining.contexts.uitopia.UIPluginContext;
 import org.processmining.framework.util.ui.widgets.ProMList;
-import org.processmining.newpackageivy.models.YourFirstInput;
-import org.processmining.newpackageivy.models.YourSecondInput;
-import org.processmining.newpackageivy.parameters.YourParameters;
 
 import com.fluxicon.slickerbox.components.NiceSlider;
 import com.fluxicon.slickerbox.components.NiceSlider.Orientation;

@@ -1,8 +1,8 @@
-package org.processmining.newpackageivy.parameters;
+package org.processmining.alignment.parameters;
 
+import org.processmining.alignment.models.YourFirstInput;
+import org.processmining.alignment.models.YourSecondInput;
 import org.processmining.basicutils.parameters.impl.PluginParametersImpl;
-import org.processmining.newpackageivy.models.YourFirstInput;
-import org.processmining.newpackageivy.models.YourSecondInput;
 
 public class YourParameters extends PluginParametersImpl {
 
