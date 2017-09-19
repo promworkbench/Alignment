@@ -9,7 +9,6 @@ import java.util.concurrent.Executor;
 import nl.tue.alignment.ReplayAlgorithm.Debug;
 import nl.tue.alignment.SyncProduct;
 import nl.tue.alignment.SyncProductFactory;
-import nl.tue.alignment.Test;
 import nl.tue.astar.AStarException;
 import nl.tue.astar.AStarThread.ASynchronousMoveSorting;
 import nl.tue.astar.AStarThread.QueueingModel;
@@ -137,7 +136,7 @@ public class AlignmentTest {
 					System.out.println("Transitions: " + product.numTransitions());
 					System.out.println("Places: " + product.numPlaces());
 					//					Test.doExperiment(product);
-					Test.testSingleGraph(product, Debug.NORMAL);
+					SmallTests.testSingleGraph(product, Debug.NORMAL);
 
 				}
 

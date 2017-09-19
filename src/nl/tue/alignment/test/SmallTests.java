@@ -1,17 +1,19 @@
-package nl.tue.alignment;
-
-import gnu.trove.map.TObjectIntMap;
+package nl.tue.alignment.test;
 
 import java.util.Arrays;
 
+import gnu.trove.map.TObjectIntMap;
 import lpsolve.LpSolve;
+import nl.tue.alignment.ReplayAlgorithm;
 import nl.tue.alignment.ReplayAlgorithm.Debug;
+import nl.tue.alignment.SyncProduct;
+import nl.tue.alignment.SyncProductImpl;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.AStar;
 import nl.tue.alignment.algorithms.Dijkstra;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
-public class Test {
+public class SmallTests {
 
 	private static char SEP = '\t';
 

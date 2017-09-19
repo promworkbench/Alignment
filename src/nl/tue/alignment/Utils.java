@@ -13,9 +13,9 @@ public class Utils {
 	public static int HEURISTICFUNCTIONOVERFLOW = 16;
 
 	/**
-	 * Default block size determines how many bytes are reserved top store
-	 * markings. Whenever a block is full, a new block of this size is
-	 * allocated. Within each block one bit per place is consumed.
+	 * Default block size determines how many bytes are reserved top store markings.
+	 * Whenever a block is full, a new block of this size is allocated. Within each
+	 * block one bit per place is consumed.
 	 */
 	public static int DEFAULTBLOCKSIZE = 256;
 
@@ -43,8 +43,6 @@ public class Utils {
 		HEURISTICSDERIVED("Heuristics derived"), //
 		MAXQUEUELENGTH("Maximum queue length (elts)"), //
 		MAXQUEUECAPACITY("Maximum queue capacity (elts)"), //
-		DELAYEDHEURISTICS("Maximum size of the delayed queue"), //
-		FLUSHTIMES("Number of times delayed queue was flushed into queue"), //
 		VISITEDSETCAPACITY("Maximum capacity visited set (elts)"), //
 		MEMORYUSED("Approximate peak memory used (kb)"), //
 		RUNTIME("Time to compute alignment (us)"), //
@@ -67,19 +65,7 @@ public class Utils {
 		buf.append('[');
 		int len = marking.length / 2;
 		for (short i = 0; i < net.numPlaces();) {
-			if ((marking[i >>> 3] & (BYTEHIGHBIT >>> (i & 7))) != 0) {
-				if ((marking[len + (i >>> 3)] & (BYTEHIGHBIT >>> (i & 7))) != 0) {
-					buf.append('3');
-				} else {
-					buf.append('1');
-				}
-			} else {
-				if ((marking[len + (i >>> 3)] & (BYTEHIGHBIT >>> (i & 7))) != 0) {
-					buf.append('2');
-				} else {
-					buf.append('0');
-				}
-			}
+			buf.append(marking[i]);
 			if (++i < net.numPlaces()) {
 				buf.append(',');
 			}
@@ -91,32 +77,17 @@ public class Utils {
 	public static String asBag(byte[] marking, SyncProduct net) {
 		StringBuffer buf = new StringBuffer();
 		buf.append('[');
-		int len = marking.length / 2;
 		for (short i = 0; i < net.numPlaces();) {
-			if ((marking[i >>> 3] & (BYTEHIGHBIT >>> (i & 7))) != 0) {
-				if ((marking[len + (i >>> 3)] & (BYTEHIGHBIT >>> (i & 7))) != 0) {
-					buf.append("3 ");
-					buf.append(net.getPlaceLabel(i));
-					if (++i < net.numPlaces()) {
-						buf.append(',');
-					}
-				} else {
-					buf.append(net.getPlaceLabel(i));
-					if (++i < net.numPlaces()) {
-						buf.append(',');
-					}
+			if (marking[i] > 0) {
+				if (buf.length() > 1) {
+					buf.append(',');
 				}
-			} else {
-				if ((marking[len + (i >>> 3)] & (BYTEHIGHBIT >>> (i & 7))) != 0) {
-					buf.append("2 ");
-					buf.append(net.getPlaceLabel(i));
-					if (++i < net.numPlaces()) {
-						buf.append(',');
-					}
-				} else {
-					i++;
+				if (marking[i] > 1) {
+					buf.append(marking[i]);
 				}
+				buf.append(net.getPlaceLabel(i));
 			}
+			i++;
 		}
 		buf.append(']');
 		return buf.toString();

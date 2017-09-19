@@ -1,10 +1,9 @@
 package nl.tue.alignment;
 
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
-
 import java.util.Arrays;
 
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.util.HashBackedPriorityQueue;
 import nl.tue.alignment.util.SortedHashBackedPriorityQueue;
@@ -177,8 +176,6 @@ public abstract class ReplayAlgorithm {
 
 	protected static int HEURISTICINFINITE = HMASK;
 
-	protected static int DEFAULTESTIMATEDSIZE = 128;
-
 	/**
 	 * Stores the number of bytes reserved for input and output array. A marking
 	 * takes twice this number of bytes.
@@ -233,25 +230,23 @@ public abstract class ReplayAlgorithm {
 	//	protected byte[][] markingHi = new byte[0][];;
 
 	/**
-	 * Stores the true distance to reach a marking in the last 3 bytes. For
-	 * marking m, g[m]&GMASK is the shortest distance so far to reach m
+	 * Stores the true distance to reach a marking in the last 3 bytes. For marking
+	 * m, g[m]&GMASK is the shortest distance so far to reach m
 	 * 
-	 * Also stores part of the predecessor transition (8 lowest bits of 15
-	 * total)
+	 * Also stores part of the predecessor transition (8 lowest bits of 15 total)
 	 * 
 	 */
 	protected int[][] ptl_g = new int[0][];
 
 	/**
-	 * Stores the heuristic distance to reach the final marking in the last 3
-	 * bytes. For marking m, h[m] & HMASK is an underestimate of the shortest
-	 * distance to reach the final marking from m
+	 * Stores the heuristic distance to reach the final marking in the last 3 bytes.
+	 * For marking m, h[m] & HMASK is an underestimate of the shortest distance to
+	 * reach the final marking from m
 	 * 
 	 * Also stores the estimated heuristic flag. Marking m is in the estimated
 	 * heuristic set if h[m]& ESTIMATEDFLAG == ESTIMATEDFLAG.
 	 * 
-	 * Also stores part of the predecessor transition (7 lowest bits of 14
-	 * total)
+	 * Also stores part of the predecessor transition (7 lowest bits of 14 total)
 	 * 
 	 */
 	protected int[][] e_pth_h = new int[0][];
@@ -263,8 +258,7 @@ public abstract class ReplayAlgorithm {
 	 * 
 	 * For marking m, marking p[m] is the predecessor
 	 * 
-	 * For marking m, it is in the closed set if (p[m] & CLOSEDMASK) ==
-	 * CLOSEDMASK
+	 * For marking m, it is in the closed set if (p[m] & CLOSEDMASK) == CLOSEDMASK
 	 */
 	protected int[][] c_p = new int[0][];
 
@@ -282,12 +276,6 @@ public abstract class ReplayAlgorithm {
 	 * Stores the open set as a priority queue
 	 */
 	protected final Queue queue;
-
-	/**
-	 * Stores estimated heuristics until they can be flushed into the queue
-	 */
-	private int[] estimated;
-	private int estimatedPos;
 
 	/**
 	 * Indicate if moves should be considered totally ordered.
@@ -317,12 +305,8 @@ public abstract class ReplayAlgorithm {
 	protected int alignmentResult;
 	protected int setupTime;
 	protected int runTime;
-	protected int flushActions;
-	protected int maxEstimated;
-	protected int maxEstimatedLength;
 
 	protected long startConstructor;
-	protected int currentFScore;
 	protected short numPlaces;
 
 	public ReplayAlgorithm(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact) {
@@ -355,7 +339,11 @@ public abstract class ReplayAlgorithm {
 
 		this.visited = new VisitedHashSet(this, Utils.DEFAULTVISITEDSIZE);
 		if (queueSorting) {
-			this.queue = new SortedHashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE);
+			if (preferExact) {
+				this.queue = new SortedHashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE, true);
+			} else {
+				this.queue = new SortedHashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE, false);
+			}
 		} else {
 			this.queue = new HashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE);
 		}
@@ -385,8 +373,6 @@ public abstract class ReplayAlgorithm {
 		map.put(Utils.Statistic.MAXQUEUELENGTH, queue.maxSize());
 		map.put(Utils.Statistic.MAXQUEUECAPACITY, queue.maxCapacity());
 		map.put(Utils.Statistic.VISITEDSETCAPACITY, visited.capacity());
-		map.put(Utils.Statistic.DELAYEDHEURISTICS, maxEstimated);
-		map.put(Utils.Statistic.FLUSHTIMES, flushActions);
 
 		//TODO: Count the bytes in the hashtable backing the queue!
 		map.put(Utils.Statistic.MEMORYUSED, (int) (getEstimatedMemorySize() / 1024));
@@ -394,21 +380,18 @@ public abstract class ReplayAlgorithm {
 	}
 
 	protected long getEstimatedMemorySize() {
-		// markingLo holds 4 + length * 8 + block * (4 + blockSize * bm) bytes;
-		// markingHi holds 4 + length * 8 + block * (4 + blockSize * bm) bytes;
 		// g holds         4 + length * 8 + block * (4 + blockSize * 4) bytes;
 		// h holds         4 + length * 8 + block * (4 + blockSize * 4) bytes;
 		// p holds         4 + length * 8 + block * (4 + blockSize * 4) bytes;
 
 		// each array has 4 bytes overhead for storing the size
-		long val = 5 * 4 + 5 * ptl_g.length * 8 + 2 * block * (4 + blockSize * bm) + 3 * block * (4 + blockSize * 4);
+		long val = 3 * 4 + 3 * ptl_g.length * 8 + 3 * block * (4 + blockSize * 4);
 
 		// count the capacity of the queue
 		val += queue.maxBytesUsed();
 		// count the capacity of the visistedSet
 		val += 4 + visited.capacity() * 4;
 
-		val += 4 + 4 * maxEstimatedLength;
 		return val;
 	}
 
@@ -435,9 +418,6 @@ public abstract class ReplayAlgorithm {
 			alignmentCost = 0;
 			alignmentResult = 0;
 			runTime = 0;
-			flushActions = 0;
-			maxEstimated = 0;
-			maxEstimatedLength = DEFAULTESTIMATEDSIZE;
 
 			long start = System.nanoTime();
 
@@ -456,19 +436,11 @@ public abstract class ReplayAlgorithm {
 
 			queue.add(0);
 
-			this.currentFScore = heuristic;
-			initializeEstimated();
-
-			while (!queue.isEmpty() || !estimatedEmpty()) {
+			while (!queue.isEmpty()) {
 
 				// get the most promising marking m
-				int m;
-				if (queue.isEmpty() || getFScore(queue.peek()) != currentFScore) {
-					m = flushEstimatedToQueue();
-				} else {
-					m = queue.poll();
-					pollActions++;
-				}
+				int m = queue.poll();
+				pollActions++;
 
 				int bm = m >>> blockBit;
 				int im = m & blockMask;
@@ -500,7 +472,6 @@ public abstract class ReplayAlgorithm {
 						setHScore(bm, im, heuristic, true);
 						// push the head of the queue down
 
-						assert !preferExact || hasExactHeuristic(bm, im);
 						queue.add(m);
 						queueActions++;
 						continue;
@@ -563,21 +534,11 @@ public abstract class ReplayAlgorithm {
 								if (!hasExactHeuristic(bn, in)) {
 									// estimate is not exact, so derive a new estimate (note that h cannot decrease here)
 									deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
-									assert !queue.contains(n);
 								}
 
-								if (!preferExact || hasExactHeuristic(bn, in)) {
-									assert getFScore(n) >= currentFScore;
-
-									// add n to the queue, or update it's position if F has changed
-									// or if the heuristic h has become exact.
-									// F can change only if the new heuristic becomes 0;
-									add = true;
-								} else {
-									assert getFScore(n) >= currentFScore;
-									// add n to the list of estimated heuristics if exact solutions are preferred
-									addToEstimated(n, tmpG, getHScore(bn, in));
-								}
+								// update position of n in the queue
+								queue.add(n);
+								queueActions++;
 
 							} else if (preferExact && !hasExactHeuristic(bn, in)) {
 								//tmpG >= getGScore(n), i.e. we reached state n through a longer path.
@@ -592,15 +553,11 @@ public abstract class ReplayAlgorithm {
 									// marking is now exact and was not before. 
 									// if not in the queue yet (preferExact) queue now.
 									assert !queue.contains(n);
-									add = true;
+									queue.add(n);
+									queueActions++;
 								}
 							} else {
 								debug.writeEdgeTraversed(this, m, t, n, "color=gray");
-							}
-							if (add) {
-								assert !preferExact || hasExactHeuristic(bn, in);
-								queue.add(n);
-								queueActions++;
 							}
 						} else {
 							debug.writeEdgeTraversed(this, m, t, n, "color=gray");
@@ -624,15 +581,6 @@ public abstract class ReplayAlgorithm {
 
 		}
 
-	}
-
-	protected boolean estimatedEmpty() {
-		return estimatedPos == 0;
-	}
-
-	protected void initializeEstimated() {
-		this.estimated = new int[DEFAULTESTIMATEDSIZE];
-		this.estimatedPos = 0;
 	}
 
 	protected short[] handleFinalMarkingReached(long startTime, int marking) {
@@ -692,174 +640,7 @@ public abstract class ReplayAlgorithm {
 		debug.writeDebugInfo(Debug.DOT, "}");
 	}
 
-	protected void addToEstimated(int marking, int gScore, int hScore) {
-		if (estimatedPos == estimated.length) {
-			// grow array
-			estimated = Arrays.copyOf(estimated, estimated.length < 64 ? 2 * estimated.length
-					: 3 * (estimated.length / 2));
-			if (estimated.length > maxEstimatedLength) {
-				maxEstimatedLength = estimated.length;
-			}
-		}
-		// find insertion point.
-		int low = 0;
-		int high = estimatedPos - 1;
-
-		int fScore = gScore + hScore;
-		int mid, midValG, midValH;
-		while (low <= high) {
-			mid = (low + high) >>> 1;
-			midValG = getGScore(estimated[mid]);
-			midValH = getHScore(estimated[mid]);
-
-			if (midValG + midValH > fScore) {
-				// higher f-score to the front
-				low = mid + 1;
-			} else if (midValG + midValH < fScore) {
-				// lower f-score to the back
-				high = mid - 1;
-			} else {
-				if (midValG > gScore) {
-					// higher g-score to the front
-					low = mid + 1;
-				} else if (midValG < gScore) {
-					// lower g-score to the back
-					high = mid - 1;
-				} else {
-					// insert here
-					System.arraycopy(estimated, mid, estimated, mid + 1, estimatedPos - mid);
-					estimated[mid] = marking;
-					estimatedPos++;
-					return;
-				}
-			}
-		}
-		System.arraycopy(estimated, low, estimated, low + 1, estimatedPos - low);
-		estimated[low] = marking;
-		estimatedPos++;
-		return;
-	}
-
-	protected int flushEstimatedToQueue() {
-		int currentMinimumFScore;
-		if (queue.isEmpty()) {
-			currentMinimumFScore = Integer.MAX_VALUE;
-		} else {
-			currentMinimumFScore = getFScore(queue.peek());
-		}
-		if (estimatedPos == 0) {
-			// no estimated heuristics
-			currentFScore = getFScore(queue.peek());
-			pollActions++;
-			return queue.poll();
-		}
-		flushActions++;
-		if (estimatedPos > maxEstimated) {
-			maxEstimated = estimated.length;
-		}
-
-		try {
-			for (int i = estimatedPos; i-- > 0;) {
-
-				int m = estimated[i];
-
-				int bm = m >>> blockBit;
-				int im = m & blockMask;
-
-				if (isClosed(bm, im)) {
-					// can happen that this marking is now closed. It was in this list twice
-					// remove from list
-					estimated[i] = -1;
-					estimatedPos--;
-					continue;
-
-				}
-
-				if (getFScore(bm, im) > currentFScore) {
-					// nothing from the estimated list led to a new marking with
-					// equal F score. 
-					if (!queue.isEmpty() && getFScore(queue.peek()) == currentMinimumFScore) {
-						// the new minimum is the head of the queue.
-						currentFScore = getFScore(queue.peek());
-						pollActions++;
-						return queue.poll();
-					}
-					currentFScore = queue.isEmpty() ? getFScore(bm, im) : currentMinimumFScore;
-				}
-				//remove fromlist 
-				estimated[i] = -1;
-				estimatedPos--;
-
-				// marking m may have received an update on the estimate, in which
-				// case it was requeued and already considered.
-				if (!hasExactHeuristic(bm, im)) {
-					// no exact heuristic known
-
-					// estimated holds all states for which the estimated f score
-					// equals the head of the queue.
-					assert getFScore(bm, im) == currentFScore || getHScore(bm, im) == 0;
-
-					// compute exact heuristic h>= ~h, i.e. h can not decrease
-					int h = getExactHeuristicForEstimated(m, getMarking(m), bm, im);
-					setHScore(bm, im, h, true);
-					if (h == HEURISTICINFINITE) {
-						// cannot finish, no need to consider.
-						setClosed(bm, im);
-						closedActions++;
-
-					} else {
-
-						// compute new F score
-						int f = h + getGScore(bm, im);
-						if (f == currentFScore) {
-							// new exact heuristic does not lead to new f-score,
-							// newly added marking is head of the queue
-
-							return m;
-						} else {
-							// add to queue
-							assert hasExactHeuristic(bm, im);
-							queue.add(m);
-							queueActions++;
-							// f can only increase
-							assert f > currentFScore;
-							if (f < currentMinimumFScore) {
-								currentMinimumFScore = f;
-							}
-						}
-					}
-				} else {
-					assert (queue.contains(m));
-				}
-			}
-			currentFScore = currentMinimumFScore;
-			pollActions++;
-			return queue.poll();
-		} finally {
-			// no estimated heuristic found with equal f score
-			// entire set is now empty.
-			// potentially schrink the array
-			if (estimatedPos == 0) {
-				estimated = new int[DEFAULTESTIMATEDSIZE];
-			} else {
-				int newLen = estimated.length;
-				do {
-					newLen = newLen >>> 1;
-				} while (newLen > estimatedPos);
-				newLen = newLen << 1;
-				if (newLen < estimated.length) {
-					estimated = Arrays.copyOf(estimated, newLen);
-				}
-			}
-			assert estimatedPos < estimated.length;
-		}
-
-	}
-
 	protected void terminateRun() {
-		if (estimatedPos > maxEstimated) {
-			maxEstimated = estimatedPos;
-		}
 	}
 
 	protected abstract void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,
@@ -881,7 +662,7 @@ public abstract class ReplayAlgorithm {
 			newMarking[input[i]]--;
 		}
 		for (int i = output.length; i-- > 0;) {
-			newMarking[i]++;
+			newMarking[output[i]]++;
 		}
 		//		
 		//		for (int i = bm; i-- > 0;) {
@@ -958,8 +739,8 @@ public abstract class ReplayAlgorithm {
 	}
 
 	/**
-	 * returns true if there is a place common in the output set of
-	 * transitionFrom and the input set of transitionTo
+	 * returns true if there is a place common in the output set of transitionFrom
+	 * and the input set of transitionTo
 	 * 
 	 * @param transitionFrom
 	 * @param transitionTo
@@ -1024,16 +805,14 @@ public abstract class ReplayAlgorithm {
 		debug.writeDebugInfo(Debug.NORMAL, "   FScore head:     " + getFScore(queue.peek()) + " = G: "
 				+ getGScore(queue.peek()) + " + H: " + getHScore(queue.peek()));
 		debug.writeDebugInfo(Debug.NORMAL, "   Queue size:      " + queue.size());
-		debug.writeDebugInfo(Debug.NORMAL, "   Flush actions:   " + flushActions);
 		debug.writeDebugInfo(Debug.NORMAL, "   Queue actions:   " + queueActions);
-		debug.writeDebugInfo(Debug.NORMAL, "   Flushlist size:  " + estimated.length);
 		debug.writeDebugInfo(Debug.NORMAL, "   Heuristics compu:" + heuristicsComputed);
 		debug.writeDebugInfo(Debug.NORMAL, "   Estimated memory:" + String.format("%,d", getEstimatedMemorySize()));
 	}
 
 	/**
-	 * Grow the internal array structure. Method should be considered
-	 * synchronized as it should not be executed in parallel.
+	 * Grow the internal array structure. Method should be considered synchronized
+	 * as it should not be executed in parallel.
 	 */
 	protected void growArrays() {
 		if (block + 1 >= ptl_g.length) {
@@ -1265,7 +1044,7 @@ public abstract class ReplayAlgorithm {
 	 */
 	public short getPredecessorTransition(int block, int index) {
 		return (short) (((ptl_g[block][index] & PTRANSLOMASK) >>> 24) | // low bits from g
-		((e_pth_h[block][index] & PTRANSHIMASK) >>> 16)); // high bits from h
+				((e_pth_h[block][index] & PTRANSHIMASK) >>> 16)); // high bits from h
 	}
 
 	/**
@@ -1431,8 +1210,8 @@ public abstract class ReplayAlgorithm {
 
 	/**
 	 * Returns the hashCode of a stored marking which is provided as an array of
-	 * length 2*bm, where the first bm bytes provide the low bits and the second
-	 * bm bytes provide the high bits.
+	 * length 2*bm, where the first bm bytes provide the low bits and the second bm
+	 * bytes provide the high bits.
 	 * 
 	 * @see SyncProduct.getInitialMarking();
 	 * @param marking

@@ -4,9 +4,11 @@ import nl.tue.alignment.ReplayAlgorithm;
 
 public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 
+	private final boolean preferExact;
+
 	/**
-	 * Creates a {@code HashBackedPriorityQueue} with the specified initial
-	 * capacity that orders its elements according to the specified comparator.
+	 * Creates a {@code HashBackedPriorityQueue} with the specified initial capacity
+	 * that orders its elements according to the specified comparator.
 	 * 
 	 * @param algorithm
 	 *            the algorithm the queue is used in
@@ -19,12 +21,15 @@ public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 	 *             if {@code initialCapacity} is less than 1
 	 */
 
-	public SortedHashBackedPriorityQueue(ReplayAlgorithm algorithm, int initialCapacity, int maxCost) {
+	public SortedHashBackedPriorityQueue(ReplayAlgorithm algorithm, int initialCapacity, int maxCost,
+			boolean preferExact) {
 		super(algorithm, initialCapacity, maxCost);
+		this.preferExact = preferExact;
 	}
 
-	public SortedHashBackedPriorityQueue(ReplayAlgorithm algorithm, int initialCapacity) {
+	public SortedHashBackedPriorityQueue(ReplayAlgorithm algorithm, int initialCapacity, boolean preferExact) {
 		super(algorithm, initialCapacity);
+		this.preferExact = preferExact;
 	}
 
 	/**
@@ -40,14 +45,22 @@ public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 		if (c1 < c2) {
 			return true; //
 		} else if (c1 == c2) {
+
+			// second order sorting on exactness
+			if (preferExact) {
+				boolean b1 = algorithm.hasExactHeuristic(marking1);
+				boolean b2 = algorithm.hasExactHeuristic(marking2);
+				if (b1 && !b2) {
+					return true;
+				} else if (b2 && !b1) {
+					return false;
+				}
+			}
+
 			// (second) order sorting on G score
 
 			if (algorithm.getGScore(marking1) > algorithm.getGScore(marking2)) {
 				return true;
-			} else if (algorithm.getGScore(marking1) < algorithm.getGScore(marking2)) {
-				return false;
-			} else {
-				return algorithm.getPredecessorTransition(marking1) < algorithm.getPredecessorTransition(marking2);
 			}
 		}
 		return false;
