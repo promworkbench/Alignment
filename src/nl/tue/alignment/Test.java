@@ -8,7 +8,6 @@ import lpsolve.LpSolve;
 import nl.tue.alignment.ReplayAlgorithm.Debug;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.AStar;
-import nl.tue.alignment.algorithms.BackTrackingAStar;
 import nl.tue.alignment.algorithms.Dijkstra;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
@@ -26,61 +25,61 @@ public class Test {
 							"p13", "p14", "p15", "p16", "p17", "p18" }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1 }//
 			);
-			addToInput(0, 0);
-			addToInput(1, 1);
-			addToInput(2, 2);
-			addToInput(3, 3);
-			addToInput(4, 4);
-			addToInput(5, 6);
-			addToInput(6, 5, 6);
-			addToInput(7, 1);
-			addToInput(8, 7);
-			addToInput(9, 8);
-			addToInput(10, 7);
-			addToInput(11, 9);
+			setInput(0, 0);
+			setInput(1, 1);
+			setInput(2, 2);
+			setInput(3, 3);
+			setInput(4, 4);
+			setInput(5, 6);
+			setInput(6, 5, 6);
+			setInput(7, 1);
+			setInput(8, 7);
+			setInput(9, 8);
+			setInput(10, 7);
+			setInput(11, 9);
 			//SyncMoves
-			addToInput(12, 0, 11);
-			addToInput(13, 1, 12);
-			addToInput(14, 3, 13);
-			addToInput(15, 4, 14);
-			addToInput(16, 7, 15);
-			addToInput(17, 9, 16);
-			addToInput(18, 9, 17);
+			setInput(12, 0, 11);
+			setInput(13, 1, 12);
+			setInput(14, 3, 13);
+			setInput(15, 4, 14);
+			setInput(16, 7, 15);
+			setInput(17, 9, 16);
+			setInput(18, 9, 17);
 			//LogMoves
-			addToInput(19, 11);
-			addToInput(20, 12);
-			addToInput(21, 13);
-			addToInput(22, 14);
-			addToInput(23, 15);
-			addToInput(24, 16);
-			addToInput(25, 17);
+			setInput(19, 11);
+			setInput(20, 12);
+			setInput(21, 13);
+			setInput(22, 14);
+			setInput(23, 15);
+			setInput(24, 16);
+			setInput(25, 17);
 
-			addToOutput(0, 1);
-			addToOutput(1, 2, 3);
-			addToOutput(2, 5);
-			addToOutput(3, 4);
-			addToOutput(4, 6);
-			addToOutput(5, 3);
-			addToOutput(6, 7);
-			addToOutput(7, 10);
-			addToOutput(8, 8);
-			addToOutput(9, 10);
-			addToOutput(10, 9);
-			addToOutput(11, 10);
-			addToOutput(12, 1, 12);
-			addToOutput(13, 2, 3, 13);
-			addToOutput(14, 4, 14);
-			addToOutput(15, 6, 15);
-			addToOutput(16, 9, 16);
-			addToOutput(17, 10, 17);
-			addToOutput(18, 10, 18);
-			addToOutput(19, 12);
-			addToOutput(20, 13);
-			addToOutput(21, 14);
-			addToOutput(22, 15);
-			addToOutput(23, 16);
-			addToOutput(24, 17);
-			addToOutput(25, 18);
+			setOutput(0, 1);
+			setOutput(1, 2, 3);
+			setOutput(2, 5);
+			setOutput(3, 4);
+			setOutput(4, 6);
+			setOutput(5, 3);
+			setOutput(6, 7);
+			setOutput(7, 10);
+			setOutput(8, 8);
+			setOutput(9, 10);
+			setOutput(10, 9);
+			setOutput(11, 10);
+			setOutput(12, 1, 12);
+			setOutput(13, 2, 3, 13);
+			setOutput(14, 4, 14);
+			setOutput(15, 6, 15);
+			setOutput(16, 9, 16);
+			setOutput(17, 10, 17);
+			setOutput(18, 10, 18);
+			setOutput(19, 12);
+			setOutput(20, 13);
+			setOutput(21, 14);
+			setOutput(22, 15);
+			setOutput(23, 16);
+			setOutput(24, 17);
+			setOutput(25, 18);
 
 			setInitialMarking(0, 11);
 			setFinalMarking(10, 18);
@@ -107,53 +106,53 @@ public class Test {
 							"p13", "p14" }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1 }//
 			);
-			addToInput(0, 0);
-			addToOutput(0, 1, 2);
+			setInput(0, 0);
+			setOutput(0, 1, 2);
 
-			addToInput(1, 1);
-			addToOutput(1, 3);
+			setInput(1, 1);
+			setOutput(1, 3);
 
-			addToInput(2, 3);
-			addToOutput(2, 7);
+			setInput(2, 3);
+			setOutput(2, 7);
 
-			addToInput(3, 1);
-			addToOutput(3, 4);
+			setInput(3, 1);
+			setOutput(3, 4);
 
-			addToInput(4, 4);
-			addToOutput(4, 7);
+			setInput(4, 4);
+			setOutput(4, 7);
 
-			addToInput(5, 2);
-			addToOutput(5, 5);
+			setInput(5, 2);
+			setOutput(5, 5);
 
-			addToInput(6, 5);
-			addToOutput(6, 8);
+			setInput(6, 5);
+			setOutput(6, 8);
 
-			addToInput(7, 2);
-			addToOutput(7, 6);
+			setInput(7, 2);
+			setOutput(7, 6);
 
-			addToInput(8, 6);
-			addToOutput(8, 8);
+			setInput(8, 6);
+			setOutput(8, 8);
 
-			addToInput(9, 7, 8);
-			addToOutput(9, 9);
+			setInput(9, 7, 8);
+			setOutput(9, 9);
 
-			addToInput(10, 9);
-			addToOutput(10, 10);
+			setInput(10, 9);
+			setOutput(10, 10);
 
-			addToInput(11, 10);
-			addToOutput(11, 11);
+			setInput(11, 10);
+			setOutput(11, 11);
 
-			addToInput(12, 9, 13);
-			addToOutput(12, 10, 14);
+			setInput(12, 9, 13);
+			setOutput(12, 10, 14);
 
-			addToInput(13, 10, 12);
-			addToOutput(13, 11, 13);
+			setInput(13, 10, 12);
+			setOutput(13, 11, 13);
 
-			addToInput(14, 12);
-			addToOutput(14, 13);
+			setInput(14, 12);
+			setOutput(14, 13);
 
-			addToInput(15, 13);
-			addToOutput(15, 14);
+			setInput(15, 13);
+			setOutput(15, 14);
 
 			setInitialMarking(0, 12);
 			setFinalMarking(11, 14);
@@ -167,29 +166,29 @@ public class Test {
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 0 }//
 			);
-			addToInput(0, 0);
-			addToOutput(0, 1);
+			setInput(0, 0);
+			setOutput(0, 1);
 
-			addToInput(1, 1);
-			addToOutput(1, 2);
+			setInput(1, 1);
+			setOutput(1, 2);
 
-			addToInput(2, 2);
-			addToOutput(2, 3);
+			setInput(2, 2);
+			setOutput(2, 3);
 
-			addToInput(3, 4);
-			addToOutput(3, 5);
+			setInput(3, 4);
+			setOutput(3, 5);
 
-			addToInput(4, 5);
-			addToOutput(4, 6);
+			setInput(4, 5);
+			setOutput(4, 6);
 
-			addToInput(5, 6);
-			addToOutput(5, 7);
+			setInput(5, 6);
+			setOutput(5, 7);
 
-			addToInput(6, 2, 5);
-			addToOutput(6, 3, 6);
+			setInput(6, 2, 5);
+			setOutput(6, 3, 6);
 
-			addToInput(7, 1, 6);
-			addToOutput(7, 2, 7);
+			setInput(7, 1, 6);
+			setOutput(7, 2, 7);
 
 			setInitialMarking(0, 4);
 			setFinalMarking(3, 7);
@@ -198,7 +197,8 @@ public class Test {
 
 	public static void main(String[] args) throws LPMatrixException {
 
-		//		doExperiment(new SyncProductExampleBook());
+		//		testSingleGraph(new SyncProductExampleBook(), Debug.DOT);
+		//		testSingleGraph(new SmallNastySyncProductExample(), Debug.DOT);
 		testSingleGraph(new NastySyncProductExample(), Debug.DOT);
 	}
 
@@ -302,7 +302,10 @@ public class Test {
 			);
 		} else {
 
-			algorithm = new BackTrackingAStar(net, //
+			algorithm = new AStar(net, //
+					moveSort, // moveSort on total order
+					queueSort, // queue sorted "depth-first"
+					preferExact, // prefer Exact solution
 					useInt,// use Integers
 					debug // debug mode
 			);

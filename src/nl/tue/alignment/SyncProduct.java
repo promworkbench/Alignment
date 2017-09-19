@@ -18,33 +18,24 @@ public interface SyncProduct {
 	public short numPlaces();
 
 	/**
-	 * Returns an array of bytes. The length of the array is equal to
-	 * 1+(numPlaces()-1)/8 The least significant bit represents place 0, i.e.
-	 * [.....010][00000001] represents an input set consisting of place 0 and
-	 * place 9, assuming there are 11 places in the model.
+	 * Returns a sorted array of places serving as input to transition t
 	 * 
 	 * @param transition
 	 * @return
 	 */
-	public byte[] getInput(short transition);
+	public short[] getInput(short transition);
 
 	/**
-	 * Returns an array of bytes. The length of the array is equal to
-	 * 1+(numPlaces()-1)/8 The most significant bit represents place 0, i.e.
-	 * [1000 0000][010. ....] represents an output set consisting of place 0 and
-	 * place 9, assuming there are 11 places in the model.
+	 * Returns a sorted array of places serving as output to transition t
 	 * 
 	 * @param transition
 	 * @return
 	 */
-	public byte[] getOutput(short transition);
+	public short[] getOutput(short transition);
 
 	/**
-	 * Return the initial marking as an array where the first n bytes represent
-	 * the low bits and the second n bytes the high bit, i.e. [1000 1000][000.
-	 * ....][1000 0000][010. ....] represents the marking with 3 tokens in place
-	 * 0, 1 token in place 4 and 2 tokens in place 9, assuming 11 places in the
-	 * model.
+	 * Return the initial marking as an array where each byte represents the
+	 * marking of that specific place in the interval 0..3
 	 * 
 	 * @return
 	 */

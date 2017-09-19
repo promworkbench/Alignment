@@ -4,6 +4,8 @@ import java.util.Arrays;
 
 public class SyncProductImpl implements SyncProduct {
 
+	private static final short[] EMPTY = new short[0];
+
 	protected final int bm;
 
 	protected final String[] transitions;
@@ -12,9 +14,9 @@ public class SyncProductImpl implements SyncProduct {
 
 	protected final int[] cost;
 
-	protected final byte[][] input;
+	protected final short[][] input;
 
-	protected final byte[][] output;
+	protected final short[][] output;
 
 	protected byte[] initMarking;
 
@@ -31,8 +33,8 @@ public class SyncProductImpl implements SyncProduct {
 
 		this.bm = 1 + (numPlaces - 1) / 8;
 
-		input = new byte[numTransitions()][bm];
-		output = new byte[numTransitions()][bm];
+		input = new short[numTransitions()][];
+		output = new short[numTransitions()][];
 		initMarking = new byte[2 * bm];
 		finalMarking = new byte[2 * bm];
 
@@ -46,8 +48,8 @@ public class SyncProductImpl implements SyncProduct {
 
 		this.bm = 1 + (numPlaces() - 1) / 8;
 
-		input = new byte[numTransitions()][bm];
-		output = new byte[numTransitions()][bm];
+		input = new short[numTransitions()][];
+		output = new short[numTransitions()][];
 		initMarking = new byte[2 * bm];
 		finalMarking = new byte[2 * bm];
 
@@ -61,34 +63,51 @@ public class SyncProductImpl implements SyncProduct {
 		return (short) places.length;
 	}
 
-	public void setInput(int t, int... plist) {
-		input[t] = new byte[bm];
-		addToInput(t, plist);
+	private void setSortedArray(short[] array, int[] plist) {
+		Arrays.sort(plist);
+		for (int i = plist.length; i-- > 0;) {
+			array[i] = (short) plist[i];
+		}
 	}
 
-	public void addToInput(int t, int... plist) {
-		for (int p : plist) {
-			input[t][p >>> 3] |= Utils.BYTEHIGHBIT >>> (p & 7);
-		}
+	public void setInput(short t, int... plist) {
+		input[t] = new short[plist.length];
+		setSortedArray(input[t], plist);
+	}
+
+	public void setOutput(short t, int... plist) {
+		output[t] = new short[plist.length];
+		setSortedArray(output[t], plist);
+	}
+
+	public void setInput(int t, int... plist) {
+		input[t] = new short[plist.length];
+		setSortedArray(input[t], plist);
 	}
 
 	public void setOutput(int t, int... plist) {
-		output[t] = new byte[bm];
-		addToOutput(t, plist);
+		output[t] = new short[plist.length];
+		setSortedArray(output[t], plist);
 	}
 
-	public void addToOutput(int t, int... plist) {
-		for (int p : plist) {
-			output[t][p >>> 3] |= Utils.BYTEHIGHBIT >>> (p & 7);
-		}
+	public void addToOutput(int t, int... p) {
+		output[t] = Arrays.copyOf(getOutput((short) t), getOutput((short) t).length + p.length);
+		System.arraycopy(p, 0, output[t], output[t].length - p.length - 1, p.length);
+		Arrays.sort(output[t]);
 	}
 
-	public byte[] getInput(short transition) {
-		return input[transition];
+	public void addToInput(int t, int... p) {
+		input[t] = Arrays.copyOf(getInput((short) t), getInput((short) t).length + p.length);
+		System.arraycopy(p, 0, input[t], input[t].length - p.length - 1, p.length);
+		Arrays.sort(input[t]);
 	}
 
-	public byte[] getOutput(short transition) {
-		return output[transition];
+	public short[] getInput(short transition) {
+		return input[transition] == null ? EMPTY : input[transition];
+	}
+
+	public short[] getOutput(short transition) {
+		return output[transition] == null ? EMPTY : output[transition];
 	}
 
 	public byte[] getInitialMarking() {
@@ -108,52 +127,24 @@ public class SyncProductImpl implements SyncProduct {
 	}
 
 	public void setInitialMarking(int... places) {
-		this.initMarking = new byte[2 * bm];
+		this.initMarking = new byte[numPlaces()];
 		addToInitialMarking(places);
 	}
 
 	public void addToInitialMarking(int... places) {
 		for (int p : places) {
-			byte mask = (byte) (Utils.BYTEHIGHBIT >>> (p & 7));
-			if ((initMarking[p >>> 3] & mask) == 0) {
-				// change the low bit to 1
-				initMarking[p >>> 3] |= mask;
-			} else {
-				if ((initMarking[bm + (p >>> 3)] & mask) == 0) {
-					// change the low bit to 0
-					// change the high bit to 1
-					initMarking[(p >>> 3)] &= ~mask;
-					initMarking[bm + (p >>> 3)] |= mask;
-				} else {
-					// more than 3 tokens impossible. 
-					// ignore.
-				}
-			}
+			initMarking[p]++;
 		}
 	}
 
 	public void setFinalMarking(int... places) {
-		this.finalMarking = new byte[2 * bm];
+		this.finalMarking = new byte[numPlaces()];
 		addToFinalMarking(places);
 	}
 
 	public void addToFinalMarking(int... places) {
 		for (int p : places) {
-			byte mask = (byte) (Utils.BYTEHIGHBIT >>> (p & 7));
-			if ((finalMarking[p >>> 3] & mask) == 0) {
-				// change the low bit to 1
-				finalMarking[p >>> 3] |= mask;
-			} else {
-				if ((finalMarking[bm + (p >>> 3)] & mask) == 0) {
-					// change the low bit to 0
-					// change the high bit to 1
-					finalMarking[(p >>> 3)] &= ~mask;
-					finalMarking[bm + (p >>> 3)] |= mask;
-				} else {
-					// more than 3 tokens impossible. 
-					// ignore.
-				}
-			}
+			finalMarking[p]++;
 		}
 	}
 

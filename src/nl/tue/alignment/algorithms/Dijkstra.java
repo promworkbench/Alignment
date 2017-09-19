@@ -28,7 +28,7 @@ public class Dijkstra extends ReplayAlgorithm {
 	 * Dijkstra always estimates 0
 	 */
 	@Override
-	public int getExactHeuristic(int marking, int markingBlock, int markingIndex) {
+	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
 		return 0;
 	}
 
@@ -41,8 +41,8 @@ public class Dijkstra extends ReplayAlgorithm {
 		return net.isFinalMarking(getMarking(marking));
 	}
 
-	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
-			int toIndex) {
+	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,
+			int toBlock, int toIndex) {
 		setHScore(toBlock, toIndex, 0, true);
 	}
 

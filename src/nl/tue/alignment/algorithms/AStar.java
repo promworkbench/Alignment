@@ -57,21 +57,17 @@ public class AStar extends ReplayAlgorithm {
 		for (short t = net.numTransitions(); t-- > 0;) {
 			matrix.setObjective(t, net.getCost(t));
 
-			byte[] input = net.getInput(t);
-			byte[] output = net.getOutput(t);
-			for (int p = net.numPlaces(); p-- > 0;) {
-
-				if ((input[p >>> 3] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
-					// transition t consumes from place p, hence  incidence matrix
-					// is -1;
-					matrix.adjustMat(p, t, -1);
-				}
-				if ((output[p >>> 3] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
-					// transition t produced in place p, hence  incidence matrix
-					// is +1;
-					matrix.adjustMat(p, t, 1);
-				}
+			short[] input = net.getInput(t);
+			for (int i = input.length; i-- > 0;) {
+				// transition t consumes from place p, hence  incidence matrix
+				// is -1;
+				matrix.adjustMat(input[i], t, -1);
 			}
+			short[] output = net.getOutput(t);
+			for (int i = output.length; i-- > 0;) {
+				matrix.adjustMat(output[i], t, 1);
+			}
+
 			// Use integer variables if specified
 			matrix.setInt(t, isInteger);
 			// Set lower bound of 0
@@ -93,14 +89,15 @@ public class AStar extends ReplayAlgorithm {
 			}
 			// set the constraint to equality
 			matrix.setConstrType(p, LPMatrix.EQ);
-			if ((marking[p >>> 3] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
-				// bit in low bits of the final marking;
-				rhf[p] += 1;
-			}
-			if ((marking[(marking.length / 2) + (p >>> 3)] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
-				// bit in high bits of the final marking;
-				rhf[p] += 2;
-			}
+			rhf[p] = marking[p];
+			//			if ((marking[p] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
+			//				// bit in low bits of the final marking;
+			//				rhf[p] += 1;
+			//			}
+			//			if ((marking[(marking.length / 2) + (p >>> 3)] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
+			//				// bit in high bits of the final marking;
+			//				rhf[p] += 2;
+			//			}
 		}
 		matrix.setMinim();
 		solver = matrix.toSolver();
@@ -115,22 +112,24 @@ public class AStar extends ReplayAlgorithm {
 	protected double[] vars;
 
 	@Override
-	public int getExactHeuristic(int marking, int markingBlock, int markingIndex) {
+	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
 		// start from correct right hand side
+
 		long start = System.nanoTime();
 		try {
 			int lp = net.numPlaces();
 			for (int p = lp; p-- > 0;) {
 				// set right hand side to final marking 
-				solver.setRh(lp, rhf[p]);
-				if ((markingLo[markingBlock][markingIndex * bm + (p >>> 3)] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
-					// adjust right hand side by - 1 from current
-					solver.setRh(lp, solver.getRh(lp) - 1);
-				}
-				if ((markingHi[markingBlock][markingIndex * bm + (p >>> 3)] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
-					// adjust right hand side by - 2 from current
-					solver.setRh(lp, solver.getRh(lp) - 2);
-				}
+				//				solver.setRh(lp, rhf[p]);
+				solver.setRh(lp, rhf[p] - markingArray[p]);
+				//				if ((markingLo[markingBlock][markingIndex * bm + (p >>> 3)] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
+				//					// adjust right hand side by - 1 from current
+				//					solver.setRh(lp, solver.getRh(lp) - 1);
+				//				}
+				//				if ((markingHi[markingBlock][markingIndex * bm + (p >>> 3)] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
+				//					// adjust right hand side by - 2 from current
+				//					solver.setRh(lp, solver.getRh(lp) - 2);
+				//				}
 				lp--;
 			}
 			heuristicsComputed++;
@@ -240,7 +239,7 @@ public class AStar extends ReplayAlgorithm {
 
 	protected void setNewLpSolution(int marking, double[] solution) {
 		assert lpSolutions[marking] == null;
-		lpSolutions[marking] = new byte[numRows + 1];
+		lpSolutions[marking] = new byte[numCols + 1];
 		lpSolutions[marking][0] = COMPUTED;
 		for (int i = numRows; i-- > 0;) {
 			// round down into byte, but allow for precision up to 1E-9
@@ -256,12 +255,13 @@ public class AStar extends ReplayAlgorithm {
 		return equalMarking(marking, net.getFinalMarking());
 	}
 
-	/**
-	 * In ILP version, only one given final marking is the target.
-	 */
-	protected boolean isFinal(int block, int index) {
-		return equalMarking(block, index, net.getFinalMarking());
-	}
+	//
+	//	/**
+	//	 * In ILP version, only one given final marking is the target.
+	//	 */
+	//	protected boolean isFinal(int block, int index) {
+	//		return equalMarking(block, index, net.getFinalMarking());
+	//	}
 
 	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,
 			int toBlock, int toIndex) {
@@ -277,7 +277,7 @@ public class AStar extends ReplayAlgorithm {
 			heuristicsDerived++;
 
 		} else {
-			if (isFinal(toBlock, toIndex)) {
+			if (isFinal(to)) {
 				setHScore(toBlock, toIndex, 0, true);
 			}
 			int h = getHScore(fromBlock, fromIndex) - net.getCost(transition);
