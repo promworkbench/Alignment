@@ -117,11 +117,10 @@ public class AStar extends ReplayAlgorithm {
 
 		long start = System.nanoTime();
 		try {
-			int lp = net.numPlaces();
-			for (int p = lp; p-- > 0;) {
+			for (int p = net.numPlaces(); p-- > 0;) {
 				// set right hand side to final marking 
 				//				solver.setRh(lp, rhf[p]);
-				solver.setRh(lp, rhf[p] - markingArray[p]);
+				solver.setRh(p + 1, rhf[p] - markingArray[p]);
 				//				if ((markingLo[markingBlock][markingIndex * bm + (p >>> 3)] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
 				//					// adjust right hand side by - 1 from current
 				//					solver.setRh(lp, solver.getRh(lp) - 1);
@@ -130,18 +129,22 @@ public class AStar extends ReplayAlgorithm {
 				//					// adjust right hand side by - 2 from current
 				//					solver.setRh(lp, solver.getRh(lp) - 2);
 				//				}
-				lp--;
 			}
 			heuristicsComputed++;
+
+			if (debug == Debug.NORMAL && heuristicsComputed % 10000 == 0) {
+				writeStatus();
+			}
+
+			solver.defaultBasis();
 			int solverResult = solver.solve();
 
-			if (solverResult == LpSolve.INFEASIBLE || solverResult == LpSolve.NUMFAILURE) {
-				// BVD: LpSolve has the tendency to give false infeasible or numfailure answers. 
-				// It's unclear when or why this happens, but just in case...
-				solver.defaultBasis();
-				solverResult = solver.solve();
-
-			}
+			//			if (solverResult == LpSolve.INFEASIBLE || solverResult == LpSolve.NUMFAILURE) {
+			//				// BVD: LpSolve has the tendency to give false infeasible or numfailure answers. 
+			//				// It's unclear when or why this happens, but just in case...
+			//				solverResult = solver.solve();
+			//
+			//			}
 			if (solverResult == LpSolve.OPTIMAL) {
 				// retrieve the solution
 				solver.getVariables(vars);
@@ -239,9 +242,9 @@ public class AStar extends ReplayAlgorithm {
 
 	protected void setNewLpSolution(int marking, double[] solution) {
 		assert lpSolutions[marking] == null;
-		lpSolutions[marking] = new byte[numCols + 1];
+		lpSolutions[marking] = new byte[solution.length + 1];
 		lpSolutions[marking][0] = COMPUTED;
-		for (int i = numRows; i-- > 0;) {
+		for (int i = solution.length; i-- > 0;) {
 			// round down into byte, but allow for precision up to 1E-9
 			lpSolutions[marking][i + 1] = (byte) ((int) (solution[i] + 1E-9));
 		}

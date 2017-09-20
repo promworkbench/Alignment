@@ -119,8 +119,8 @@ public class SyncProductFactory {
 					+ trace.getAttributes().get("concept:name"), (String[]) moves.toArray(new String[0]),
 					(String[]) places.toArray(new String[0]), costs.toArray());
 
-			for (int t = 0; t < transitions.length; t++) {
-				for (int p = 0; p < placeList.length; p++) {
+			for (short t = 0; t < transitions.length; t++) {
+				for (short p = 0; p < placeList.length; p++) {
 					Arc arc = net.getArc(transitions[t], placeList[p]);
 					if (arc != null) {
 						int i = 0;
@@ -132,7 +132,7 @@ public class SyncProductFactory {
 									int smt = (int) (sm_e >>> 32) & 0xFFFFFFFF;
 									int e = (int) (sm_e & 0xFFFFFFFF);
 									// there's a synchronous product of t with event e which is transition sm
-									product.addToOutput(smt, p, placeLabels.length + e + 1);
+									product.addToOutput(smt, p, (short) (placeLabels.length + e + 1));
 								}
 							}
 						} while (++i < arc.getWeight());
@@ -148,7 +148,7 @@ public class SyncProductFactory {
 									int smt = (int) (sm_e >>> 32) & 0xFFFFFFFF;
 									int e = (int) (sm_e & 0xFFFFFFFF);
 									// there's a synchronous product of t with event e which is transition sm
-									product.addToInput(smt, p, placeLabels.length + e);
+									product.addToInput(smt, p, (short) (placeLabels.length + e));
 								}
 							}
 						} while (++i < arc.getWeight());
@@ -156,8 +156,8 @@ public class SyncProductFactory {
 				}
 			}
 			for (int e = 0; e < events.length; e++) {
-				product.addToInput(sm + e, placeLabels.length + e);
-				product.addToOutput(sm + e, placeLabels.length + e + 1);
+				product.addToInput(sm + e, (short) (placeLabels.length + e));
+				product.addToOutput(sm + e, (short) (placeLabels.length + e + 1));
 			}
 
 			for (Place place : initialMarking) {

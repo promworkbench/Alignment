@@ -1,8 +1,9 @@
 package nl.tue.alignment.test;
 
+import gnu.trove.map.TObjectIntMap;
+
 import java.util.Arrays;
 
-import gnu.trove.map.TObjectIntMap;
 import lpsolve.LpSolve;
 import nl.tue.alignment.ReplayAlgorithm;
 import nl.tue.alignment.ReplayAlgorithm.Debug;
@@ -294,7 +295,7 @@ public class SmallTests {
 		boolean moveSort = true; // moveSort on total order
 		boolean queueSort = true; // queue sorted "depth-first"
 		boolean preferExact = true; // prefer Exact solution
-		boolean useInt = true; //  use Integer
+		boolean useInt = false; //  use Integer
 
 		if (dijkstra) {
 			algorithm = new Dijkstra(net, //

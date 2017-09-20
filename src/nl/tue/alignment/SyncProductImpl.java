@@ -6,8 +6,6 @@ public class SyncProductImpl implements SyncProduct {
 
 	private static final short[] EMPTY = new short[0];
 
-	protected final int bm;
-
 	protected final String[] transitions;
 
 	protected final String[] places;
@@ -31,12 +29,11 @@ public class SyncProductImpl implements SyncProduct {
 
 		this.places = new String[numTrans];
 
-		this.bm = 1 + (numPlaces - 1) / 8;
-
 		input = new short[numTransitions()][];
 		output = new short[numTransitions()][];
-		initMarking = new byte[2 * bm];
-		finalMarking = new byte[2 * bm];
+
+		initMarking = new byte[numPlaces()];
+		finalMarking = new byte[numPlaces()];
 
 	}
 
@@ -46,12 +43,11 @@ public class SyncProductImpl implements SyncProduct {
 		this.places = places;
 		this.cost = cost;
 
-		this.bm = 1 + (numPlaces() - 1) / 8;
-
 		input = new short[numTransitions()][];
 		output = new short[numTransitions()][];
-		initMarking = new byte[2 * bm];
-		finalMarking = new byte[2 * bm];
+
+		initMarking = new byte[numPlaces()];
+		finalMarking = new byte[numPlaces()];
 
 	}
 
@@ -90,15 +86,15 @@ public class SyncProductImpl implements SyncProduct {
 		setSortedArray(output[t], plist);
 	}
 
-	public void addToOutput(int t, int... p) {
+	public void addToOutput(int t, short... p) {
 		output[t] = Arrays.copyOf(getOutput((short) t), getOutput((short) t).length + p.length);
-		System.arraycopy(p, 0, output[t], output[t].length - p.length - 1, p.length);
+		System.arraycopy(p, 0, output[t], output[t].length - p.length, p.length);
 		Arrays.sort(output[t]);
 	}
 
-	public void addToInput(int t, int... p) {
+	public void addToInput(int t, short... p) {
 		input[t] = Arrays.copyOf(getInput((short) t), getInput((short) t).length + p.length);
-		System.arraycopy(p, 0, input[t], input[t].length - p.length - 1, p.length);
+		System.arraycopy(p, 0, input[t], input[t].length - p.length, p.length);
 		Arrays.sort(input[t]);
 	}
 

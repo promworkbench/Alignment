@@ -1,9 +1,10 @@
 package nl.tue.alignment;
 
-import java.util.Arrays;
-
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
+
+import java.util.Arrays;
+
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.util.HashBackedPriorityQueue;
 import nl.tue.alignment.util.SortedHashBackedPriorityQueue;
@@ -162,19 +163,21 @@ public abstract class ReplayAlgorithm {
 		}
 	}
 
-	private static final int PTRANSLOMASK = 0b11111111000000000000000000000000;
-	private static final int GMASK = 0b00000000111111111111111111111111;
+	//	private static final int PTRANSLOMASK = 0b11111111000000000000000000000000;
 
-	private static final int EXACTMASK = 0b10000000000000000000000000000000;
-	private static final int PTRANSHIMASK = 0b01111111000000000000000000000000;
-	private static final int HMASK = 0b00000000111111111111111111111111;
+	//	private static final int PTRANSHIMASK = 0b01111111000000000000000000000000;
+
+	private static final long EXACTMASK = 0b1000000000000000000000000000000000000000000000000000000000000000L;
+	private static final long HMASK = 0b0000000000000000000000000111111111111111111111111000000000000000L;
+	private static final long GMASK = 0b0111111111111111111111111000000000000000000000000000000000000000L;
+	private static final long PTMASK = 0b0000000000000000000000000000000000000000000000000111111111111111L;
 
 	private static final int CLOSEDMASK = 0b10000000000000000000000000000000;
 	private static final int PMASK = 0b01111111111111111111111111111111;
 
 	protected static final int NOPREDECESSOR = 0b01111111111111111111111111111111;
 
-	protected static int HEURISTICINFINITE = HMASK;
+	protected static int HEURISTICINFINITE = 0b00000000111111111111111111111111;
 
 	/**
 	 * Stores the number of bytes reserved for input and output array. A marking
@@ -229,27 +232,33 @@ public abstract class ReplayAlgorithm {
 	//	protected byte[][] markingLo = new byte[0][];
 	//	protected byte[][] markingHi = new byte[0][];;
 
-	/**
-	 * Stores the true distance to reach a marking in the last 3 bytes. For marking
-	 * m, g[m]&GMASK is the shortest distance so far to reach m
-	 * 
-	 * Also stores part of the predecessor transition (8 lowest bits of 15 total)
-	 * 
-	 */
-	protected int[][] ptl_g = new int[0][];
+	//	/**
+	//	 * Stores the true distance to reach a marking in the last 3 bytes. For marking
+	//	 * m, g[m]&GMASK is the shortest distance so far to reach m
+	//	 * 
+	//	 * Also stores part of the predecessor transition (8 lowest bits of 15 total)
+	//	 * 
+	//	 */
+	//	protected int[][] ptl_g = new int[0][];
+	//
+	//	/**
+	//	 * Stores the heuristic distance to reach the final marking in the last 3 bytes.
+	//	 * For marking m, h[m] & HMASK is an underestimate of the shortest distance to
+	//	 * reach the final marking from m
+	//	 * 
+	//	 * Also stores the estimated heuristic flag. Marking m is in the estimated
+	//	 * heuristic set if h[m]& ESTIMATEDFLAG == ESTIMATEDFLAG.
+	//	 * 
+	//	 * Also stores part of the predecessor transition (7 lowest bits of 14 total)
+	//	 * 
+	//	 */
+	//	protected int[][] e_pth_h = new int[0][];
 
 	/**
-	 * Stores the heuristic distance to reach the final marking in the last 3 bytes.
-	 * For marking m, h[m] & HMASK is an underestimate of the shortest distance to
-	 * reach the final marking from m
-	 * 
-	 * Also stores the estimated heuristic flag. Marking m is in the estimated
-	 * heuristic set if h[m]& ESTIMATEDFLAG == ESTIMATEDFLAG.
-	 * 
-	 * Also stores part of the predecessor transition (7 lowest bits of 14 total)
-	 * 
+	 * For each marking stores: 1 bit: whether it is estimated 24 bit: Value of
+	 * g function 24 bit: Value of h function 15 bit: Predecessor transition
 	 */
-	protected int[][] e_pth_h = new int[0][];
+	protected long[][] e_g_h_pt = new long[0][];
 
 	/**
 	 * Stores the predecessor relation for which the distance so far is minimal.
@@ -258,7 +267,8 @@ public abstract class ReplayAlgorithm {
 	 * 
 	 * For marking m, marking p[m] is the predecessor
 	 * 
-	 * For marking m, it is in the closed set if (p[m] & CLOSEDMASK) == CLOSEDMASK
+	 * For marking m, it is in the closed set if (p[m] & CLOSEDMASK) ==
+	 * CLOSEDMASK
 	 */
 	protected int[][] c_p = new int[0][];
 
@@ -349,7 +359,9 @@ public abstract class ReplayAlgorithm {
 		}
 
 		// Array used internally for firing transitions.
-		newMarking = new byte[product.numPlaces()];
+		firingMarking = new byte[product.numPlaces()];
+		hashCodeMarking = new byte[product.numPlaces()];
+		equalMarking = new byte[product.numPlaces()];
 
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
@@ -380,12 +392,11 @@ public abstract class ReplayAlgorithm {
 	}
 
 	protected long getEstimatedMemorySize() {
-		// g holds         4 + length * 8 + block * (4 + blockSize * 4) bytes;
-		// h holds         4 + length * 8 + block * (4 + blockSize * 4) bytes;
-		// p holds         4 + length * 8 + block * (4 + blockSize * 4) bytes;
+		// e_g_h_pt holds    4 + length * 8 + block * (4 + blockSize * 8) bytes;
+		// c_p holds         4 + length * 8 + block * (4 + blockSize * 4) bytes;
 
 		// each array has 4 bytes overhead for storing the size
-		long val = 3 * 4 + 3 * ptl_g.length * 8 + 3 * block * (4 + blockSize * 4);
+		long val = 2 * 4 + 2 * c_p.length * 8 + block * (8 + blockSize * 12);
 
 		// count the capacity of the queue
 		val += queue.maxBytesUsed();
@@ -435,6 +446,7 @@ public abstract class ReplayAlgorithm {
 			setHScore(b, i, heuristic, true);
 
 			queue.add(0);
+			byte[] marking_m = new byte[numPlaces];
 
 			while (!queue.isEmpty()) {
 
@@ -449,15 +461,8 @@ public abstract class ReplayAlgorithm {
 					return handleFinalMarkingReached(start, m);
 				}
 
-				// add m to the closed set
-				setClosed(bm, im);
-				closedActions++;
 
-				if (debug == Debug.NORMAL && closedActions % 10000 == 0) {
-					writeStatus();
-				}
-
-				byte[] marking_m = getMarking(bm, im);
+				fillMarking(marking_m, bm, im);
 				if (!hasExactHeuristic(bm, im)) {
 					// compute the exact heuristic
 					heuristic = getExactHeuristic(m, marking_m, bm, im);
@@ -481,6 +486,14 @@ public abstract class ReplayAlgorithm {
 					// continue with this marking
 				}
 
+				// add m to the closed set
+				setClosed(bm, im);
+				closedActions++;
+
+				if (debug == Debug.NORMAL && closedActions % 10000 == 0) {
+					writeStatus();
+				}
+
 				//			System.out.println("m" + m + " [" + Utils.print(getMarking(m), net.numPlaces()) + "];");
 
 				// iterate over all transitions
@@ -493,10 +506,10 @@ public abstract class ReplayAlgorithm {
 						edgesTraversed++;
 
 						// t is allowed to fire.
-						byte[] n_array = fire(marking_m, t, bm, im);
+						byte[] marking_n = fire(marking_m, t, bm, im);
 
 						// check if n already reached before
-						int n = visited.add(n_array, block * blockSize + indexInBlock);
+						int n = visited.add(marking_n, block * blockSize + indexInBlock);
 						// adding the marking to the algorithm is handled by the VisitedSet.
 
 						//					System.out.println("   Fire " + t + ": " + Utils.print(getMarking(n), net.numPlaces()));
@@ -504,22 +517,10 @@ public abstract class ReplayAlgorithm {
 						int bn = n >>> blockBit;
 						int in = n & blockMask;
 						if (!isClosed(bn, in)) {
-							boolean add = false;
 
 							// n is a fresh marking, not in the closed set
 							// compute the F score on this path
 							int tmpG = getGScore(bm, im) + net.getCost(t);
-							// update path if GScore equal and transtion lower order
-							if (moveSorting && tmpG == getGScore(bn, in) && getPredecessorTransition(bn, in) > t) {
-								// when sorting moves, enabled transitions are bound to the highest incoming
-								// transition. For equal G score, the highest transition going into a marking is
-								// therefore preferred.
-								debug.writeEdgeTraversed(this, m, t, n, "color=green");
-								setPredecessor(bn, in, m);
-								setPredecessorTransition(bn, in, t);
-
-								add = !preferExact || hasExactHeuristic(bn, in);
-							}
 
 							if (tmpG < getGScore(bn, in)) {
 								debug.writeEdgeTraversed(this, m, t, n);
@@ -649,20 +650,20 @@ public abstract class ReplayAlgorithm {
 	protected abstract boolean isFinal(int marking);
 
 	// Used internally in firing.
-	private transient byte[] newMarking;
+	private transient final byte[] firingMarking;
 
 	protected byte[] fire(byte[] fromMarking, short transition, int block, int index) {
 		// fire transition t in marking stored at block, index
 		// First consumption:
 		short[] input = net.getInput(transition);
 		short[] output = net.getOutput(transition);
-		System.arraycopy(fromMarking, 0, newMarking, 0, numPlaces);
+		System.arraycopy(fromMarking, 0, firingMarking, 0, numPlaces);
 
 		for (int i = input.length; i-- > 0;) {
-			newMarking[input[i]]--;
+			firingMarking[input[i]]--;
 		}
 		for (int i = output.length; i-- > 0;) {
-			newMarking[output[i]]++;
+			firingMarking[output[i]]++;
 		}
 		//		
 		//		for (int i = bm; i-- > 0;) {
@@ -677,7 +678,7 @@ public abstract class ReplayAlgorithm {
 		//			newMarking[bm + i] = (byte) ((newMarking[bm + i] ^ tmp) & 0xFF);
 		//		}
 
-		return newMarking;
+		return firingMarking;
 	}
 
 	protected void unfire(byte[] marking, short transition) {
@@ -739,8 +740,8 @@ public abstract class ReplayAlgorithm {
 	}
 
 	/**
-	 * returns true if there is a place common in the output set of transitionFrom
-	 * and the input set of transitionTo
+	 * returns true if there is a place common in the output set of
+	 * transitionFrom and the input set of transitionTo
 	 * 
 	 * @param transitionFrom
 	 * @param transitionTo
@@ -764,25 +765,29 @@ public abstract class ReplayAlgorithm {
 		return false;
 	}
 
-	private byte[] getMarking(int block, int index) {
-		byte[] marking = new byte[numPlaces];
+	private byte[] fillMarking(byte[] marking, int block, int index) {
 		// add initial marking
 		System.arraycopy(net.getInitialMarking(), 0, marking, 0, numPlaces);
-		// unfire all transitions in the sequence back
-		short t = getPredecessorTransition(block, index);
+		// fire all transitions in the sequence back
+		short t;
 		int m = getPredecessor(block, index);
 		while (m != NOPREDECESSOR) {
+			t = getPredecessorTransition(block, index);
 			block = m >>> blockBit;
 			index = m & blockMask;
 			unfire(marking, t);
 			m = getPredecessor(block, index);
-			t = getPredecessorTransition(block, index);
 		}
 		return marking;
 	}
 
 	public byte[] getMarking(int marking) {
-		return getMarking(marking >>> blockBit, marking & blockMask);
+
+		return fillMarking(new byte[numPlaces], marking >>> blockBit, marking & blockMask);
+	}
+
+	protected void fillMarking(byte[] markingArray, int marking) {
+		fillMarking(markingArray, marking >>> blockBit, marking & blockMask);
 	}
 
 	public int addNewMarking(byte[] marking) {
@@ -811,19 +816,16 @@ public abstract class ReplayAlgorithm {
 	}
 
 	/**
-	 * Grow the internal array structure. Method should be considered synchronized
-	 * as it should not be executed in parallel.
+	 * Grow the internal array structure. Method should be considered
+	 * synchronized as it should not be executed in parallel.
 	 */
 	protected void growArrays() {
-		if (block + 1 >= ptl_g.length) {
-			int newLength = ptl_g.length < 64 ? ptl_g.length * 2 : (ptl_g.length * 3) / 2;
+		if (block + 1 >= c_p.length) {
+			int newLength = c_p.length < 64 ? c_p.length * 2 : (c_p.length * 3) / 2;
 			if (newLength <= block + 1) {
 				newLength = block + 2;
 			}
-			//			markingLo = Arrays.copyOf(markingLo, newLength);
-			//			markingHi = Arrays.copyOf(markingHi, newLength);
-			ptl_g = Arrays.copyOf(ptl_g, newLength);
-			e_pth_h = Arrays.copyOf(e_pth_h, newLength);
+			e_g_h_pt = Arrays.copyOf(e_g_h_pt, newLength);
 			c_p = Arrays.copyOf(c_p, newLength);
 		}
 		// increase the block pointer
@@ -831,15 +833,10 @@ public abstract class ReplayAlgorithm {
 		// reset the index in block
 		indexInBlock = 0;
 
-		//		// markingLo holds blocksize markings of bm bytes each
-		//		markingLo[block] = new byte[blockSize * bm];
-		//		// markingHi holds blocksize markings of bm bytes each
-		//		markingHi[block] = new byte[blockSize * bm];
-		// g holds blocksize costs
-		ptl_g[block] = new int[blockSize];
-		Arrays.fill(ptl_g[block], GMASK);
-		// h holds blocksize estimates
-		e_pth_h[block] = new int[blockSize];
+		// e_g_h_pt holds blocksize values for
+		// estimated, g-score, h-score, predecessor transitions
+		e_g_h_pt[block] = new long[blockSize];
+		Arrays.fill(e_g_h_pt[block], GMASK);
 		// p holds blocksize predecessors
 		c_p[block] = new int[blockSize];
 
@@ -888,7 +885,7 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public int getGScore(int block, int index) {
-		return ptl_g[block][index] & GMASK;
+		return (int) ((e_g_h_pt[block][index] & GMASK) >>> 39);
 	}
 
 	/**
@@ -902,12 +899,13 @@ public abstract class ReplayAlgorithm {
 	 */
 	public void setGScore(int block, int index, int score) {
 		// overwrite the last three bytes of the score.
-		ptl_g[block][index] &= ~GMASK;
-		if ((score & GMASK) != score) {
+		e_g_h_pt[block][index] &= ~GMASK;
+		long scoreL = ((long) score) << 39;
+		if ((scoreL & GMASK) != scoreL) {
 			alignmentResult |= Utils.COSTFUNCTIONOVERFLOW;
-			ptl_g[block][index] |= score & GMASK;
+			e_g_h_pt[block][index] |= scoreL & GMASK;
 		} else {
-			ptl_g[block][index] |= score;
+			e_g_h_pt[block][index] |= scoreL;
 		}
 	}
 
@@ -941,7 +939,7 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public int getHScore(int block, int index) {
-		return e_pth_h[block][index] & HMASK;
+		return (int) ((e_g_h_pt[block][index] & HMASK) >>> 15);
 	}
 
 	/**
@@ -954,14 +952,15 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public void setHScore(int block, int index, int score, boolean isExact) {
-		assert (score & HMASK) == score;
+		long scoreL = ((long) score) << 15;
+		assert (scoreL & HMASK) == scoreL;
 		// overwrite the last three bytes of the score.
-		e_pth_h[block][index] &= ~HMASK; // reset to 0
-		e_pth_h[block][index] |= score; // set score
+		e_g_h_pt[block][index] &= ~HMASK; // reset to 0
+		e_g_h_pt[block][index] |= scoreL; // set score
 		if (isExact) {
-			e_pth_h[block][index] |= EXACTMASK; // set exactFlag
+			e_g_h_pt[block][index] |= EXACTMASK; // set exactFlag
 		} else {
-			e_pth_h[block][index] &= ~EXACTMASK; // clear exactFlag
+			e_g_h_pt[block][index] &= ~EXACTMASK; // clear exactFlag
 
 		}
 	}
@@ -1043,8 +1042,7 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public short getPredecessorTransition(int block, int index) {
-		return (short) (((ptl_g[block][index] & PTRANSLOMASK) >>> 24) | // low bits from g
-				((e_pth_h[block][index] & PTRANSHIMASK) >>> 16)); // high bits from h
+		return (short) (e_g_h_pt[block][index] & PTMASK);
 	}
 
 	/**
@@ -1057,10 +1055,8 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public void setPredecessorTransition(int block, int index, short transition) {
-		ptl_g[block][index] &= ~PTRANSLOMASK; //clear pt bits
-		ptl_g[block][index] |= (transition << 24) & PTRANSLOMASK; //store the high bits of transition
-		e_pth_h[block][index] &= ~PTRANSHIMASK; //clear pt bits
-		e_pth_h[block][index] |= (transition << 16) & PTRANSHIMASK; //store the low bits of transition
+		e_g_h_pt[block][index] &= ~PTMASK; //clear pt bits
+		e_g_h_pt[block][index] |= transition; //clear pt bits
 	}
 
 	/**
@@ -1162,8 +1158,10 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public boolean hasExactHeuristic(int block, int index) {
-		return (e_pth_h[block][index] & EXACTMASK) == EXACTMASK;
+		return (e_g_h_pt[block][index] & EXACTMASK) == EXACTMASK;
 	}
+
+	private transient final byte[] equalMarking;
 
 	/**
 	 * Checks equality of the stored marking1 to the given marking2.
@@ -1178,7 +1176,8 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public boolean equalMarking(int marking1, byte[] marking2) {
-		return Arrays.equals(getMarking(marking1), marking2);
+		fillMarking(equalMarking, marking1);
+		return Arrays.equals(equalMarking, marking2);
 		//		int b = marking1 >>> blockBit;
 		//		int i = marking1 & blockMask;
 		//		return equalMarking(b, i, marking2);
@@ -1195,6 +1194,8 @@ public abstract class ReplayAlgorithm {
 	//		return true;
 	//	}
 
+	private transient final byte[] hashCodeMarking;
+
 	/**
 	 * Returns the hashCode of a stored marking
 	 * 
@@ -1202,7 +1203,8 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public int hashCode(int marking) {
-		return hashCode(getMarking(marking));
+		fillMarking(hashCodeMarking, marking);
+		return hashCode(hashCodeMarking);
 		//		int b = marking >>> blockBit;
 		//		int i = marking & blockMask;
 		//		return hashCodeInternal(markingLo[b], bm * i, bm, markingHi[b], bm * i, bm);
@@ -1210,8 +1212,8 @@ public abstract class ReplayAlgorithm {
 
 	/**
 	 * Returns the hashCode of a stored marking which is provided as an array of
-	 * length 2*bm, where the first bm bytes provide the low bits and the second bm
-	 * bytes provide the high bits.
+	 * length 2*bm, where the first bm bytes provide the low bits and the second
+	 * bm bytes provide the high bits.
 	 * 
 	 * @see SyncProduct.getInitialMarking();
 	 * @param marking
