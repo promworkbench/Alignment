@@ -58,6 +58,10 @@ public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 					// when both markings have exact or inexact heuristics, schedule the largest g score first
 					if (algorithm.getGScore(marking1) > algorithm.getGScore(marking2)) {
 						return true;
+					} else if (algorithm.getGScore(marking1) == algorithm.getGScore(marking2)) {
+						// when they are equal, prefer the lowest predecessor
+						return algorithm.getPredecessorTransition(marking1) < algorithm
+								.getPredecessorTransition(marking2);
 					}
 				}
 			}
