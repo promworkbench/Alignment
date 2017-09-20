@@ -22,6 +22,7 @@ public class Dijkstra extends ReplayAlgorithm {
 
 	public Dijkstra(SyncProduct product, boolean moveSorting, boolean queueSorting, Debug debug) {
 		super(product, moveSorting, queueSorting, true, debug);
+		tempFinalMarking = new byte[numPlaces];
 	}
 
 	/**
@@ -32,13 +33,16 @@ public class Dijkstra extends ReplayAlgorithm {
 		return 0;
 	}
 
+	private final transient byte[] tempFinalMarking;
+
 	/**
 	 * To allow for prefix versions of this algorithm, ask the net if the given
 	 * marking is final.
 	 */
 	@Override
 	protected boolean isFinal(int marking) {
-		return net.isFinalMarking(getMarking(marking));
+		fillMarking(tempFinalMarking, marking);
+		return net.isFinalMarking(tempFinalMarking);
 	}
 
 	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,

@@ -7,8 +7,8 @@ public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 	private final boolean preferExact;
 
 	/**
-	 * Creates a {@code HashBackedPriorityQueue} with the specified initial capacity
-	 * that orders its elements according to the specified comparator.
+	 * Creates a {@code HashBackedPriorityQueue} with the specified initial
+	 * capacity that orders its elements according to the specified comparator.
 	 * 
 	 * @param algorithm
 	 *            the algorithm the queue is used in
@@ -54,13 +54,12 @@ public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 					return true;
 				} else if (b2 && !b1) {
 					return false;
+				} else {
+					// when both markings have exact or inexact heuristics, schedule the largest g score first
+					if (algorithm.getGScore(marking1) > algorithm.getGScore(marking2)) {
+						return true;
+					}
 				}
-			}
-
-			// (second) order sorting on G score
-
-			if (algorithm.getGScore(marking1) > algorithm.getGScore(marking2)) {
-				return true;
 			}
 		}
 		return false;

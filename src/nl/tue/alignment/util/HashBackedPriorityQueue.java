@@ -150,7 +150,7 @@ public class HashBackedPriorityQueue implements Queue {
 		if (s != 0)
 			siftDown(0, x);
 
-		// schrink queue
+		// shrink queue
 		if (queue.length > size * 2) {
 			if (size < initialCapacity * 2 / 3) {
 				queue = Arrays.copyOf(queue, initialCapacity);

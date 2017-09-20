@@ -37,10 +37,10 @@ public class AStar extends ReplayAlgorithm {
 
 	protected final double[] rhf;
 	protected final int bytesUsed;
-	protected LpSolve solver;
 	protected long solveTime = 0;
 	protected final int numRows;
 	protected final int numCols;
+	private LpSolve solver;
 
 	public AStar(SyncProduct product) throws LPMatrixException {
 		this(product, true, true, true, false, Debug.NONE);
@@ -62,10 +62,12 @@ public class AStar extends ReplayAlgorithm {
 				// transition t consumes from place p, hence  incidence matrix
 				// is -1;
 				matrix.adjustMat(input[i], t, -1);
+				assert matrix.getMat(input[i], t) <= 1;
 			}
 			short[] output = net.getOutput(t);
 			for (int i = output.length; i-- > 0;) {
 				matrix.adjustMat(output[i], t, 1);
+				assert matrix.getMat(output[i], t) <= 1;
 			}
 
 			// Use integer variables if specified
@@ -90,14 +92,6 @@ public class AStar extends ReplayAlgorithm {
 			// set the constraint to equality
 			matrix.setConstrType(p, LPMatrix.EQ);
 			rhf[p] = marking[p];
-			//			if ((marking[p] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
-			//				// bit in low bits of the final marking;
-			//				rhf[p] += 1;
-			//			}
-			//			if ((marking[(marking.length / 2) + (p >>> 3)] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
-			//				// bit in high bits of the final marking;
-			//				rhf[p] += 2;
-			//			}
 		}
 		matrix.setMinim();
 		solver = matrix.toSolver();
@@ -113,31 +107,29 @@ public class AStar extends ReplayAlgorithm {
 
 	@Override
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
-		// start from correct right hand side
+		// find an available solver and block until one is available.
 
 		long start = System.nanoTime();
 		try {
+			return getExactHeuristic(solver, marking, markingArray, markingBlock, markingIndex);
+		} finally {
+			solveTime += System.nanoTime() - start;
+		}
+
+	}
+
+	private int getExactHeuristic(LpSolve solver, int marking, byte[] markingArray, int markingBlock, int markingIndex) {
+
+		// start from correct right hand side
+		try {
 			for (int p = net.numPlaces(); p-- > 0;) {
 				// set right hand side to final marking 
-				//				solver.setRh(lp, rhf[p]);
 				solver.setRh(p + 1, rhf[p] - markingArray[p]);
-				//				if ((markingLo[markingBlock][markingIndex * bm + (p >>> 3)] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
-				//					// adjust right hand side by - 1 from current
-				//					solver.setRh(lp, solver.getRh(lp) - 1);
-				//				}
-				//				if ((markingHi[markingBlock][markingIndex * bm + (p >>> 3)] & (Utils.BYTEHIGHBIT >>> (p & 7))) != 0) {
-				//					// adjust right hand side by - 2 from current
-				//					solver.setRh(lp, solver.getRh(lp) - 2);
-				//				}
-			}
-			heuristicsComputed++;
-
-			if (debug == Debug.NORMAL && heuristicsComputed % 10000 == 0) {
-				writeStatus();
 			}
 
 			solver.defaultBasis();
 			int solverResult = solver.solve();
+			heuristicsComputed++;
 
 			//			if (solverResult == LpSolve.INFEASIBLE || solverResult == LpSolve.NUMFAILURE) {
 			//				// BVD: LpSolve has the tendency to give false infeasible or numfailure answers. 
@@ -165,6 +157,7 @@ public class AStar extends ReplayAlgorithm {
 				// assume precision 1E-9 and round down
 				return (int) (c + 1E-9);
 			} else if (solverResult == LpSolve.INFEASIBLE) {
+				
 				return HEURISTICINFINITE;
 			} else {
 				//					lp.writeLp("D:/temp/alignment/debugLP-Alignment.lp");
@@ -174,9 +167,6 @@ public class AStar extends ReplayAlgorithm {
 
 		} catch (LpSolveException e) {
 			return HEURISTICINFINITE;
-
-		} finally {
-			solveTime += System.nanoTime() - start;
 		}
 
 	}
@@ -274,6 +264,7 @@ public class AStar extends ReplayAlgorithm {
 			if (to >= lpSolutions.length) {
 				growArray(to);
 			}
+
 			setDerivedLpSolution(from, to, transition);
 			// set the exact h score
 			setHScore(toBlock, toIndex, getHScore(fromBlock, fromIndex) - net.getCost(transition), true);

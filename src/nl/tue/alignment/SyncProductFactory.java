@@ -62,7 +62,7 @@ public class SyncProductFactory {
 		SyncProduct[] result = new SyncProduct[log.size() + 1];
 		XTrace trace;
 		int startAt = -1;
-		int endAt = 1;
+		int endAt = 5;
 		for (int tr = startAt; tr < endAt && tr < log.size(); tr++) {
 			System.out.print("Adding trace: ");
 			if (tr == -1) {
@@ -120,6 +120,15 @@ public class SyncProductFactory {
 					(String[]) places.toArray(new String[0]), costs.toArray());
 
 			for (short t = 0; t < transitions.length; t++) {
+				if (trans2events.get(t) != null) {
+					for (long sm_e : trans2events.get(t).toArray()) {
+						int smt = (int) ((sm_e >>> 32) & 0xFFFFFFFF);
+						int e = (int) (sm_e & 0xFFFFFFFF);
+						// there's a synchronous product of t with event e which is transition sm
+						product.addToOutput(smt, (short) (placeLabels.length + e + 1));
+						product.addToInput(smt, (short) (placeLabels.length + e));
+					}
+				}
 				for (short p = 0; p < placeList.length; p++) {
 					Arc arc = net.getArc(transitions[t], placeList[p]);
 					if (arc != null) {
@@ -129,10 +138,9 @@ public class SyncProductFactory {
 							product.addToOutput(t, p);
 							if (trans2events.get(t) != null) {
 								for (long sm_e : trans2events.get(t).toArray()) {
-									int smt = (int) (sm_e >>> 32) & 0xFFFFFFFF;
-									int e = (int) (sm_e & 0xFFFFFFFF);
+									int smt = (int) ((sm_e >>> 32) & 0xFFFFFFFF);
 									// there's a synchronous product of t with event e which is transition sm
-									product.addToOutput(smt, p, (short) (placeLabels.length + e + 1));
+									product.addToOutput(smt, p);
 								}
 							}
 						} while (++i < arc.getWeight());
@@ -148,7 +156,7 @@ public class SyncProductFactory {
 									int smt = (int) (sm_e >>> 32) & 0xFFFFFFFF;
 									int e = (int) (sm_e & 0xFFFFFFFF);
 									// there's a synchronous product of t with event e which is transition sm
-									product.addToInput(smt, p, (short) (placeLabels.length + e));
+									product.addToInput(smt, p);
 								}
 							}
 						} while (++i < arc.getWeight());

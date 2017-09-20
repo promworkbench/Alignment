@@ -169,7 +169,9 @@ public abstract class ReplayAlgorithm {
 
 	private static final long EXACTMASK = 0b1000000000000000000000000000000000000000000000000000000000000000L;
 	private static final long HMASK = 0b0000000000000000000000000111111111111111111111111000000000000000L;
+	private static final int HSHIFT = 15;
 	private static final long GMASK = 0b0111111111111111111111111000000000000000000000000000000000000000L;
+	private static final int GSHIFT = 39;
 	private static final long PTMASK = 0b0000000000000000000000000000000000000000000000000111111111111111L;
 
 	private static final int CLOSEDMASK = 0b10000000000000000000000000000000;
@@ -446,24 +448,31 @@ public abstract class ReplayAlgorithm {
 			setHScore(b, i, heuristic, true);
 
 			queue.add(0);
+			assert queue.size() == markingsReached - closedActions;
+
 			byte[] marking_m = new byte[numPlaces];
 
 			while (!queue.isEmpty()) {
 
-				// get the most promising marking m
+				assert queue.size() == markingsReached - closedActions;
+
 				int m = queue.poll();
 				pollActions++;
 
 				int bm = m >>> blockBit;
 				int im = m & blockMask;
 
+				if (debug == Debug.NORMAL && pollActions % 10000 == 0) {
+					writeStatus();
+				}
+
 				if (isFinal(m)) {
 					return handleFinalMarkingReached(start, m);
 				}
 
-
 				fillMarking(marking_m, bm, im);
 				if (!hasExactHeuristic(bm, im)) {
+
 					// compute the exact heuristic
 					heuristic = getExactHeuristic(m, marking_m, bm, im);
 
@@ -471,28 +480,30 @@ public abstract class ReplayAlgorithm {
 						// marking from which final marking is unreachable
 						// ignore state and continue
 
+						// set the score to exact score
+						setHScore(bm, im, heuristic, true);
+						setClosed(im, im);
+						closedActions++;
+
 						continue;
 					} else if (heuristic > getHScore(bm, im)) {
-						// if the heuristic is higher, set the score
+						// if the heuristic is higher push the head of the queue down
+						// set the score to exact score
 						setHScore(bm, im, heuristic, true);
-						// push the head of the queue down
 
 						queue.add(m);
 						queueActions++;
+
 						continue;
 					}
+					// continue with this marking
 					// set the score to exact score
 					setHScore(bm, im, heuristic, true);
-					// continue with this marking
 				}
 
 				// add m to the closed set
 				setClosed(bm, im);
 				closedActions++;
-
-				if (debug == Debug.NORMAL && closedActions % 10000 == 0) {
-					writeStatus();
-				}
 
 				//			System.out.println("m" + m + " [" + Utils.print(getMarking(m), net.numPlaces()) + "];");
 
@@ -540,7 +551,6 @@ public abstract class ReplayAlgorithm {
 								// update position of n in the queue
 								queue.add(n);
 								queueActions++;
-
 							} else if (preferExact && !hasExactHeuristic(bn, in)) {
 								//tmpG >= getGScore(n), i.e. we reached state n through a longer path.
 
@@ -558,7 +568,7 @@ public abstract class ReplayAlgorithm {
 									queueActions++;
 								}
 							} else {
-								debug.writeEdgeTraversed(this, m, t, n, "color=gray");
+								debug.writeEdgeTraversed(this, m, t, n, "color=purple");
 							}
 						} else {
 							debug.writeEdgeTraversed(this, m, t, n, "color=gray");
@@ -806,13 +816,22 @@ public abstract class ReplayAlgorithm {
 	}
 
 	protected void writeStatus() {
-		debug.writeDebugInfo(Debug.NORMAL, "Markings reached:   " + String.format("%,d", markingsReached));
+		debug.writeDebugInfo(Debug.NORMAL, "Markings polled:   " + String.format("%,d", pollActions));
+		debug.writeDebugInfo(Debug.NORMAL, "   Markings reached:" + String.format("%,d", markingsReached));
+		debug.writeDebugInfo(Debug.NORMAL, "   Markings closed: " + String.format("%,d", closedActions));
 		debug.writeDebugInfo(Debug.NORMAL, "   FScore head:     " + getFScore(queue.peek()) + " = G: "
 				+ getGScore(queue.peek()) + " + H: " + getHScore(queue.peek()));
-		debug.writeDebugInfo(Debug.NORMAL, "   Queue size:      " + queue.size());
-		debug.writeDebugInfo(Debug.NORMAL, "   Queue actions:   " + queueActions);
-		debug.writeDebugInfo(Debug.NORMAL, "   Heuristics compu:" + heuristicsComputed);
+		debug.writeDebugInfo(Debug.NORMAL, "   Queue size:      " + String.format("%,d", queue.size()));
+		debug.writeDebugInfo(Debug.NORMAL, "   Queue actions:   " + String.format("%,d", queueActions));
+		debug.writeDebugInfo(Debug.NORMAL, "   Heuristics compu:" + String.format("%,d", heuristicsComputed));
+		debug.writeDebugInfo(Debug.NORMAL, "   Heuristics deriv:" + String.format("%,d", heuristicsDerived));
+		debug.writeDebugInfo(
+				Debug.NORMAL,
+				"   Heuristics est  :"
+						+ String.format("%,d", (markingsReached - heuristicsComputed - heuristicsDerived)));
 		debug.writeDebugInfo(Debug.NORMAL, "   Estimated memory:" + String.format("%,d", getEstimatedMemorySize()));
+		double time = (System.nanoTime() - startConstructor) / 1000000.0;
+		debug.writeDebugInfo(Debug.NORMAL, "   Time (ms):       " + String.format("%,f", time));
 	}
 
 	/**
@@ -885,7 +904,7 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public int getGScore(int block, int index) {
-		return (int) ((e_g_h_pt[block][index] & GMASK) >>> 39);
+		return (int) ((e_g_h_pt[block][index] & GMASK) >>> GSHIFT);
 	}
 
 	/**
@@ -900,7 +919,7 @@ public abstract class ReplayAlgorithm {
 	public void setGScore(int block, int index, int score) {
 		// overwrite the last three bytes of the score.
 		e_g_h_pt[block][index] &= ~GMASK;
-		long scoreL = ((long) score) << 39;
+		long scoreL = ((long) score) << GSHIFT;
 		if ((scoreL & GMASK) != scoreL) {
 			alignmentResult |= Utils.COSTFUNCTIONOVERFLOW;
 			e_g_h_pt[block][index] |= scoreL & GMASK;
@@ -939,7 +958,7 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public int getHScore(int block, int index) {
-		return (int) ((e_g_h_pt[block][index] & HMASK) >>> 15);
+		return (int) ((e_g_h_pt[block][index] & HMASK) >>> HSHIFT);
 	}
 
 	/**
@@ -952,7 +971,7 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public void setHScore(int block, int index, int score, boolean isExact) {
-		long scoreL = ((long) score) << 15;
+		long scoreL = ((long) score) << HSHIFT;
 		assert (scoreL & HMASK) == scoreL;
 		// overwrite the last three bytes of the score.
 		e_g_h_pt[block][index] &= ~HMASK; // reset to 0
@@ -1122,18 +1141,6 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public abstract int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex);
-
-	/**
-	 * Get the exact heuristic for a state that is currently estimated
-	 * 
-	 * @param marking
-	 * @param markingBlock
-	 * @param markingIndex
-	 * @return
-	 */
-	protected int getExactHeuristicForEstimated(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
-		return getExactHeuristic(marking, markingArray, markingBlock, markingIndex);
-	}
 
 	/**
 	 * returns true if the heuristic stored for the given marking is exact or an
