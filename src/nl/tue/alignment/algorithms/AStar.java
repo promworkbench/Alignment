@@ -3,6 +3,9 @@ package nl.tue.alignment.algorithms;
 import gnu.trove.map.TObjectIntMap;
 
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
@@ -10,6 +13,7 @@ import nl.tue.alignment.ReplayAlgorithm;
 import nl.tue.alignment.SyncProduct;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
+import nl.tue.astar.util.LPProblemProvider;
 import nl.tue.astar.util.ilp.LPMatrix;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
@@ -24,6 +28,62 @@ import nl.tue.astar.util.ilp.LPMatrixException;
  * 
  */
 public class AStar extends ReplayAlgorithm {
+
+	private final class BlockMonitor implements Runnable {
+
+		private int currentBlock;
+
+		public BlockMonitor(int currentBlock) {
+			this.currentBlock = currentBlock;
+		}
+
+		public void run() {
+			int b = currentBlock;
+			int i = 0;
+			do {
+				int m = b * blockSize + i;
+				if (m < markingsReached) {
+					getLockForComputingEstimate(b, i);
+					if (!isClosed(b, i)) {
+						// the marking was not closed yet
+
+						// obtain a lock
+						// there is a marking at index i
+						if (!hasExactHeuristic(b, i)) {
+							LpSolve solver = provider.firstAvailable();
+							int heuristic;
+							try {
+								heuristic = getExactHeuristic(solver, m, getMarking(m), b, i);
+							} finally {
+								provider.finished(solver);
+							}
+							if (heuristic > getHScore(b, i)) {
+								setHScore(b, i, heuristic, true);
+								// sort the marking in the queue
+								assert queue.contains(m);
+								queue.add(m);
+								queueActions++;
+							} else {
+								setHScore(b, i, heuristic, true);
+							}
+						}
+					}
+					releaseLockForComputingEstimate(b, i);
+					i++;
+				} else {
+					synchronized (e_g_h_pt[b]) {
+						try {
+							e_g_h_pt[b].wait(200);
+						} catch (InterruptedException e) {
+						}
+					}
+				}
+			} while (!threadpool.isShutdown() && i < blockSize);
+		}
+	}
+
+	private ExecutorService threadpool = Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime()
+			.availableProcessors() / 2 - 1));
 
 	protected static final byte COMPUTED = 0;
 	protected static final byte DERIVED = 1;
@@ -40,7 +100,8 @@ public class AStar extends ReplayAlgorithm {
 	protected long solveTime = 0;
 	protected final int numRows;
 	protected final int numCols;
-	private LpSolve solver;
+
+	private final LPProblemProvider provider;
 
 	public AStar(SyncProduct product) throws LPMatrixException {
 		this(product, true, true, true, false, Debug.NONE);
@@ -94,13 +155,23 @@ public class AStar extends ReplayAlgorithm {
 			rhf[p] = marking[p];
 		}
 		matrix.setMinim();
-		solver = matrix.toSolver();
-		bytesUsed = matrix.bytesUsed();
+		try {
+			provider = new LPProblemProvider(matrix.toSolver(), (Runtime.getRuntime().availableProcessors() + 1) / 2);
+		} catch (LpSolveException e) {
+			throw new LPMatrixException(e);
+		}
+		bytesUsed = matrix.bytesUsed() * (Runtime.getRuntime().availableProcessors() + 1) / 2;
 		numCols = net.numTransitions() + 1;
 		vars = new double[net.numTransitions()];
 
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 
+	}
+
+	@Override
+	protected void growArrays() {
+		super.growArrays();
+		threadpool.submit(new BlockMonitor(block));
 	}
 
 	protected double[] vars;
@@ -110,10 +181,12 @@ public class AStar extends ReplayAlgorithm {
 		// find an available solver and block until one is available.
 
 		long start = System.nanoTime();
+		LpSolve solver = provider.firstAvailable();
 		try {
 			return getExactHeuristic(solver, marking, markingArray, markingBlock, markingIndex);
 		} finally {
 			solveTime += System.nanoTime() - start;
+			provider.finished(solver);
 		}
 
 	}
@@ -157,7 +230,7 @@ public class AStar extends ReplayAlgorithm {
 				// assume precision 1E-9 and round down
 				return (int) (c + 1E-9);
 			} else if (solverResult == LpSolve.INFEASIBLE) {
-				
+
 				return HEURISTICINFINITE;
 			} else {
 				//					lp.writeLp("D:/temp/alignment/debugLP-Alignment.lp");
@@ -179,13 +252,13 @@ public class AStar extends ReplayAlgorithm {
 		return c;
 	}
 
-	protected void growArray(int marking) {
+	protected synchronized void growArray(int marking) {
 		// grow lpSolutions by a single block at the time.
 		lpSolutions = Arrays.copyOf(lpSolutions, marking + DEFAULTARRAYSIZE);
 		lpSolutionsSize += DEFAULTARRAYSIZE * 8;
 	}
 
-	protected int getLpSolution(int marking, short transition) {
+	protected synchronized int getLpSolution(int marking, short transition) {
 		if (lpSolutions[marking][0] != DERIVED) {
 			return lpSolutions[marking][transition + 1] & 0xFF;
 		} else {
@@ -200,7 +273,7 @@ public class AStar extends ReplayAlgorithm {
 
 	}
 
-	protected boolean isDerivedLpSolution(int marking) {
+	protected synchronized boolean isDerivedLpSolution(int marking) {
 		return lpSolutions[marking] != null && lpSolutions[marking][0] != COMPUTED;
 	}
 
@@ -209,7 +282,7 @@ public class AStar extends ReplayAlgorithm {
 	//	}
 	//
 
-	protected void setDerivedLpSolution(int from, int to, short transition) {
+	protected synchronized void setDerivedLpSolution(int from, int to, short transition) {
 		assert lpSolutions[to] == null;
 		if (numRows > 48) {
 			// only use 7 bytes if this indeed saves memory, i.e. if there is more than
@@ -230,7 +303,7 @@ public class AStar extends ReplayAlgorithm {
 		lpSolutionsSize += 4 + lpSolutions[to].length;
 	}
 
-	protected void setNewLpSolution(int marking, double[] solution) {
+	protected synchronized void setNewLpSolution(int marking, double[] solution) {
 		assert lpSolutions[marking] == null;
 		lpSolutions[marking] = new byte[solution.length + 1];
 		lpSolutions[marking][0] = COMPUTED;
@@ -332,7 +405,14 @@ public class AStar extends ReplayAlgorithm {
 
 	protected void terminateRun() {
 		super.terminateRun();
-		solver.deleteAndRemoveLp();
+		threadpool.shutdown();
+		while (!threadpool.isTerminated()) {
+			try {
+				threadpool.awaitTermination(100, TimeUnit.MILLISECONDS);
+			} catch (InterruptedException e) {
+			}
+		}
+		provider.deleteLps();
 	}
 
 }

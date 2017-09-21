@@ -98,7 +98,7 @@ public class HashBackedPriorityQueue implements Queue {
 		return this.maxCost;
 	}
 
-	public boolean contains(int marking) {
+	public synchronized boolean contains(int marking) {
 		return (locationMap.get(marking) != NEV);
 	}
 
@@ -138,7 +138,7 @@ public class HashBackedPriorityQueue implements Queue {
 		return size;
 	}
 
-	public int poll() {
+	public synchronized int poll() {
 		if (size == 0)
 			return NEV;
 		int s = --size;
@@ -181,7 +181,7 @@ public class HashBackedPriorityQueue implements Queue {
 	 * @throws NullPointerException
 	 *             if the specified element is null
 	 */
-	public boolean add(int marking) {
+	public synchronized boolean add(int marking) {
 		if (algorithm.getFScore(marking) > maxCost) {
 			return false;
 		}

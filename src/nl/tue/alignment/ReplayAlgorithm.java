@@ -168,24 +168,19 @@ public abstract class ReplayAlgorithm {
 	//	private static final int PTRANSHIMASK = 0b01111111000000000000000000000000;
 
 	private static final long EXACTMASK = 0b1000000000000000000000000000000000000000000000000000000000000000L;
-	private static final long HMASK = 0b0000000000000000000000000111111111111111111111111000000000000000L;
-	private static final int HSHIFT = 15;
-	private static final long GMASK = 0b0111111111111111111111111000000000000000000000000000000000000000L;
-	private static final int GSHIFT = 39;
-	private static final long PTMASK = 0b0000000000000000000000000000000000000000000000000111111111111111L;
+	private static final long COMPUTINGMASK = 0b0100000000000000000000000000000000000000000000000000000000000000L;
+	private static final long HMASK = 0b0000000000000000000000000011111111111111111111111100000000000000L;
+	private static final int HSHIFT = 14;
+	private static final long GMASK = 0b0011111111111111111111111100000000000000000000000000000000000000L;
+	private static final int GSHIFT = 38;
+	private static final long PTMASK = 0b0000000000000000000000000000000000000000000000000011111111111111L;
 
 	private static final int CLOSEDMASK = 0b10000000000000000000000000000000;
 	private static final int PMASK = 0b01111111111111111111111111111111;
 
-	protected static final int NOPREDECESSOR = 0b01111111111111111111111111111111;
+	protected static final int NOPREDECESSOR = PMASK;
 
 	protected static int HEURISTICINFINITE = 0b00000000111111111111111111111111;
-
-	/**
-	 * Stores the number of bytes reserved for input and output array. A marking
-	 * takes twice this number of bytes.
-	 */
-	protected final int bm;
 
 	/**
 	 * Stores the blockSize as a power of 2
@@ -211,50 +206,6 @@ public abstract class ReplayAlgorithm {
 	 * Stores the first new index in current block
 	 */
 	protected int indexInBlock;
-
-	//	/**
-	//	 * Stores the low bits of the markings marking m is stored at
-	//	 * markingLo[bm*m]..markingLo[bm*m+bm-1] and
-	//	 * markingHi[bm*m]..markingHi[bm*m+bm-1]
-	//	 * 
-	//	 * if a place p is marked with 0 tokens: markingLo[bm*m + p/8] & (FLAG >>>
-	//	 * (p%8)) == 0 markingHi[bm*m + p/8] & (1 >>> (p%8)) == 0
-	//	 * 
-	//	 * if a place p is marked with 1 token: markingLo[bm*m + p/8] & (FLAG >>>
-	//	 * (p%8)) == 1 markingHi[bm*m + p/8] & (1 >>> (p%8)) == 0
-	//	 * 
-	//	 * if a place p is marked with 2 tokens: markingLo[bm*m + p/8] & (FLAG >>>
-	//	 * (p%8)) == 0 markingHi[bm*m + p/8] & (1 >>> (p%8)) == 1
-	//	 * 
-	//	 * if a place p is marked with 3 tokens: markingLo[bm*m + p/8] & (FLAG >>>
-	//	 * (p%8)) == 1 markingHi[bm*m + p/8] & (1 >>> (p%8)) == 1
-	//	 * 
-	//	 * Note (p%8) = (p&7)
-	//	 */
-	//	protected byte[][] markingLo = new byte[0][];
-	//	protected byte[][] markingHi = new byte[0][];;
-
-	//	/**
-	//	 * Stores the true distance to reach a marking in the last 3 bytes. For marking
-	//	 * m, g[m]&GMASK is the shortest distance so far to reach m
-	//	 * 
-	//	 * Also stores part of the predecessor transition (8 lowest bits of 15 total)
-	//	 * 
-	//	 */
-	//	protected int[][] ptl_g = new int[0][];
-	//
-	//	/**
-	//	 * Stores the heuristic distance to reach the final marking in the last 3 bytes.
-	//	 * For marking m, h[m] & HMASK is an underestimate of the shortest distance to
-	//	 * reach the final marking from m
-	//	 * 
-	//	 * Also stores the estimated heuristic flag. Marking m is in the estimated
-	//	 * heuristic set if h[m]& ESTIMATEDFLAG == ESTIMATEDFLAG.
-	//	 * 
-	//	 * Also stores part of the predecessor transition (7 lowest bits of 14 total)
-	//	 * 
-	//	 */
-	//	protected int[][] e_pth_h = new int[0][];
 
 	/**
 	 * For each marking stores: 1 bit: whether it is estimated 24 bit: Value of
@@ -334,19 +285,9 @@ public abstract class ReplayAlgorithm {
 		this.numPlaces = product.numPlaces();
 		this.net = product;
 		this.moveSorting = moveSorting;
-		// compute how many bytes are needed to store 1 bit per place
-		this.bm = 1 + (product.numPlaces() - 1) / 8;
-		// set the blocksize such that each array fits within the
-		// DEFAULTBLOCKSIZE, but it should be able to hold at least 2 markings
-		int blocks = Math.max(Utils.DEFAULTBLOCKSIZE / bm, 2 * bm);
-		int s = 1;
-		int t = 0;
-		while (blocks > s) {
-			s = s << 1;
-			t++;
-		}
-		this.blockBit = t;
-		this.blockSize = s;
+
+		this.blockBit = 8;
+		this.blockSize = Utils.DEFAULTBLOCKSIZE;
 		this.blockMask = blockSize - 1;
 
 		this.visited = new VisitedHashSet(this, Utils.DEFAULTVISITEDSIZE);
@@ -438,14 +379,19 @@ public abstract class ReplayAlgorithm {
 			byte[] initialMarking = net.getInitialMarking();
 			// add to the set of markings
 			int pos = addNewMarking(initialMarking);
+			markingsReached++;
+
 			int b = pos >>> blockBit;
 			int i = pos & blockMask;
 			// set predecessor to null
 			setPredecessor(b, i, NOPREDECESSOR);
 			setPredecessorTransition(b, i, (short) 0);
 			setGScore(b, i, 0);
+
+			getLockForComputingEstimate(b, i);
 			int heuristic = getExactHeuristic(0, initialMarking, b, i);
 			setHScore(b, i, heuristic, true);
+			releaseLockForComputingEstimate(b, i);
 
 			queue.add(0);
 			assert queue.size() == markingsReached - closedActions;
@@ -456,17 +402,26 @@ public abstract class ReplayAlgorithm {
 
 				assert queue.size() == markingsReached - closedActions;
 
-				int m = queue.poll();
-				pollActions++;
-
+				int m = queue.peek();
 				int bm = m >>> blockBit;
 				int im = m & blockMask;
+
+				getLockForComputingEstimate(bm, im);
+				if (m != queue.peek()) {
+					// a parallel thread may have demoted m because the heuristic
+					// changed from estimated to exact.
+					releaseLockForComputingEstimate(bm, im);
+					continue;
+				}
 
 				if (debug == Debug.NORMAL && pollActions % 10000 == 0) {
 					writeStatus();
 				}
+				m = queue.poll();
+				pollActions++;
 
 				if (isFinal(m)) {
+					releaseLockForComputingEstimate(bm, im);
 					return handleFinalMarkingReached(start, m);
 				}
 
@@ -485,6 +440,7 @@ public abstract class ReplayAlgorithm {
 						setClosed(im, im);
 						closedActions++;
 
+						releaseLockForComputingEstimate(bm, im);
 						continue;
 					} else if (heuristic > getHScore(bm, im)) {
 						// if the heuristic is higher push the head of the queue down
@@ -494,6 +450,7 @@ public abstract class ReplayAlgorithm {
 						queue.add(m);
 						queueActions++;
 
+						releaseLockForComputingEstimate(bm, im);
 						continue;
 					}
 					// continue with this marking
@@ -504,6 +461,9 @@ public abstract class ReplayAlgorithm {
 				// add m to the closed set
 				setClosed(bm, im);
 				closedActions++;
+
+				// release the lock after potentially closing the marking
+				releaseLockForComputingEstimate(bm, im);
 
 				//			System.out.println("m" + m + " [" + Utils.print(getMarking(m), net.numPlaces()) + "];");
 
@@ -520,13 +480,20 @@ public abstract class ReplayAlgorithm {
 						byte[] marking_n = fire(marking_m, t, bm, im);
 
 						// check if n already reached before
-						int n = visited.add(marking_n, block * blockSize + indexInBlock);
+						int newIndex = block * blockSize + indexInBlock;
+						int n = visited.add(marking_n, newIndex);
 						// adding the marking to the algorithm is handled by the VisitedSet.
-
-						//					System.out.println("   Fire " + t + ": " + Utils.print(getMarking(n), net.numPlaces()));
 
 						int bn = n >>> blockBit;
 						int in = n & blockMask;
+						getLockForComputingEstimate(bn, in);
+
+						if (n == newIndex) {
+							markingsReached++;
+						}
+
+						//					System.out.println("   Fire " + t + ": " + Utils.print(getMarking(n), net.numPlaces()));
+
 						if (!isClosed(bn, in)) {
 
 							// n is a fresh marking, not in the closed set
@@ -551,22 +518,23 @@ public abstract class ReplayAlgorithm {
 								// update position of n in the queue
 								queue.add(n);
 								queueActions++;
-							} else if (preferExact && !hasExactHeuristic(bn, in)) {
+
+								releaseLockForComputingEstimate(bn, in);
+							} else if (!hasExactHeuristic(bn, in)) {
 								//tmpG >= getGScore(n), i.e. we reached state n through a longer path.
 
 								// G shore might not be an improvement, but see if we can derive the 
-								// H score. //TODO: Currently only if preferExact is true. This can 
-								// be changed, but requires the priority queue to support demotion
-								// of elements instead of only promotion, since H can only increase.
+								// H score. 
 								deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
+
 								if (hasExactHeuristic(bn, in)) {
 									debug.writeEdgeTraversed(this, m, t, n, "color=blue");
 									// marking is now exact and was not before. 
-									// if not in the queue yet (preferExact) queue now.
-									assert !queue.contains(n);
+									assert queue.contains(n);
 									queue.add(n);
 									queueActions++;
 								}
+								releaseLockForComputingEstimate(bn, in);
 							} else {
 								debug.writeEdgeTraversed(this, m, t, n, "color=purple");
 							}
@@ -802,7 +770,6 @@ public abstract class ReplayAlgorithm {
 
 	public int addNewMarking(byte[] marking) {
 		// allocate space for writing marking information in the block
-		markingsReached++;
 		int pos = block * blockSize + indexInBlock;
 		//		System.arraycopy(marking, 0, markingLo[block], bm * indexInBlock, bm);
 		//		System.arraycopy(marking, bm, markingHi[block], bm * indexInBlock, bm);
@@ -1166,6 +1133,67 @@ public abstract class ReplayAlgorithm {
 	 */
 	public boolean hasExactHeuristic(int block, int index) {
 		return (e_g_h_pt[block][index] & EXACTMASK) == EXACTMASK;
+	}
+
+	/**
+	 * Signal that we intent to start computing an estimate for a specific
+	 * marking
+	 * 
+	 * If the marking already has an exact estimate or is already closed, this
+	 * method returns without changing anything.
+	 * 
+	 * If the marking is not exact and currently not computing, this method
+	 * flags the marking to the computing state and returns
+	 * 
+	 * If the marking is not exact and the computing flag is set, this method
+	 * blocks until the computing flag is released. After this, the marking may
+	 * have an exact heuristic, but it may also be an estimated one.
+	 * 
+	 * A lock that is acquired should be released after setting the new exact
+	 * heuristic value
+	 * 
+	 * @param b
+	 * @param i
+	 */
+	protected void getLockForComputingEstimate(int b, int i) {
+		synchronized (e_g_h_pt[b]) {
+			if (isClosed(b, i) || hasExactHeuristic(b, i)) {
+				// return without change
+				return;
+			}
+			if ((e_g_h_pt[b][i] & COMPUTINGMASK) != COMPUTINGMASK) {
+				// set the computing flag
+				e_g_h_pt[b][i] |= COMPUTINGMASK;
+				e_g_h_pt[b].notifyAll();
+				return;
+			}
+			while (isComputing(b, i)) {
+				// currently computing
+				try {
+					// wait until not computing anymore
+					e_g_h_pt[b].wait(100);
+				} catch (InterruptedException e) {
+				}
+			}
+		}
+	}
+
+	/**
+	 * Signal that we completed computing an exact estimate for a specific
+	 * marking.
+	 * 
+	 * @param b
+	 * @param i
+	 */
+	protected void releaseLockForComputingEstimate(int b, int i) {
+		synchronized (e_g_h_pt[b]) {
+			e_g_h_pt[b][i] &= ~COMPUTINGMASK;
+			e_g_h_pt[b].notifyAll();
+		}
+	}
+
+	protected boolean isComputing(int block, int index) {
+		return (e_g_h_pt[block][index] & COMPUTINGMASK) == COMPUTINGMASK;
 	}
 
 	private transient final byte[] equalMarking;
