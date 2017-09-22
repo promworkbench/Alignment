@@ -121,13 +121,19 @@ public class AlignmentTest {
 	protected static void doTestNewAlignments(Petrinet net, Marking initialMarking, Marking[] finalMarkings, XLog log,
 			Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
 
-		final XEventClassifier eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
-		final XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
-		final XEventClasses classes = summary.getEventClasses();
+		XEventClassifier eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
+		XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
+		XEventClasses classes = summary.getEventClasses();
 
 		SyncProduct[] products = SyncProductFactory.getSyncProduct(net, log, classes, mapping, costMOS, costMOT,
 				new HashMap<Transition, Integer>(1), initialMarking, finalMarkings[0]);
 
+		log = null;
+		net = null;
+		eventClassifier = null;
+		summary = null;
+		classes = null;
+		System.gc();
 		try {
 			long start = System.nanoTime();
 			for (SyncProduct product : products) {

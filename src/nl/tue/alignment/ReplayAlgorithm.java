@@ -1196,7 +1196,7 @@ public abstract class ReplayAlgorithm {
 	protected void releaseLockForComputingEstimate(int b, int i) {
 		synchronized (e_g_h_pt[b]) {
 			e_g_h_pt[b][i] &= ~COMPUTINGMASK;
-			e_g_h_pt[b].notifyAll();
+			e_g_h_pt[b].notify();
 		}
 	}
 

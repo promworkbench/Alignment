@@ -106,7 +106,7 @@ public class AStar extends ReplayAlgorithm {
 	protected static final byte DERIVEDANDSTOREDFULL = (byte) 0b11000000;;
 	protected static final byte BITPERTRANSMASK = (byte) 0b00111000;
 
-	// stores the location of the LP solution plus a flag if it is derived or real
+	// LpSolutions contains the solutions for all markings for which one has been computed
 	protected TIntObjectMap<byte[]> lpSolutions = new TIntObjectHashMap<>(16);
 	protected long lpSolutionsSize = 4;
 
@@ -319,8 +319,8 @@ public class AStar extends ReplayAlgorithm {
 
 			return value;//getSolution(marking)[transition + 1] & 0xFF;
 		} else {
-			int from = solution[2] & 0xFF;
-			for (int i = 3; i < solution.length; i++) {
+			int from = 0;
+			for (int i = 2; i < solution.length; i++) {
 				from <<= 8;
 				from |= solution[i] & 0xFF;
 			}
@@ -340,7 +340,9 @@ public class AStar extends ReplayAlgorithm {
 		assert getSolution(to) == null;
 
 		int bytes = 6;
-		if (from < 256) {
+		if (from == 0) {
+			bytes = 2;
+		} else if (from < 256) {
 			bytes = 3;
 		} else if (from < 65536) {
 			bytes = 4;
@@ -354,7 +356,6 @@ public class AStar extends ReplayAlgorithm {
 			// transition uses at most 14 bits. We use the 6 bits in the first byte
 			// and 8 bits in the second one to store it.
 			byte[] solution = new byte[bytes];
-			addSolution(to, solution);
 
 			solution[0] = DERIVED;
 			solution[0] |= (transition >>> 8) & 0xFF;
@@ -364,14 +365,12 @@ public class AStar extends ReplayAlgorithm {
 				solution[i] = (byte) (from & 0xFF);
 				from >>>= 8;
 			}
+			addSolution(to, solution);
 
 			//			assert (getSolution(to)[0] & DERIVED) == DERIVED;
 
-			lpSolutionsSize += 4 + solution.length;
 		} else {
 			byte[] solution = Arrays.copyOf(solutionFrom, solutionFrom.length);
-			addSolution(to, solution);
-			lpSolutionsSize += 4 + solution.length;
 
 			solution[0] |= DERIVEDANDSTOREDFULL;
 
@@ -393,6 +392,7 @@ public class AStar extends ReplayAlgorithm {
 					// first bit that is 1. Flip and terminate
 					solution[fromByte] ^= lsBit;
 					//					assert getLpSolution(to, transition) == getLpSolution(from, transition) - 1;
+					addSolution(to, solution);
 					return;
 				}
 				// flip and continue;
@@ -429,7 +429,6 @@ public class AStar extends ReplayAlgorithm {
 
 		assert getSolution(marking) == null;
 		byte[] solution = new byte[bytes];
-		addSolution(marking, solution);
 
 		// set the computed flag in the first two bits
 		solution[0] |= STOREDFULL;
@@ -454,15 +453,18 @@ public class AStar extends ReplayAlgorithm {
 			}
 			//			assert getLpSolution(marking, t) == tempForSettingSolution[t];
 		}
-		lpSolutionsSize += 4 + solution.length;
+		addSolution(marking, solution);
 	}
 
 	private byte[] getSolution(int marking) {
+
 		return lpSolutions.get(marking);
+
 	}
 
 	private void addSolution(int marking, byte[] solution) {
 		lpSolutions.put(marking, solution);
+		lpSolutionsSize += 4 + solution.length;
 	}
 
 	/**
@@ -471,14 +473,6 @@ public class AStar extends ReplayAlgorithm {
 	protected boolean isFinal(int marking) {
 		return equalMarking(marking, net.getFinalMarking());
 	}
-
-	//
-	//	/**
-	//	 * In ILP version, only one given final marking is the target.
-	//	 */
-	//	protected boolean isFinal(int block, int index) {
-	//		return equalMarking(block, index, net.getFinalMarking());
-	//	}
 
 	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,
 			int toBlock, int toIndex) {
