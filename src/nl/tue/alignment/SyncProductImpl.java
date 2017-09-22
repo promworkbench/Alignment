@@ -23,6 +23,9 @@ public class SyncProductImpl implements SyncProduct {
 	protected final String label;
 
 	public SyncProductImpl(String label, short numTrans, short numPlaces) {
+		if (numTrans > MAXTRANS) {
+			throw new RuntimeException("More than " + MAXTRANS + " transitions in a synchronous product is not allowed");
+		}
 		this.label = label;
 		this.transitions = new String[numTrans];
 		this.cost = new int[numTrans];

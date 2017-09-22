@@ -215,7 +215,8 @@ public class SmallTests {
 				false, // moveSort on total order
 				false, // queue sorted "depth-first"
 				false, // prefer Exact solution
-				false, //  use Integer
+				false, // use Integer
+				false, // do multithreading
 				Debug.NORMAL // debug mode
 		);
 
@@ -243,6 +244,7 @@ public class SmallTests {
 										queueSort, // queue sorted "depth-first"
 										preferExact, // prefer Exact solution
 										useInt, //  use Integer
+										true, // do multithreading
 										Debug.NONE // debug mode
 								);
 								short[] alignment = algorithm.run();
@@ -289,12 +291,13 @@ public class SmallTests {
 		ReplayAlgorithm algorithm;
 		//INITIALIZATION OF CLASSLOADER FOR PROPER RECORDING OF TIMES.
 		algorithm = new Dijkstra(net, true, true, Debug.NONE);
-		algorithm = new AStar(net, true, true, true, true, Debug.NONE);
+		algorithm = new AStar(net, true, true, true, true, true, Debug.NONE);
 
 		boolean dijkstra = false;
 		boolean moveSort = true; // moveSort on total order
 		boolean queueSort = true; // queue sorted "depth-first"
 		boolean preferExact = true; // prefer Exact solution
+		boolean multiThread = true;
 		boolean useInt = false; //  use Integer
 
 		if (dijkstra) {
@@ -310,6 +313,7 @@ public class SmallTests {
 					queueSort, // queue sorted "depth-first"
 					preferExact, // prefer Exact solution
 					useInt,// use Integers
+					multiThread, // multithreading
 					debug // debug mode
 			);
 		}

@@ -2,16 +2,19 @@ package nl.tue.alignment;
 
 public interface SyncProduct {
 
+	public static final int MAXTRANS = 0b0011111111;
+
 	/**
-	 * Returns the number of transitions. At most 32768 transitions are allowed
-	 * for memory reasons. (i.e. valid transition numbers are 0..32767)
+	 * Returns the number of transitions. At most MAXTRANS transitions are
+	 * allowed for memory reasons. (i.e. valid transition numbers are
+	 * 0..MAXTRANS-1)
 	 * 
 	 * @return
 	 */
 	public short numTransitions();
 
 	/**
-	 * The number of places is in principle bounded by Short.MAX_VALUE
+	 * The number of places is in principle bounded Short.MAX_VALUE
 	 * 
 	 * @return
 	 */

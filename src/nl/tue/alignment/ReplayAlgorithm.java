@@ -388,10 +388,17 @@ public abstract class ReplayAlgorithm {
 			setPredecessorTransition(b, i, (short) 0);
 			setGScore(b, i, 0);
 
+			int heuristic;
+			//			System.out.println("Main waiting for " + b + "," + i);
 			getLockForComputingEstimate(b, i);
-			int heuristic = getExactHeuristic(0, initialMarking, b, i);
-			setHScore(b, i, heuristic, true);
-			releaseLockForComputingEstimate(b, i);
+			//			System.out.println("Main locking " + b + "," + i);
+			try {
+				heuristic = getExactHeuristic(0, initialMarking, b, i);
+				setHScore(b, i, heuristic, true);
+			} finally {
+				releaseLockForComputingEstimate(b, i);
+				//				System.out.println("Main released " + b + "," + i);
+			}
 
 			queue.add(0);
 			assert queue.size() == markingsReached - closedActions;
@@ -406,64 +413,65 @@ public abstract class ReplayAlgorithm {
 				int bm = m >>> blockBit;
 				int im = m & blockMask;
 
+				//				System.out.println("Main waiting for " + bm + "," + im);
 				getLockForComputingEstimate(bm, im);
-				if (m != queue.peek()) {
-					// a parallel thread may have demoted m because the heuristic
-					// changed from estimated to exact.
-					releaseLockForComputingEstimate(bm, im);
-					continue;
-				}
-
-				if (debug == Debug.NORMAL && pollActions % 10000 == 0) {
-					writeStatus();
-				}
-				m = queue.poll();
-				pollActions++;
-
-				if (isFinal(m)) {
-					releaseLockForComputingEstimate(bm, im);
-					return handleFinalMarkingReached(start, m);
-				}
-
-				fillMarking(marking_m, bm, im);
-				if (!hasExactHeuristic(bm, im)) {
-
-					// compute the exact heuristic
-					heuristic = getExactHeuristic(m, marking_m, bm, im);
-
-					if (heuristic == HEURISTICINFINITE) {
-						// marking from which final marking is unreachable
-						// ignore state and continue
-
-						// set the score to exact score
-						setHScore(bm, im, heuristic, true);
-						setClosed(im, im);
-						closedActions++;
-
-						releaseLockForComputingEstimate(bm, im);
-						continue;
-					} else if (heuristic > getHScore(bm, im)) {
-						// if the heuristic is higher push the head of the queue down
-						// set the score to exact score
-						setHScore(bm, im, heuristic, true);
-
-						queue.add(m);
-						queueActions++;
-
-						releaseLockForComputingEstimate(bm, im);
+				//				System.out.println("Main locking " + bm + "," + im);
+				try {
+					if (m != queue.peek()) {
+						// a parallel thread may have demoted m because the heuristic
+						// changed from estimated to exact.
 						continue;
 					}
-					// continue with this marking
-					// set the score to exact score
-					setHScore(bm, im, heuristic, true);
+
+					if (debug == Debug.NORMAL && pollActions % 10000 == 0) {
+						writeStatus();
+					}
+					m = queue.poll();
+					pollActions++;
+
+					if (isFinal(m)) {
+						return handleFinalMarkingReached(start, m);
+					}
+
+					fillMarking(marking_m, bm, im);
+					if (!hasExactHeuristic(bm, im)) {
+
+						// compute the exact heuristic
+						heuristic = getExactHeuristic(m, marking_m, bm, im);
+
+						if (heuristic == HEURISTICINFINITE) {
+							// marking from which final marking is unreachable
+							// ignore state and continue
+
+							// set the score to exact score
+							setHScore(bm, im, heuristic, true);
+							setClosed(im, im);
+							closedActions++;
+
+							continue;
+						} else if (heuristic > getHScore(bm, im)) {
+							// if the heuristic is higher push the head of the queue down
+							// set the score to exact score
+							setHScore(bm, im, heuristic, true);
+
+							queue.add(m);
+							queueActions++;
+
+							continue;
+						}
+						// continue with this marking
+						// set the score to exact score
+						setHScore(bm, im, heuristic, true);
+					}
+
+					// add m to the closed set
+					setClosed(bm, im);
+					closedActions++;
+				} finally {
+					// release the lock after potentially closing the marking
+					releaseLockForComputingEstimate(bm, im);
+					//					System.out.println("Main released " + bm + "," + im);
 				}
-
-				// add m to the closed set
-				setClosed(bm, im);
-				closedActions++;
-
-				// release the lock after potentially closing the marking
-				releaseLockForComputingEstimate(bm, im);
 
 				//			System.out.println("m" + m + " [" + Utils.print(getMarking(m), net.numPlaces()) + "];");
 
@@ -488,62 +496,65 @@ public abstract class ReplayAlgorithm {
 						int in = n & blockMask;
 						getLockForComputingEstimate(bn, in);
 
-						if (n == newIndex) {
-							markingsReached++;
-						}
+						try {
+							if (n == newIndex) {
+								markingsReached++;
+							}
 
-						//					System.out.println("   Fire " + t + ": " + Utils.print(getMarking(n), net.numPlaces()));
+							//					System.out.println("   Fire " + t + ": " + Utils.print(getMarking(n), net.numPlaces()));
 
-						if (!isClosed(bn, in)) {
+							if (!isClosed(bn, in)) {
 
-							// n is a fresh marking, not in the closed set
-							// compute the F score on this path
-							int tmpG = getGScore(bm, im) + net.getCost(t);
+								// n is a fresh marking, not in the closed set
+								// compute the F score on this path
+								int tmpG = getGScore(bm, im) + net.getCost(t);
 
-							if (tmpG < getGScore(bn, in)) {
-								debug.writeEdgeTraversed(this, m, t, n);
+								if (tmpG < getGScore(bn, in)) {
+									debug.writeEdgeTraversed(this, m, t, n);
 
-								// found a shorter path to n.
-								setGScore(bn, in, tmpG);
+									// found a shorter path to n.
+									setGScore(bn, in, tmpG);
 
-								// set predecessor
-								setPredecessor(bn, in, m);
-								setPredecessorTransition(bn, in, t);
+									// set predecessor
+									setPredecessor(bn, in, m);
+									setPredecessorTransition(bn, in, t);
 
-								if (!hasExactHeuristic(bn, in)) {
-									// estimate is not exact, so derive a new estimate (note that h cannot decrease here)
-									deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
-								}
+									if (!hasExactHeuristic(bn, in)) {
+										// estimate is not exact, so derive a new estimate (note that h cannot decrease here)
+										deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
+									}
 
-								// update position of n in the queue
-								queue.add(n);
-								queueActions++;
-
-								releaseLockForComputingEstimate(bn, in);
-							} else if (!hasExactHeuristic(bn, in)) {
-								//tmpG >= getGScore(n), i.e. we reached state n through a longer path.
-
-								// G shore might not be an improvement, but see if we can derive the 
-								// H score. 
-								deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
-
-								if (hasExactHeuristic(bn, in)) {
-									debug.writeEdgeTraversed(this, m, t, n, "color=blue");
-									// marking is now exact and was not before. 
-									assert queue.contains(n);
+									// update position of n in the queue
 									queue.add(n);
 									queueActions++;
+
+								} else if (!hasExactHeuristic(bn, in)) {
+									//tmpG >= getGScore(n), i.e. we reached state n through a longer path.
+
+									// G shore might not be an improvement, but see if we can derive the 
+									// H score. 
+									deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
+
+									if (hasExactHeuristic(bn, in)) {
+										debug.writeEdgeTraversed(this, m, t, n, "color=blue");
+										// marking is now exact and was not before. 
+										assert queue.contains(n);
+										queue.add(n);
+										queueActions++;
+									}
+								} else {
+									debug.writeEdgeTraversed(this, m, t, n, "color=purple");
 								}
-								releaseLockForComputingEstimate(bn, in);
 							} else {
-								debug.writeEdgeTraversed(this, m, t, n, "color=purple");
+								debug.writeEdgeTraversed(this, m, t, n, "color=gray");
 							}
-						} else {
-							debug.writeEdgeTraversed(this, m, t, n, "color=gray");
-						}
-					}
-				}
-			}
+						} finally {
+							releaseLockForComputingEstimate(bn, in);
+						} // end Try processing n
+					} // end If enabled
+				} // end for transitions
+				processedMarking(m, bm, im);
+			} // end While
 			alignmentResult &= ~Utils.OPTIMALALIGNMENT;
 			alignmentResult |= Utils.FAILEDALIGNMENT;
 			runTime = (int) ((System.nanoTime() - start) / 1000);
@@ -560,6 +571,10 @@ public abstract class ReplayAlgorithm {
 
 		}
 
+	}
+
+	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {
+		// skip. Can be used by subclasses to handle
 	}
 
 	protected short[] handleFinalMarkingReached(long startTime, int marking) {
@@ -1157,24 +1172,17 @@ public abstract class ReplayAlgorithm {
 	 */
 	protected void getLockForComputingEstimate(int b, int i) {
 		synchronized (e_g_h_pt[b]) {
-			if (isClosed(b, i) || hasExactHeuristic(b, i)) {
-				// return without change
-				return;
-			}
-			if ((e_g_h_pt[b][i] & COMPUTINGMASK) != COMPUTINGMASK) {
-				// set the computing flag
-				e_g_h_pt[b][i] |= COMPUTINGMASK;
-				e_g_h_pt[b].notifyAll();
-				return;
-			}
 			while (isComputing(b, i)) {
-				// currently computing
+				// currently computing, so lock cannot be obtained
 				try {
 					// wait until not computing anymore
 					e_g_h_pt[b].wait(100);
 				} catch (InterruptedException e) {
 				}
 			}
+			// lock can be obtained
+			// set the computing flag
+			e_g_h_pt[b][i] |= COMPUTINGMASK;
 		}
 	}
 
