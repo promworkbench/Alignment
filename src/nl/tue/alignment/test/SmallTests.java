@@ -1,9 +1,8 @@
 package nl.tue.alignment.test;
 
-import gnu.trove.map.TObjectIntMap;
-
 import java.util.Arrays;
 
+import gnu.trove.map.TObjectIntMap;
 import lpsolve.LpSolve;
 import nl.tue.alignment.ReplayAlgorithm;
 import nl.tue.alignment.ReplayAlgorithm.Debug;
@@ -200,8 +199,8 @@ public class SmallTests {
 
 	public static void main(String[] args) throws LPMatrixException {
 
-		//		testSingleGraph(new SyncProductExampleBook(), Debug.DOT);
-		//		testSingleGraph(new SmallNastySyncProductExample(), Debug.DOT);
+		testSingleGraph(new SyncProductExampleBook(), Debug.DOT);
+		testSingleGraph(new SmallNastySyncProductExample(), Debug.DOT);
 		testSingleGraph(new NastySyncProductExample(), Debug.DOT);
 	}
 

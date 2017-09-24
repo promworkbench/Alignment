@@ -1,14 +1,12 @@
 package nl.tue.alignment.algorithms;
 
-import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
-
-import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import nl.tue.alignment.ReplayAlgorithm;
@@ -101,14 +99,16 @@ public class AStar extends ReplayAlgorithm {
 	// The rest of the array is then the stores solution
 	// For derived solutions, the last 6 bits of the first byte and the second byte store the transition that was fired
 	// the remaining bytes store the offset into the predecessor in as few bytes as possible.
-	protected static final byte STOREDFULL = (byte) 0b01000000;
-	protected static final byte DERIVED = (byte) 0b10000000;
-	protected static final byte DERIVEDANDSTOREDFULL = (byte) 0b11000000;;
-	protected static final byte BITPERTRANSMASK = (byte) 0b00111000;
+	//	protected static final byte STOREDFULL = (byte) 0b00000000;
+	//	protected static final byte DERIVED = (byte) 0b10000000;
+	//	protected static final byte DERIVEDANDSTOREDFULL = (byte) 0b11000000;;
+	protected static final byte BITPERTRANSMASK = (byte) 0b11100000;
+	protected static final int ENDMASK = 3;
 
 	// LpSolutions contains the solutions for all markings for which one has been computed
 	protected TIntObjectMap<byte[]> lpSolutions = new TIntObjectHashMap<>(16);
 	protected long lpSolutionsSize = 4;
+	protected long lpSolutionsCreated = 0;
 
 	protected final double[] rhf;
 	protected int bytesUsed;
@@ -125,8 +125,8 @@ public class AStar extends ReplayAlgorithm {
 		this(product, true, true, true, false, false, Debug.NONE);
 	}
 
-	public AStar(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact,
-			boolean isInteger, boolean doMultiThreading, Debug debug) throws LPMatrixException {
+	public AStar(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact, boolean isInteger,
+			boolean doMultiThreading, Debug debug) throws LPMatrixException {
 		super(product, moveSorting, queueSorting, preferExact, debug);
 		this.doMultiThreading = doMultiThreading;
 		this.numRows = net.numPlaces();
@@ -289,124 +289,127 @@ public class AStar extends ReplayAlgorithm {
 
 	protected synchronized int getLpSolution(int marking, short transition) {
 		byte[] solution = getSolution(marking);
-		if ((solution[0] & STOREDFULL) == STOREDFULL) {
-			// get the bits used per transition
-			int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> 3);
-			// which is the first bit?
-			int fromBit = 5 + transition * bits;
-			// that implies the following byte
-			int fromByte = fromBit >>> 3;
-			// with the following index in byte.
-			fromBit &= 7;
+		//		if ((solution[0] & STOREDFULL) == STOREDFULL) {
+		// get the bits used per transition
+		int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> 3);
+		// which is the first bit?
+		int fromBit = ENDMASK + transition * bits;
+		// that implies the following byte
+		int fromByte = fromBit >>> 3;
+		// with the following index in byte.
+		fromBit &= 7;
 
-			byte currentBit = (byte) (1 << (7 - fromBit));
-			int value = 0;
-			for (int i = 0; i < bits; i++) {
-				// shift value left
-				value <<= 1;
+		byte currentBit = (byte) (1 << (7 - fromBit));
+		int value = 0;
+		for (int i = 0; i < bits; i++) {
+			// shift value left
+			value <<= 1;
 
-				// flip the bit
-				if ((solution[fromByte] & currentBit) != 0)
-					value++;
+			// flip the bit
+			if ((solution[fromByte] & currentBit) != 0)
+				value++;
 
-				// rotate bit right 
-				currentBit = (byte) (((currentBit & 0xFF) >>> 1) | (currentBit << 7));
-				// increase byte if needed.
-				if (currentBit < 0)
-					fromByte++;
+			// rotate bit right 
+			currentBit = (byte) (((currentBit & 0xFF) >>> 1) | (currentBit << 7));
+			// increase byte if needed.
+			if (currentBit < 0)
+				fromByte++;
 
-			}
-
-			return value;//getSolution(marking)[transition + 1] & 0xFF;
-		} else {
-			int from = 0;
-			for (int i = 2; i < solution.length; i++) {
-				from <<= 8;
-				from |= solution[i] & 0xFF;
-			}
-
-			int fired = ((solution[0] & 0b00111111) << 8);
-			fired |= (solution[1] & 0xFF);
-			return getLpSolution(from, transition) - (fired == transition ? 1 : 0);
 		}
 
+		return value;//getSolution(marking)[transition + 1] & 0xFF;
+		//		} else {
+		//			int from = 0;
+		//			for (int i = 2; i < solution.length; i++) {
+		//				from <<= 8;
+		//				from |= solution[i] & 0xFF;
+		//			}
+		//
+		//			int fired = ((solution[0] & 0b00111111) << 8);
+		//			fired |= (solution[1] & 0xFF);
+		//			return getLpSolution(from, transition) - (fired == transition ? 1 : 0);
+		//		}
+
 	}
 
-	protected synchronized boolean isDerivedLpSolution(int marking) {
-		return getSolution(marking) != null && (getSolution(marking)[0] & DERIVED) == DERIVED;
-	}
+	//	protected synchronized boolean isDerivedLpSolution(int marking) {
+	//		return getSolution(marking) != null && (getSolution(marking)[0] & DERIVED) == DERIVED;
+	//	}
 
 	protected synchronized void setDerivedLpSolution(int from, int to, short transition) {
 		assert getSolution(to) == null;
 
-		int bytes = 6;
-		if (from == 0) {
-			bytes = 2;
-		} else if (from < 256) {
-			bytes = 3;
-		} else if (from < 65536) {
-			bytes = 4;
-		} else if (from < 16777216) {
-			bytes = 5;
-		}
-		byte[] solutionFrom = getSolution(from);
-		if ((solutionFrom[0] & DERIVED) == DERIVED || solutionFrom.length >= bytes) {
-			// only use 6 bytes if this indeed saves memory.
+		//		int bytes = 6;
+		//		if (from == 0) {
+		//			bytes = 2;
+		//		} else if (from < 256) {
+		//			bytes = 3;
+		//		} else if (from < 65536) {
+		//			bytes = 4;
+		//		} else if (from < 16777216) {
+		//			bytes = 5;
+		//		}
+		byte[] solution = getSolution(from);
+		//		if ((solutionFrom[0] & DERIVED) == DERIVED || solutionFrom.length >= bytes) {
+		//			// only use 6 bytes if this indeed saves memory.
+		//
+		//			// transition uses at most 14 bits. We use the 6 bits in the first byte
+		//			// and 8 bits in the second one to store it.
+		//			byte[] solution = new byte[bytes];
+		//
+		//			solution[0] = DERIVED;
+		//			solution[0] |= (transition >>> 8) & 0xFF;
+		//			solution[1] = (byte) (transition);
+		//
+		//			for (int i = bytes; i-- > 2;) {
+		//				solution[i] = (byte) (from & 0xFF);
+		//				from >>>= 8;
+		//			}
+		//			addSolution(to, solution);
+		//
+		//			//			assert (getSolution(to)[0] & DERIVED) == DERIVED;
+		//
+		//		} else {
+		// we edit the predecessor in place. There's no need to keep the
+		// old value of index [transition]
+		//		byte[] solution = Arrays.copyOf(solutionFrom, solutionFrom.length);
 
-			// transition uses at most 14 bits. We use the 6 bits in the first byte
-			// and 8 bits in the second one to store it.
-			byte[] solution = new byte[bytes];
+		//			solution[0] |= DERIVEDANDSTOREDFULL;
+		//		solution[0] |= DERIVED;
 
-			solution[0] = DERIVED;
-			solution[0] |= (transition >>> 8) & 0xFF;
-			solution[1] = (byte) (transition);
+		// get the length of the bits used per transition
+		int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> 3);
+		// which is the least significant bit?
+		int fromBit = ENDMASK + transition * bits + (bits - 1);
+		// that implies the following byte
+		int fromByte = fromBit >>> 3;
+		// with the following index in byte.
+		fromBit &= 7;
+		// most significant bit in fromBit
+		byte lsBit = (byte) (1 << (7 - fromBit));
 
-			for (int i = bytes; i-- > 2;) {
-				solution[i] = (byte) (from & 0xFF);
-				from >>>= 8;
-			}
-			addSolution(to, solution);
-
-			//			assert (getSolution(to)[0] & DERIVED) == DERIVED;
-
-		} else {
-			byte[] solution = Arrays.copyOf(solutionFrom, solutionFrom.length);
-
-			solution[0] |= DERIVEDANDSTOREDFULL;
-
-			// get the length of the bits used per transition
-			int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> 3);
-			// which is the least significant bit?
-			int fromBit = 5 + transition * bits + (bits - 1);
-			// that implies the following byte
-			int fromByte = fromBit >>> 3;
-			// with the following index in byte.
-			fromBit &= 7;
-			// most significant bit in fromBit
-			byte lsBit = (byte) (1 << (7 - fromBit));
-
-			// we need to reduce by 1.
-			for (int i = 0; i < bits; i++) {
-				// flip the bit
-				if ((solution[fromByte] & lsBit) != 0) {
-					// first bit that is 1. Flip and terminate
-					solution[fromByte] ^= lsBit;
-					//					assert getLpSolution(to, transition) == getLpSolution(from, transition) - 1;
-					addSolution(to, solution);
-					return;
-				}
-				// flip and continue;
+		// we need to reduce by 1.
+		for (int i = 0; i < bits; i++) {
+			// flip the bit
+			if ((solution[fromByte] & lsBit) != 0) {
+				// first bit that is 1. Flip and terminate
 				solution[fromByte] ^= lsBit;
-				// rotate bit left
-				lsBit = (byte) (((lsBit & 0xFF) >>> 7) | (lsBit << 1));
-				// decrease byte if needed.
-				if (lsBit == 1)
-					fromByte--;
-
+				//					assert getLpSolution(to, transition) == getLpSolution(from, transition) - 1;
+				addSolution(to, solution);
+				return;
 			}
-			assert false;
+			// flip and continue;
+			solution[fromByte] ^= lsBit;
+			// rotate bit left
+			lsBit = (byte) (((lsBit & 0xFF) >>> 7) | (lsBit << 1));
+			// decrease byte if needed.
+			if (lsBit == 1)
+				fromByte--;
 
 		}
+		assert false;
+
+		//		}
 	}
 
 	private final int[] tempForSettingSolution;
@@ -431,13 +434,13 @@ public class AStar extends ReplayAlgorithm {
 		byte[] solution = new byte[bytes];
 
 		// set the computed flag in the first two bits
-		solution[0] |= STOREDFULL;
+		//		solution[0] |= STOREDFULL;
 		// set the number of bits used in the following 3 bits
 		bits--;
-		solution[0] |= bits << 3;
+		solution[0] |= bits << (8 - ENDMASK);
 
 		int currentByte = 0;
-		byte currentBit = (1 << 2);
+		byte currentBit = (1 << (7 - ENDMASK));
 		for (short t = 0; t < tempForSettingSolution.length; t++) {
 			// tempForSettingSolution[i] can be stored in "bits" bits.
 			for (int b = 1 << bits; b > 0; b >>>= 1) {
@@ -453,6 +456,7 @@ public class AStar extends ReplayAlgorithm {
 			}
 			//			assert getLpSolution(marking, t) == tempForSettingSolution[t];
 		}
+		lpSolutionsCreated++;
 		addSolution(marking, solution);
 	}
 
@@ -464,7 +468,7 @@ public class AStar extends ReplayAlgorithm {
 
 	private void addSolution(int marking, byte[] solution) {
 		lpSolutions.put(marking, solution);
-		lpSolutionsSize += 4 + solution.length;
+		lpSolutionsSize += 4 + 8;
 	}
 
 	/**
@@ -474,8 +478,8 @@ public class AStar extends ReplayAlgorithm {
 		return equalMarking(marking, net.getFinalMarking());
 	}
 
-	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,
-			int toBlock, int toIndex) {
+	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
+			int toIndex) {
 		if (hasExactHeuristic(fromBlock, fromIndex) && (getLpSolution(from, transition) >= 1)) {
 			// from Marking has exact heuristic
 			// we can derive an exact heuristic from it
@@ -505,8 +509,10 @@ public class AStar extends ReplayAlgorithm {
 	@Override
 	protected long getEstimatedMemorySize() {
 		long val = super.getEstimatedMemorySize();
-		// count space for all computed solutions
+		// count space for map of all computed solutions
 		val += lpSolutionsSize;
+		// count upper bound for size of maps contents
+		val += Math.min(lpSolutionsCreated, lpSolutions.size()) * (tempForSettingSolution.length + 4);
 		// count size of matrix
 		val += bytesUsed;
 		// count size of rhs
@@ -525,11 +531,11 @@ public class AStar extends ReplayAlgorithm {
 	protected void writeEndOfAlignmentDot() {
 		TObjectIntMap<Statistic> map = getStatistics();
 		for (int m = 0; m < markingsReached; m++) {
-			if (isDerivedLpSolution(m)) {
-				debug.writeMarkingReached(this, m, "color=blue");
-			} else {
-				debug.writeMarkingReached(this, m);
-			}
+			//			if (isDerivedLpSolution(m)) {
+			//				debug.writeMarkingReached(this, m, "color=blue");
+			//			} else {
+			debug.writeMarkingReached(this, m);
+			//			}
 		}
 		StringBuilder b = new StringBuilder();
 		b.append("info [shape=plaintext,label=<");
@@ -547,6 +553,8 @@ public class AStar extends ReplayAlgorithm {
 
 	@Override
 	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {
+		lpSolutions.remove(marking);
+		lpSolutionsSize -= 12;
 	}
 
 	protected void terminateRun() {
