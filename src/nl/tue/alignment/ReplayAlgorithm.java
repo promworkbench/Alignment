@@ -286,9 +286,15 @@ public abstract class ReplayAlgorithm {
 		this.net = product;
 		this.moveSorting = moveSorting;
 
-		this.blockBit = 8;
 		this.blockSize = Utils.DEFAULTBLOCKSIZE;
 		this.blockMask = blockSize - 1;
+		int bit = 1;
+		int i = 0;
+		while (bit < blockMask) {
+			bit <<= 1;
+			i++;
+		}
+		this.blockBit = i;
 
 		this.visited = new VisitedHashSet(this, Utils.DEFAULTVISITEDSIZE);
 		if (queueSorting) {

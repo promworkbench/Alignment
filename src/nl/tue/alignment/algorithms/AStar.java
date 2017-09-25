@@ -213,13 +213,13 @@ public class AStar extends ReplayAlgorithm {
 
 	}
 
-	//	@Override
-	//	protected void growArrays() {
-	//		super.growArrays();
-	//		if (doMultiThreading) {
-	//			threadpool.submit(new BlockMonitor(block, numCols - 1));
-	//		}
-	//	}
+	@Override
+	protected void growArrays() {
+		super.growArrays();
+		if (doMultiThreading) {
+			threadpool.submit(new BlockMonitor(block, net.numTransitions()));
+		}
+	}
 
 	@Override
 	public short[] run() throws LPMatrixException {

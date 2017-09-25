@@ -13,11 +13,11 @@ public class Utils {
 	public static int HEURISTICFUNCTIONOVERFLOW = 16;
 
 	/**
-	 * Default block size determines how many bytes are reserved top store markings.
-	 * Whenever a block is full, a new block of this size is allocated. Within each
-	 * block one bit per place is consumed.
+	 * Default block size determines how many bytes are reserved top store
+	 * markings. Whenever a block is full, a new block of this size is
+	 * allocated.
 	 */
-	public static int DEFAULTBLOCKSIZE = 256;
+	public static int DEFAULTBLOCKSIZE = 1024;
 
 	/**
 	 * Initial size of the priority queue. It grows as needed.
