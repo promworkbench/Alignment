@@ -1,8 +1,9 @@
 package nl.tue.alignment.test;
 
+import gnu.trove.map.TObjectIntMap;
+
 import java.util.Arrays;
 
-import gnu.trove.map.TObjectIntMap;
 import lpsolve.LpSolve;
 import nl.tue.alignment.ReplayAlgorithm;
 import nl.tue.alignment.ReplayAlgorithm.Debug;
@@ -246,7 +247,12 @@ public class SmallTests {
 										true, // do multithreading
 										Debug.NONE // debug mode
 								);
-								short[] alignment = algorithm.run();
+								try {
+									short[] alignment = algorithm.run();
+								} catch (Exception e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
 								TObjectIntMap<Statistic> map = algorithm.getStatistics();
 								for (Statistic s : Statistic.values()) {
 									System.out.print(map.get(s));
@@ -271,7 +277,12 @@ public class SmallTests {
 								queueSort, // queue sorted "depth-first"
 								Debug.NONE // debug mode
 						);
-						short[] alignment = algorithm.run();
+						try {
+							short[] alignment = algorithm.run();
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 						TObjectIntMap<Statistic> map = algorithm.getStatistics();
 						for (Statistic s : Statistic.values()) {
 							System.out.print(map.get(s));
@@ -290,7 +301,7 @@ public class SmallTests {
 		ReplayAlgorithm algorithm;
 		//INITIALIZATION OF CLASSLOADER FOR PROPER RECORDING OF TIMES.
 		algorithm = new Dijkstra(net, true, true, Debug.NONE);
-		algorithm = new AStar(net, true, true, true, true, true, Debug.NONE);
+		algorithm = new AStar(net, true, true, true, false, true, Debug.NONE);
 
 		boolean dijkstra = false;
 		boolean moveSort = true; // moveSort on total order
@@ -317,7 +328,11 @@ public class SmallTests {
 			);
 		}
 
-		short[] alignment = algorithm.run();
+		try {
+			short[] alignment = algorithm.run();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		//		for (short t : alignment) {
 		//			System.out.println(net.getTransitionLabel(t));

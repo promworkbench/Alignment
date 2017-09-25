@@ -349,7 +349,12 @@ public abstract class ReplayAlgorithm {
 		return val;
 	}
 
-	public short[] run() {
+	public short[] run() throws Exception {
+		return runReplayAlgorithm(System.nanoTime());
+	}
+
+	protected short[] runReplayAlgorithm(long startTime) {
+
 		//		short[] trans = new short[net.numTransitions()];
 		//		for (short t = net.numTransitions(); t-- > 0;) {
 		//			trans[t] = t;
@@ -372,8 +377,6 @@ public abstract class ReplayAlgorithm {
 			alignmentCost = 0;
 			alignmentResult = 0;
 			runTime = 0;
-
-			long start = System.nanoTime();
 
 			// get the initial marking
 			byte[] initialMarking = net.getInitialMarking();
@@ -430,7 +433,7 @@ public abstract class ReplayAlgorithm {
 					pollActions++;
 
 					if (isFinal(m)) {
-						return handleFinalMarkingReached(start, m);
+						return handleFinalMarkingReached(startTime, m);
 					}
 
 					fillMarking(marking_m, bm, im);
@@ -454,8 +457,7 @@ public abstract class ReplayAlgorithm {
 							// set the score to exact score
 							setHScore(bm, im, heuristic, true);
 
-							queue.add(m);
-							queueActions++;
+							addToQueue(m);
 
 							continue;
 						}
@@ -525,8 +527,7 @@ public abstract class ReplayAlgorithm {
 									}
 
 									// update position of n in the queue
-									queue.add(n);
-									queueActions++;
+									addToQueue(n);
 
 								} else if (!hasExactHeuristic(bn, in)) {
 									//tmpG >= getGScore(n), i.e. we reached state n through a longer path.
@@ -539,8 +540,7 @@ public abstract class ReplayAlgorithm {
 										debug.writeEdgeTraversed(this, m, t, n, "color=blue");
 										// marking is now exact and was not before. 
 										assert queue.contains(n);
-										queue.add(n);
-										queueActions++;
+										addToQueue(n);
 									}
 								} else {
 									debug.writeEdgeTraversed(this, m, t, n, "color=purple");
@@ -557,7 +557,7 @@ public abstract class ReplayAlgorithm {
 			} // end While
 			alignmentResult &= ~Utils.OPTIMALALIGNMENT;
 			alignmentResult |= Utils.FAILEDALIGNMENT;
-			runTime = (int) ((System.nanoTime() - start) / 1000);
+			runTime = (int) ((System.nanoTime() - startTime) / 1000);
 			return null;
 		} finally {
 			terminateRun();
@@ -571,6 +571,11 @@ public abstract class ReplayAlgorithm {
 
 		}
 
+	}
+
+	protected void addToQueue(int marking) {
+		queue.add(marking);
+		queueActions++;
 	}
 
 	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {
@@ -1282,6 +1287,10 @@ public abstract class ReplayAlgorithm {
 		}
 
 		return result;
+	}
+
+	public boolean isComputing(int i) {
+		return isComputing(i >>> blockBit, i & blockMask);
 	}
 
 }

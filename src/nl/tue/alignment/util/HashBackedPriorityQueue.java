@@ -86,7 +86,7 @@ public class HashBackedPriorityQueue implements Queue {
 		return size() == 0;
 	}
 
-	public int hashCode() {
+	public synchronized int hashCode() {
 		return locationMap.hashCode();
 	}
 
@@ -102,7 +102,7 @@ public class HashBackedPriorityQueue implements Queue {
 		return (locationMap.get(marking) != NEV);
 	}
 
-	public boolean checkInv() {
+	public synchronized boolean checkInv() {
 		return checkInv(0);
 	}
 
@@ -128,7 +128,7 @@ public class HashBackedPriorityQueue implements Queue {
 		}
 	}
 
-	public int peek() {
+	public synchronized int peek() {
 		if (size == 0)
 			return NEV;
 		return queue[0];
@@ -166,7 +166,7 @@ public class HashBackedPriorityQueue implements Queue {
 		return queue[location];
 	}
 
-	public String toString() {
+	public synchronized String toString() {
 		return Arrays.toString(queue);
 	}
 

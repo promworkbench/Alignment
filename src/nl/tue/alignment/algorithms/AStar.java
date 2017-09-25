@@ -17,6 +17,7 @@ import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.astar.util.LPProblemProvider;
 import nl.tue.astar.util.ilp.LPMatrix;
+import nl.tue.astar.util.ilp.LPMatrix.SPARSE.LPSOLVE;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
 /**
@@ -31,6 +32,8 @@ import nl.tue.astar.util.ilp.LPMatrixException;
  */
 public class AStar extends ReplayAlgorithm {
 
+	private final Object estimatedLock = new Object();
+
 	private final class BlockMonitor implements Runnable {
 
 		private final int currentBlock;
@@ -41,7 +44,7 @@ public class AStar extends ReplayAlgorithm {
 			this.currentBlock = currentBlock;
 			this.varsBlockMonitor = new double[numTrans];
 			synchronized (AStar.this) {
-				lpSolutionsSize += 12 + 2 + 12 + 4 + numTrans * 8;
+				lpSolutionsSize += 12 + 4 + 8 + 12 + 4 + numTrans * 8;
 			}
 		}
 
@@ -89,7 +92,7 @@ public class AStar extends ReplayAlgorithm {
 				}
 			} while (!threadpool.isShutdown() && i < blockSize);
 			synchronized (AStar.this) {
-				lpSolutionsSize -= 12 + 2 + 12 + 4 + varsBlockMonitor.length * 8;
+				lpSolutionsSize -= 12 + 4 + 8 + 12 + 4 + varsBlockMonitor.length * 8;
 			}
 
 			//			System.out.println("Closing monitor for block " + b + ". Threadpool shutdown: " + threadpool.isShutdown()
@@ -98,19 +101,12 @@ public class AStar extends ReplayAlgorithm {
 		}
 	}
 
-	private ExecutorService threadpool;
-
 	// for each stored solution, the first byte is used for flagging.
 	// the first bit indicates whether the solution is derived
-	// the second bit indicates whether the solition is stored in full
-	// For fully stored solutions, the next three bits store the number of bits per transition (0 implies 1 bit per transition, 7 implies 8 bits per transition)
-	// The rest of the array is then the stores solution
-	// For derived solutions, the last 6 bits of the first byte and the second byte store the transition that was fired
-	// the remaining bytes store the offset into the predecessor in as few bytes as possible.
-
+	// The next three bits store the number of bits per transition (0 implies 1 bit per transition, 7 implies 8 bits per transition)
+	// The rest of the array  then stores the solution
 	protected static final byte COMPUTED = (byte) 0b00000000;
 	protected static final byte DERIVED = (byte) 0b10000000;
-	//	protected static final byte DERIVEDANDSTOREDFULL = (byte) 0b11000000;;
 
 	protected static final byte BITPERTRANSMASK = (byte) 0b01110000;
 	protected static final byte FREEBITSFIRSTBYTE = 4;
@@ -122,13 +118,17 @@ public class AStar extends ReplayAlgorithm {
 	protected final double[] rhf;
 	protected int bytesUsed;
 	protected long solveTime = 0;
-	protected final int numRows;
-	protected final int numCols;
 
-	private final LPProblemProvider provider;
-	private final LpSolve solver;
+	//	protected int numRows;
+	//	protected int numCols;
+
+	private ExecutorService threadpool;
+	private LPProblemProvider provider;
+	private LpSolve solver;
 
 	private final boolean doMultiThreading;
+
+	private LPSOLVE matrix;
 
 	public AStar(SyncProduct product) throws LPMatrixException {
 		this(product, true, true, true, false, false, Debug.NONE);
@@ -138,9 +138,8 @@ public class AStar extends ReplayAlgorithm {
 			boolean isInteger, boolean doMultiThreading, Debug debug) throws LPMatrixException {
 		super(product, moveSorting, queueSorting, preferExact, debug);
 		this.doMultiThreading = doMultiThreading;
-		this.numRows = net.numPlaces();
-
-		LPMatrix.SPARSE.LPSOLVE matrix = new LPMatrix.SPARSE.LPSOLVE(net.numPlaces(), net.numTransitions());
+		//		this.numRows = net.numPlaces();
+		matrix = new LPMatrix.SPARSE.LPSOLVE(net.numPlaces(), net.numTransitions());
 
 		// Set the objective to follow the cost function
 		for (short t = net.numTransitions(); t-- > 0;) {
@@ -184,6 +183,10 @@ public class AStar extends ReplayAlgorithm {
 		}
 		matrix.setMinim();
 
+		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
+	}
+
+	private void init() throws LPMatrixException {
 		int monitorThreads;
 		try {
 			solver = matrix.toSolver();
@@ -191,6 +194,7 @@ public class AStar extends ReplayAlgorithm {
 				monitorThreads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
 				provider = new LPProblemProvider(solver.copyLp(), monitorThreads);
 				threadpool = Executors.newFixedThreadPool(monitorThreads);
+
 			} else {
 				monitorThreads = 0;
 				provider = null;
@@ -203,23 +207,28 @@ public class AStar extends ReplayAlgorithm {
 		bytesUsed = matrix.bytesUsed();
 		// bytes for solvers inside monitorthreads
 		bytesUsed += matrix.bytesUsed() * monitorThreads;
-		numCols = net.numTransitions() + 1;
+		//		numCols = net.numTransitions() + 1;
 		varsMainThread = new double[net.numTransitions()];
 		tempForSettingSolution = new int[net.numTransitions()];
 
-		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
-
 	}
+
+	//	@Override
+	//	protected void growArrays() {
+	//		super.growArrays();
+	//		if (doMultiThreading) {
+	//			threadpool.submit(new BlockMonitor(block, numCols - 1));
+	//		}
+	//	}
 
 	@Override
-	protected void growArrays() {
-		super.growArrays();
-		if (doMultiThreading) {
-			threadpool.submit(new BlockMonitor(block, numCols - 1));
-		}
+	public short[] run() throws LPMatrixException {
+		long start = System.nanoTime();
+		init();
+		return super.runReplayAlgorithm(start);
 	}
 
-	protected final double[] varsMainThread;
+	protected double[] varsMainThread;
 
 	@Override
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
@@ -326,19 +335,7 @@ public class AStar extends ReplayAlgorithm {
 
 		}
 
-		return value;//getSolution(marking)[transition + 1] & 0xFF;
-		//		} else {
-		//			int from = 0;
-		//			for (int i = 2; i < solution.length; i++) {
-		//				from <<= 8;
-		//				from |= solution[i] & 0xFF;
-		//			}
-		//
-		//			int fired = ((solution[0] & 0b00111111) << 8);
-		//			fired |= (solution[1] & 0xFF);
-		//			return getLpSolution(from, transition) - (fired == transition ? 1 : 0);
-		//		}
-
+		return value;
 	}
 
 	protected synchronized boolean isDerivedLpSolution(int marking) {
@@ -349,36 +346,6 @@ public class AStar extends ReplayAlgorithm {
 		assert getSolution(to) == null;
 		byte[] solutionFrom = getSolution(from);
 
-		//		int bytes = 6;
-		//		if (from == 0) {
-		//			bytes = 2;
-		//		} else if (from < 256) {
-		//			bytes = 3;
-		//		} else if (from < 65536) {
-		//			bytes = 4;
-		//		} else if (from < 16777216) {
-		//			bytes = 5;
-		//		}
-		//		if ((solutionFrom[0] & DERIVED) == DERIVED || solutionFrom.length >= bytes) {
-		//			// only use 6 bytes if this indeed saves memory.
-		//
-		//			// transition uses at most 14 bits. We use the 6 bits in the first byte
-		//			// and 8 bits in the second one to store it.
-		//			byte[] solution = new byte[bytes];
-		//
-		//			solution[0] = DERIVED;
-		//			solution[0] |= (transition >>> 8) & 0x00111111;
-		//			solution[1] = (byte) (transition);
-		//
-		//			for (int i = bytes; i-- > 2;) {
-		//				solution[i] = (byte) (from & 0xFF);
-		//				from >>>= 8;
-		//			}
-		//			addSolution(to, solution);
-		//
-		//			//			assert (getSolution(to)[0] & DERIVED) == DERIVED;
-		//
-		//		} else {
 		byte[] solution = Arrays.copyOf(solutionFrom, solutionFrom.length);
 
 		solution[0] |= DERIVED;
@@ -418,7 +385,7 @@ public class AStar extends ReplayAlgorithm {
 		//		}
 	}
 
-	private final int[] tempForSettingSolution;
+	private int[] tempForSettingSolution;
 
 	protected synchronized void setNewLpSolution(int marking, double[] solutionDouble) {
 		// copy the solution from double array to byte array (rounding down)
@@ -511,6 +478,16 @@ public class AStar extends ReplayAlgorithm {
 	}
 
 	@Override
+	protected void addToQueue(int marking) {
+		super.addToQueue(marking);
+		if (!hasExactHeuristic(marking)) {
+			synchronized (estimatedLock) {
+				estimatedLock.notifyAll();
+			}
+		}
+	}
+
+	@Override
 	protected long getEstimatedMemorySize() {
 		long val = super.getEstimatedMemorySize();
 		// count space for all computed solutions
@@ -554,25 +531,34 @@ public class AStar extends ReplayAlgorithm {
 	}
 
 	@Override
-	protected synchronized void processedMarking(int marking, int blockMarking, int indexInBlock) {
+	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {
 		super.processedMarking(marking, blockMarking, indexInBlock);
-		lpSolutionsSize -= 12 + 4 + lpSolutions.remove(marking).length; // object size
-		lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer
+		synchronized (this) {
+			lpSolutionsSize -= 12 + 4 + lpSolutions.remove(marking).length; // object size
+			lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer
+		}
 	}
 
 	protected void terminateRun() {
-		super.terminateRun();
-		if (doMultiThreading) {
-			threadpool.shutdown();
-			while (!threadpool.isTerminated()) {
-				try {
-					threadpool.awaitTermination(100, TimeUnit.MILLISECONDS);
-				} catch (InterruptedException e) {
-				}
+		try {
+			super.terminateRun();
+		} finally {
+			if (doMultiThreading && !threadpool.isShutdown()) {
+				threadpool.shutdown();
+				//				System.out.println("Threadpool shutdown upon termination of run.");
+				do {
+					synchronized (estimatedLock) {
+						estimatedLock.notifyAll();
+					}
+					try {
+						threadpool.awaitTermination(100, TimeUnit.MILLISECONDS);
+					} catch (InterruptedException e) {
+					}
+				} while (!threadpool.isTerminated());
+				provider.deleteLps();
 			}
-			provider.deleteLps();
+			solver.deleteAndRemoveLp();
 		}
-		solver.deleteAndRemoveLp();
 	}
 
 }
