@@ -40,6 +40,9 @@ public class AStar extends ReplayAlgorithm {
 		public BlockMonitor(int currentBlock, int numTrans) {
 			this.currentBlock = currentBlock;
 			this.varsBlockMonitor = new double[numTrans];
+			synchronized (AStar.this) {
+				lpSolutionsSize += 12 + 2 + 12 + 4 + numTrans * 8;
+			}
 		}
 
 		public void run() {
@@ -85,6 +88,9 @@ public class AStar extends ReplayAlgorithm {
 					}
 				}
 			} while (!threadpool.isShutdown() && i < blockSize);
+			synchronized (AStar.this) {
+				lpSolutionsSize -= 12 + 2 + 12 + 4 + varsBlockMonitor.length * 8;
+			}
 
 			//			System.out.println("Closing monitor for block " + b + ". Threadpool shutdown: " + threadpool.isShutdown()
 			//					+ ".");
@@ -101,10 +107,13 @@ public class AStar extends ReplayAlgorithm {
 	// The rest of the array is then the stores solution
 	// For derived solutions, the last 6 bits of the first byte and the second byte store the transition that was fired
 	// the remaining bytes store the offset into the predecessor in as few bytes as possible.
-	protected static final byte STOREDFULL = (byte) 0b01000000;
+
+	protected static final byte COMPUTED = (byte) 0b00000000;
 	protected static final byte DERIVED = (byte) 0b10000000;
-	protected static final byte DERIVEDANDSTOREDFULL = (byte) 0b11000000;;
-	protected static final byte BITPERTRANSMASK = (byte) 0b00111000;
+	//	protected static final byte DERIVEDANDSTOREDFULL = (byte) 0b11000000;;
+
+	protected static final byte BITPERTRANSMASK = (byte) 0b01110000;
+	protected static final byte FREEBITSFIRSTBYTE = 4;
 
 	// stores the location of the LP solution plus a flag if it is derived or real
 	protected TIntObjectMap<byte[]> lpSolutions = new TIntObjectHashMap<>(16);
@@ -289,46 +298,46 @@ public class AStar extends ReplayAlgorithm {
 
 	protected synchronized int getLpSolution(int marking, short transition) {
 		byte[] solution = getSolution(marking);
-		if ((solution[0] & STOREDFULL) == STOREDFULL) {
-			// get the bits used per transition
-			int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> 3);
-			// which is the first bit?
-			int fromBit = 5 + transition * bits;
-			// that implies the following byte
-			int fromByte = fromBit >>> 3;
-			// with the following index in byte.
-			fromBit &= 7;
+		//		if ((solution[0] & STOREDFULL) == STOREDFULL) {
+		// get the bits used per transition
+		int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> FREEBITSFIRSTBYTE);
+		// which is the first bit?
+		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits;
+		// that implies the following byte
+		int fromByte = fromBit >>> 3;
+		// with the following index in byte.
+		fromBit &= 7;
 
-			byte currentBit = (byte) (1 << (7 - fromBit));
-			int value = 0;
-			for (int i = 0; i < bits; i++) {
-				// shift value left
-				value <<= 1;
+		byte currentBit = (byte) (1 << (7 - fromBit));
+		int value = 0;
+		for (int i = 0; i < bits; i++) {
+			// shift value left
+			value <<= 1;
 
-				// flip the bit
-				if ((solution[fromByte] & currentBit) != 0)
-					value++;
+			// flip the bit
+			if ((solution[fromByte] & currentBit) != 0)
+				value++;
 
-				// rotate bit right 
-				currentBit = (byte) (((currentBit & 0xFF) >>> 1) | (currentBit << 7));
-				// increase byte if needed.
-				if (currentBit < 0)
-					fromByte++;
+			// rotate bit right 
+			currentBit = (byte) (((currentBit & 0xFF) >>> 1) | (currentBit << 7));
+			// increase byte if needed.
+			if (currentBit < 0)
+				fromByte++;
 
-			}
-
-			return value;//getSolution(marking)[transition + 1] & 0xFF;
-		} else {
-			int from = 0;
-			for (int i = 2; i < solution.length; i++) {
-				from <<= 8;
-				from |= solution[i] & 0xFF;
-			}
-
-			int fired = ((solution[0] & 0b00111111) << 8);
-			fired |= (solution[1] & 0xFF);
-			return getLpSolution(from, transition) - (fired == transition ? 1 : 0);
 		}
+
+		return value;//getSolution(marking)[transition + 1] & 0xFF;
+		//		} else {
+		//			int from = 0;
+		//			for (int i = 2; i < solution.length; i++) {
+		//				from <<= 8;
+		//				from |= solution[i] & 0xFF;
+		//			}
+		//
+		//			int fired = ((solution[0] & 0b00111111) << 8);
+		//			fired |= (solution[1] & 0xFF);
+		//			return getLpSolution(from, transition) - (fired == transition ? 1 : 0);
+		//		}
 
 	}
 
@@ -338,75 +347,75 @@ public class AStar extends ReplayAlgorithm {
 
 	protected synchronized void setDerivedLpSolution(int from, int to, short transition) {
 		assert getSolution(to) == null;
-
-		int bytes = 6;
-		if (from == 0) {
-			bytes = 2;
-		} else if (from < 256) {
-			bytes = 3;
-		} else if (from < 65536) {
-			bytes = 4;
-		} else if (from < 16777216) {
-			bytes = 5;
-		}
 		byte[] solutionFrom = getSolution(from);
-		if ((solutionFrom[0] & DERIVED) == DERIVED || solutionFrom.length >= bytes) {
-			// only use 6 bytes if this indeed saves memory.
 
-			// transition uses at most 14 bits. We use the 6 bits in the first byte
-			// and 8 bits in the second one to store it.
-			byte[] solution = new byte[bytes];
+		//		int bytes = 6;
+		//		if (from == 0) {
+		//			bytes = 2;
+		//		} else if (from < 256) {
+		//			bytes = 3;
+		//		} else if (from < 65536) {
+		//			bytes = 4;
+		//		} else if (from < 16777216) {
+		//			bytes = 5;
+		//		}
+		//		if ((solutionFrom[0] & DERIVED) == DERIVED || solutionFrom.length >= bytes) {
+		//			// only use 6 bytes if this indeed saves memory.
+		//
+		//			// transition uses at most 14 bits. We use the 6 bits in the first byte
+		//			// and 8 bits in the second one to store it.
+		//			byte[] solution = new byte[bytes];
+		//
+		//			solution[0] = DERIVED;
+		//			solution[0] |= (transition >>> 8) & 0x00111111;
+		//			solution[1] = (byte) (transition);
+		//
+		//			for (int i = bytes; i-- > 2;) {
+		//				solution[i] = (byte) (from & 0xFF);
+		//				from >>>= 8;
+		//			}
+		//			addSolution(to, solution);
+		//
+		//			//			assert (getSolution(to)[0] & DERIVED) == DERIVED;
+		//
+		//		} else {
+		byte[] solution = Arrays.copyOf(solutionFrom, solutionFrom.length);
 
-			solution[0] = DERIVED;
-			solution[0] |= (transition >>> 8) & 0xFF;
-			solution[1] = (byte) (transition);
+		solution[0] |= DERIVED;
 
-			for (int i = bytes; i-- > 2;) {
-				solution[i] = (byte) (from & 0xFF);
-				from >>>= 8;
-			}
-			addSolution(to, solution);
+		// get the length of the bits used per transition
+		int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> FREEBITSFIRSTBYTE);
+		// which is the least significant bit?
+		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits + (bits - 1);
+		// that implies the following byte
+		int fromByte = fromBit >>> 3;
+		// with the following index in byte.
+		fromBit &= 7;
+		// most significant bit in fromBit
+		byte lsBit = (byte) (1 << (7 - fromBit));
 
-			//			assert (getSolution(to)[0] & DERIVED) == DERIVED;
-
-		} else {
-			byte[] solution = Arrays.copyOf(solutionFrom, solutionFrom.length);
-
-			solution[0] |= DERIVEDANDSTOREDFULL;
-
-			// get the length of the bits used per transition
-			int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> 3);
-			// which is the least significant bit?
-			int fromBit = 5 + transition * bits + (bits - 1);
-			// that implies the following byte
-			int fromByte = fromBit >>> 3;
-			// with the following index in byte.
-			fromBit &= 7;
-			// most significant bit in fromBit
-			byte lsBit = (byte) (1 << (7 - fromBit));
-
-			// we need to reduce by 1.
-			for (int i = 0; i < bits; i++) {
-				// flip the bit
-				if ((solution[fromByte] & lsBit) != 0) {
-					// first bit that is 1. Flip and terminate
-					solution[fromByte] ^= lsBit;
-					//					assert getLpSolution(to, transition) == getLpSolution(from, transition) - 1;
-					addSolution(to, solution);
-					return;
-				}
-				// flip and continue;
+		// we need to reduce by 1.
+		for (int i = 0; i < bits; i++) {
+			// flip the bit
+			if ((solution[fromByte] & lsBit) != 0) {
+				// first bit that is 1. Flip and terminate
 				solution[fromByte] ^= lsBit;
-				// rotate bit left
-				lsBit = (byte) (((lsBit & 0xFF) >>> 7) | (lsBit << 1));
-				// decrease byte if needed.
-				if (lsBit == 1)
-					fromByte--;
-
+				//					assert getLpSolution(to, transition) == getLpSolution(from, transition) - 1;
+				addSolution(to, solution);
+				return;
 			}
-			assert false;
+			// flip and continue;
+			solution[fromByte] ^= lsBit;
+			// rotate bit left
+			lsBit = (byte) (((lsBit & 0xFF) >>> 7) | (lsBit << 1));
+			// decrease byte if needed.
+			if (lsBit == 1)
+				fromByte--;
 
 		}
+		assert false;
+
+		//		}
 	}
 
 	private final int[] tempForSettingSolution;
@@ -423,22 +432,21 @@ public class AStar extends ReplayAlgorithm {
 		}
 
 		// to store this solution, we need "bits" bits per transition
-		// plus a header consisting of 5 bits.
+		// plus a header consisting of 8-FREEBITSFIRSTBYTE bits.
 		// this translate to 
-		int bytes = 5 + (tempForSettingSolution.length * bits + 4) / 8;
+		int bytes = 8 - FREEBITSFIRSTBYTE + (tempForSettingSolution.length * bits + 4) / 8;
 
 		assert getSolution(marking) == null;
 		byte[] solution = new byte[bytes];
-		addSolution(marking, solution);
 
 		// set the computed flag in the first two bits
-		solution[0] |= STOREDFULL;
+		solution[0] = COMPUTED;
 		// set the number of bits used in the following 3 bits
 		bits--;
-		solution[0] |= bits << 3;
+		solution[0] |= bits << FREEBITSFIRSTBYTE;
 
 		int currentByte = 0;
-		byte currentBit = (1 << 2);
+		byte currentBit = (1 << (FREEBITSFIRSTBYTE - 1));
 		for (short t = 0; t < tempForSettingSolution.length; t++) {
 			// tempForSettingSolution[i] can be stored in "bits" bits.
 			for (int b = 1 << bits; b > 0; b >>>= 1) {
@@ -455,7 +463,6 @@ public class AStar extends ReplayAlgorithm {
 			//			assert getLpSolution(marking, t) == tempForSettingSolution[t];
 		}
 		addSolution(marking, solution);
-		lpSolutionsSize += 4 + solution.length;
 	}
 
 	private byte[] getSolution(int marking) {
@@ -464,7 +471,8 @@ public class AStar extends ReplayAlgorithm {
 
 	private void addSolution(int marking, byte[] solution) {
 		lpSolutions.put(marking, solution);
-		lpSolutionsSize += 4 + solution.length;
+		lpSolutionsSize += 12 + 4 + solution.length; // object size
+		lpSolutionsSize += 1 + 4 + 8; // used flag + key + value pointer
 	}
 
 	/**
@@ -546,7 +554,10 @@ public class AStar extends ReplayAlgorithm {
 	}
 
 	@Override
-	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {
+	protected synchronized void processedMarking(int marking, int blockMarking, int indexInBlock) {
+		super.processedMarking(marking, blockMarking, indexInBlock);
+		lpSolutionsSize -= 12 + 4 + lpSolutions.remove(marking).length; // object size
+		lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer
 	}
 
 	protected void terminateRun() {
