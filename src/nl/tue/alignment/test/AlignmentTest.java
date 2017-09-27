@@ -13,7 +13,6 @@ import nl.tue.astar.AStarException;
 import nl.tue.astar.AStarThread.ASynchronousMoveSorting;
 import nl.tue.astar.AStarThread.QueueingModel;
 import nl.tue.astar.AStarThread.Type;
-import nl.tue.astar.util.ilp.LPMatrixException;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
@@ -136,19 +135,27 @@ public class AlignmentTest {
 		System.gc();
 		try {
 			long start = System.nanoTime();
+//			OutputStreamWriter writer = new OutputStreamWriter(System.out);
 			for (SyncProduct product : products) {
+//				try {
+//					((SyncProductImpl) product).toTpn(writer);
+//					writer.flush();
+//				} catch (IOException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+				
 				if (product != null) {
 					System.out.println("---------------------------- " + product.getLabel());
 					System.out.println("Transitions: " + product.numTransitions());
 					System.out.println("Places: " + product.numPlaces());
-					//					Test.doExperiment(product);
 					SmallTests.testSingleGraph(product, Debug.NORMAL);
 
 				}
 
 			}
 			System.out.println("Total time: " + (System.nanoTime() - start) / 1000000.0 + " ms");
-		} catch (LPMatrixException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
