@@ -1,24 +1,20 @@
 package nl.tue.alignment.algorithms;
 
+import java.util.Arrays;
+
 import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
-
-import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import nl.tue.alignment.ReplayAlgorithm;
 import nl.tue.alignment.SyncProduct;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
-import nl.tue.astar.util.LPProblemProvider;
 import nl.tue.astar.util.ilp.LPMatrix;
+import nl.tue.astar.util.ilp.LPMatrix.SPARSE.LPSOLVE;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
 /**
@@ -32,76 +28,6 @@ import nl.tue.astar.util.ilp.LPMatrixException;
  * 
  */
 public class AStarWithMarkingSplit extends ReplayAlgorithm {
-
-	private final Object estimatedLock = new Object();
-
-	private final class BlockMonitor implements Runnable {
-
-		private final int currentBlock;
-
-		private final double[] varsBlockMonitor;
-
-		public BlockMonitor(int currentBlock, int numTrans) {
-			this.currentBlock = currentBlock;
-			this.varsBlockMonitor = new double[numTrans];
-			synchronized (AStarWithMarkingSplit.this) {
-				lpSolutionsSize += 12 + 4 + 8 + 12 + 4 + numTrans * 8;
-			}
-		}
-
-		public void run() {
-			int b = currentBlock;
-			int i = 0;
-			do {
-				int m = b * blockSize + i;
-				if (m < markingsReached) {
-					//					System.out.println("Monitor waiting for " + b + "," + i);
-					getLockForComputingEstimate(b, i);
-					//					System.out.println("Monitor locking " + b + "," + i);
-					try {
-						if (!isClosed(b, i) && !hasExactHeuristic(b, i)) {
-							// an open marking without an exact solution for the heuristic
-							LpSolve solver = provider.firstAvailable();
-							int heuristic;
-							try {
-								heuristic = getExactHeuristic(solver, m, getMarking(m), varsBlockMonitor,
-										getHScore(b, i));
-							} finally {
-								provider.finished(solver);
-							}
-							if (heuristic > getHScore(b, i)) {
-								setHScore(b, i, heuristic, true);
-								// sort the marking in the queue
-								assert queue.contains(m);
-								queue.add(m);
-								queueActions++;
-							} else {
-								setHScore(b, i, heuristic, true);
-							}
-						}
-					} finally {
-						//						System.out.println("Monitor releasing " + b + "," + (m & blockMask));
-						releaseLockForComputingEstimate(b, m & blockMask);
-					}
-					i++;
-				} else {
-					synchronized (e_g_h_pt[b]) {
-						try {
-							e_g_h_pt[b].wait(200);
-						} catch (InterruptedException e) {
-						}
-					}
-				}
-			} while (!threadpool.isShutdown() && i < blockSize);
-			synchronized (AStarWithMarkingSplit.this) {
-				lpSolutionsSize -= 12 + 4 + 8 + 12 + 4 + varsBlockMonitor.length * 8;
-			}
-
-			//			System.out.println("Closing monitor for block " + b + ". Threadpool shutdown: " + threadpool.isShutdown()
-			//					+ ".");
-
-		}
-	}
 
 	// for each stored solution, the first byte is used for flagging.
 	// the first bit indicates whether the solution is derived
@@ -124,11 +50,7 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 	//	protected int numRows;
 	//	protected int numCols;
 
-	private ExecutorService threadpool;
-	private LPProblemProvider provider;
 	private LpSolve solver;
-
-	private final boolean doMultiThreading;
 
 	private LPMatrix.SPARSE.LPSOLVE matrix;
 	private final boolean isInteger;
@@ -136,14 +58,13 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 	TIntList splits = new TIntArrayList();
 
 	public AStarWithMarkingSplit(SyncProduct product) throws LPMatrixException {
-		this(product, true, false, false, Debug.NONE);
+		this(product, true, false, Debug.NONE);
 	}
 
-	public AStarWithMarkingSplit(SyncProduct product, boolean moveSorting, boolean isInteger, boolean doMultiThreading,
-			Debug debug) throws LPMatrixException {
+	public AStarWithMarkingSplit(SyncProduct product, boolean moveSorting, boolean isInteger, Debug debug)
+			throws LPMatrixException {
 		super(product, moveSorting, true, true, debug);
 		this.isInteger = isInteger;
-		this.doMultiThreading = false && doMultiThreading;
 		//		this.numRows = net.numPlaces();
 		matrix = new LPMatrix.SPARSE.LPSOLVE(net.numPlaces() + 1, net.numTransitions());
 
@@ -198,38 +119,14 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 	}
 
 	private void init() throws LPMatrixException {
-		int monitorThreads;
-		try {
-			solver = matrix.toSolver();
-			if (doMultiThreading) {
-				monitorThreads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
-				provider = new LPProblemProvider(solver.copyLp(), monitorThreads);
-				threadpool = Executors.newFixedThreadPool(monitorThreads);
-
-			} else {
-				monitorThreads = 0;
-				provider = null;
-				threadpool = null;
-			}
-		} catch (LpSolveException e) {
-			throw new LPMatrixException(e);
-		}
+		solver = matrix.toSolver();
 		// bytes for solver
 		bytesUsed = matrix.bytesUsed();
 		// bytes for solvers inside monitorthreads
-		bytesUsed += matrix.bytesUsed() * monitorThreads;
 		//		numCols = net.numTransitions() + 1;
 		varsMainThread = new double[net.numTransitions()];
 		tempForSettingSolution = new int[net.numTransitions()];
 
-	}
-
-	@Override
-	protected void growArrays() {
-		super.growArrays();
-		if (doMultiThreading) {
-			threadpool.submit(new BlockMonitor(block, net.numTransitions()));
-		}
 	}
 
 	@Override
@@ -277,49 +174,10 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 		// clone the matrix
 		LPMatrix.SPARSE.LPSOLVE newMatrix;
 		try {
-			newMatrix = new LPMatrix.SPARSE.LPSOLVE(splits.size() * net.numPlaces(), splits.size()
-					* net.numTransitions());
-		} catch (LPMatrixException e) {
+			newMatrix = buildSplitMatrix(estimate, blocks);
+		} catch (LPMatrixException e1) {
 			return estimate;
 		}
-
-		splits.add(Integer.MAX_VALUE);
-		int row;
-		for (int b = 0; b <= blocks; b++) {
-			for (int p = 0; p < net.numPlaces(); p++) {
-				row = b * net.numPlaces() + p;
-				if (b == blocks) {
-					// right hand side in last block equals mf - mi
-					newMatrix.setConstrType(row, LPMatrix.EQ);
-					newMatrix.setRh(row, net.getFinalMarking()[p] - net.getInitialMarking()[p]);
-				} else {
-					// all blocks in between GE -mi
-					newMatrix.setConstrType(row, LPMatrix.GE);
-					newMatrix.setRh(row, -net.getInitialMarking()[p]);
-				}
-				for (short t = 0; t < net.numTransitions(); t++) {
-					// get value in top-left A
-					double val = matrix.getMat(p, t);
-					for (int c = t; c < (b + 1) * numTrans; c += numTrans) {
-						newMatrix.setInt(c, isInteger);
-						newMatrix.setObjective(c, net.getCost(t));
-						newMatrix.setLowbo(c, 0);
-						newMatrix.setUpbo(
-								c,
-								net.getEventOf(t) < 0
-										|| (net.getEventOf(t) > splits.get(c / numTrans) && net.getEventOf(t) <= splits
-												.get(c / numTrans + 1)) ? 1 : 0);
-						if (val != 0) {
-							newMatrix.setMat(row, c, val);
-						} // if
-					} // for c
-				} // for col
-
-			}// for row
-
-		}// for b
-		newMatrix.setMinim();
-		splits.removeAt(splits.size() - 1);
 		//			OutputStreamWriter w = new OutputStreamWriter(System.out);
 		//			newMatrix.printLp(w, ", ");
 		//			w.flush();
@@ -368,7 +226,7 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 			// definition) without changing the queue.
 			//			assert queue.checkInv();
 			int b, i;
-			TIntList toPromote = new TIntArrayList();
+			TIntList toRequeue = new TIntArrayList();
 			for (m = 0; m < markingsReached; m++) {
 				b = m >>> blockBit;
 				i = m & blockMask;
@@ -383,22 +241,69 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 						if (getHScore(b, i) + getGScore(b, i) <= newFScore) {
 							// exact marking. is in the queue and should be promoted later
 							assert queue.contains(m);
-							toPromote.add(m);
+							toRequeue.add(m);
 						}
 					}
 				}
 			}
-			for (i = toPromote.size(); i-- > 0;) {
-				addToQueue(toPromote.get(i));
+			for (i = toRequeue.size(); i-- > 0;) {
+				addToQueue(toRequeue.get(i));
 			}
 			//			assert queue.checkInv();
 			setHScore(marking, estimate, true);
-			System.out.println(splits + "  F=" + newFScore);
+			//			System.out.println(splits + "  F=" + newFScore);
+			writeStatus();
 
 		} // else if result == newFScore
 
 		return estimate;
 
+	}
+
+	private LPSOLVE newMatrix = null;
+
+	private LPMatrix.SPARSE.LPSOLVE buildSplitMatrix(int estimate, int blocks) throws LPMatrixException {
+		if (newMatrix != null) {
+			bytesUsed -= newMatrix.bytesUsed();
+		}
+		newMatrix = new LPMatrix.SPARSE.LPSOLVE(splits.size() * net.numPlaces(), splits.size() * net.numTransitions());
+
+		splits.add(Integer.MAX_VALUE);
+		int row;
+		for (int b = 0; b <= blocks; b++) {
+			for (int p = 0; p < net.numPlaces(); p++) {
+				row = b * net.numPlaces() + p;
+				if (b == blocks) {
+					// right hand side in last block equals mf - mi
+					newMatrix.setConstrType(row, LPMatrix.EQ);
+					newMatrix.setRh(row, net.getFinalMarking()[p] - net.getInitialMarking()[p]);
+				} else {
+					// all blocks in between GE -mi
+					newMatrix.setConstrType(row, LPMatrix.GE);
+					newMatrix.setRh(row, -net.getInitialMarking()[p]);
+				}
+				for (short t = 0; t < net.numTransitions(); t++) {
+					// get value in top-left A
+					double val = matrix.getMat(p, t);
+					for (int c = t; c < (b + 1) * numTrans; c += numTrans) {
+						newMatrix.setInt(c, isInteger);
+						newMatrix.setObjective(c, net.getCost(t));
+						newMatrix.setLowbo(c, 0);
+						newMatrix.setUpbo(c, net.getEventOf(t) < 0 || (net.getEventOf(t) > splits.get(c / numTrans)
+								&& net.getEventOf(t) <= splits.get(c / numTrans + 1)) ? 1 : 0);
+						if (val != 0) {
+							newMatrix.setMat(row, c, val);
+						} // if
+					} // for c
+				} // for col
+
+			} // for row
+
+		} // for b
+		newMatrix.setMinim();
+		splits.removeAt(splits.size() - 1);
+		bytesUsed += newMatrix.bytesUsed();
+		return newMatrix;
 	}
 
 	private int getExactHeuristic(LpSolve solver, int marking, byte[] markingArray, double[] vars, int minCost) {
@@ -635,8 +540,8 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 		return equalMarking(marking, net.getFinalMarking());
 	}
 
-	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,
-			int toBlock, int toIndex) {
+	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
+			int toIndex) {
 		if (hasExactHeuristic(fromBlock, fromIndex) && (getLpSolution(from, transition) >= 1)) {
 			// from Marking has exact heuristic
 			// we can derive an exact heuristic from it
@@ -661,16 +566,6 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 			}
 		}
 
-	}
-
-	@Override
-	protected void addToQueue(int marking) {
-		super.addToQueue(marking);
-		if (!hasExactHeuristic(marking)) {
-			synchronized (estimatedLock) {
-				estimatedLock.notifyAll();
-			}
-		}
 	}
 
 	@Override
@@ -718,6 +613,11 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 		debug.writeDebugInfo(Debug.DOT, "}");
 	}
 
+	protected void writeEndOfAlignmentNormal() {
+		super.writeEndOfAlignmentNormal();
+		debug.writeDebugInfo(Debug.NORMAL, "Splits: " + (splits.size() - 1));
+	}
+
 	@Override
 	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {
 		super.processedMarking(marking, blockMarking, indexInBlock);
@@ -731,20 +631,6 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 		try {
 			super.terminateRun();
 		} finally {
-			if (doMultiThreading && !threadpool.isShutdown()) {
-				threadpool.shutdown();
-				//				System.out.println("Threadpool shutdown upon termination of run.");
-				do {
-					synchronized (estimatedLock) {
-						estimatedLock.notifyAll();
-					}
-					try {
-						threadpool.awaitTermination(100, TimeUnit.MILLISECONDS);
-					} catch (InterruptedException e) {
-					}
-				} while (!threadpool.isTerminated());
-				provider.deleteLps();
-			}
 			solver.deleteAndRemoveLp();
 		}
 	}

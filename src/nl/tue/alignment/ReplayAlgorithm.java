@@ -1,10 +1,9 @@
 package nl.tue.alignment;
 
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
-
 import java.util.Arrays;
 
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.util.HashBackedPriorityQueue;
 import nl.tue.alignment.util.SortedHashBackedPriorityQueue;
@@ -205,7 +204,7 @@ public abstract class ReplayAlgorithm {
 	/**
 	 * Stores the first new index in current block
 	 */
-	protected int indexInBlock;
+	private int indexInBlock;
 
 	/**
 	 * For each marking stores: 1 bit: whether it is estimated 24 bit: Value of
@@ -816,10 +815,8 @@ public abstract class ReplayAlgorithm {
 		debug.writeDebugInfo(Debug.NORMAL, "   Queue actions:   " + String.format("%,d", queueActions));
 		debug.writeDebugInfo(Debug.NORMAL, "   Heuristics compu:" + String.format("%,d", heuristicsComputed));
 		debug.writeDebugInfo(Debug.NORMAL, "   Heuristics deriv:" + String.format("%,d", heuristicsDerived));
-		debug.writeDebugInfo(
-				Debug.NORMAL,
-				"   Heuristics est  :"
-						+ String.format("%,d", (markingsReached - heuristicsComputed - heuristicsDerived)));
+		debug.writeDebugInfo(Debug.NORMAL, "   Heuristics est  :"
+				+ String.format("%,d", (markingsReached - heuristicsComputed - heuristicsDerived)));
 		debug.writeDebugInfo(Debug.NORMAL, "   Estimated memory:" + String.format("%,d", getEstimatedMemorySize()));
 		double time = (System.nanoTime() - startConstructor) / 1000000.0;
 		debug.writeDebugInfo(Debug.NORMAL, "   Time (ms):       " + String.format("%,f", time));
