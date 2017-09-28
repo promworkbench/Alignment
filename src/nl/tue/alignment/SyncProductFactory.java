@@ -58,6 +58,7 @@ public class SyncProductFactory {
 			placeLabels[pi] = placeList[pi].getLabel();// + "_" + pi;
 		}
 		List<String> places = new ArrayList<String>();
+		TIntList eventNumbers = new TIntArrayList();
 
 		SyncProduct[] result = new SyncProduct[log.size() + 1];
 		XTrace trace;
@@ -73,8 +74,12 @@ public class SyncProductFactory {
 				trace = log.get(tr);
 				System.out.println(trace.getAttributes().get("concept:name"));
 			}
+			eventNumbers.clear();
 			moves.clear();
 			moves.addAll(Arrays.asList(moveModel));
+			for (int i = 0; i < moves.size(); i++) {
+				eventNumbers.add(-1);
+			}
 			places.clear();
 			places.addAll(Arrays.asList(placeLabels));
 
@@ -95,11 +100,13 @@ public class SyncProductFactory {
 			for (int e = 0; e < events.length; e++) {
 				XEventClass clazz = classes.getClassOf(events[e]);
 				moves.add("-," + clazz + "_" + e);
+				eventNumbers.add(e);
 				costs.add(mapEvClass2Cost.get(clazz));
 				for (int t = 0; t < transitions.length; t++) {
 					if (map.containsKey(transitions[t]) && map.get(transitions[t]).equals(clazz)) {
 						// sync move
 						moves.add(sm, transitions[t].getLabel() + "_" + t + "," + clazz + "_" + e);
+						eventNumbers.insert(sm, e);
 						costs.insert(sm,
 								mapSync2Cost.get(transitions[t]) == null ? 0 : mapSync2Cost.get(transitions[t]));
 						if (trans2events.get(t) == null) {
@@ -116,8 +123,8 @@ public class SyncProductFactory {
 			// All moves have been established.
 
 			SyncProductImpl product = new SyncProductImpl(net.getLabel() + " x "
-					+ trace.getAttributes().get("concept:name"), (String[]) moves.toArray(new String[0]),
-					(String[]) places.toArray(new String[0]), costs.toArray());
+					+ trace.getAttributes().get("concept:name"), moves.toArray(new String[0]),
+					places.toArray(new String[0]), eventNumbers.toArray(), costs.toArray());
 
 			for (short t = 0; t < transitions.length; t++) {
 				if (trans2events.get(t) != null) {

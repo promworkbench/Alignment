@@ -167,16 +167,16 @@ public abstract class ReplayAlgorithm {
 
 	//	private static final int PTRANSHIMASK = 0b01111111000000000000000000000000;
 
-	private static final long EXACTMASK = 0b1000000000000000000000000000000000000000000000000000000000000000L;
-	private static final long COMPUTINGMASK = 0b0100000000000000000000000000000000000000000000000000000000000000L;
-	private static final long HMASK = 0b0000000000000000000000000011111111111111111111111100000000000000L;
-	private static final int HSHIFT = 14;
-	private static final long GMASK = 0b0011111111111111111111111100000000000000000000000000000000000000L;
-	private static final int GSHIFT = 38;
-	private static final long PTMASK = 0b0000000000000000000000000000000000000000000000000011111111111111L;
+	protected static final long EXACTMASK = 0b1000000000000000000000000000000000000000000000000000000000000000L;
+	protected static final long COMPUTINGMASK = 0b0100000000000000000000000000000000000000000000000000000000000000L;
+	protected static final long HMASK = 0b0000000000000000000000000011111111111111111111111100000000000000L;
+	protected static final int HSHIFT = 14;
+	protected static final long GMASK = 0b0011111111111111111111111100000000000000000000000000000000000000L;
+	protected static final int GSHIFT = 38;
+	protected static final long PTMASK = 0b0000000000000000000000000000000000000000000000000011111111111111L;
 
-	private static final int CLOSEDMASK = 0b10000000000000000000000000000000;
-	private static final int PMASK = 0b01111111111111111111111111111111;
+	protected static final int CLOSEDMASK = 0b10000000000000000000000000000000;
+	protected static final int PMASK = 0b01111111111111111111111111111111;
 
 	protected static final int NOPREDECESSOR = PMASK;
 
@@ -456,22 +456,20 @@ public abstract class ReplayAlgorithm {
 							setHScore(bm, im, heuristic, true);
 							setClosed(im, im);
 							closedActions++;
-
 							continue;
 						} else if (heuristic > getHScore(bm, im)) {
 							// if the heuristic is higher push the head of the queue down
 							// set the score to exact score
 							setHScore(bm, im, heuristic, true);
-
 							addToQueue(m);
 
 							continue;
+						} else {
+							// continue with this marking
+							// set the score to exact score
+							setHScore(bm, im, heuristic, true);
 						}
-						// continue with this marking
-						// set the score to exact score
-						setHScore(bm, im, heuristic, true);
 					}
-
 					// add m to the closed set
 					setClosed(bm, im);
 					closedActions++;
@@ -1297,6 +1295,10 @@ public abstract class ReplayAlgorithm {
 
 	public boolean isComputing(int i) {
 		return isComputing(i >>> blockBit, i & blockMask);
+	}
+
+	public SyncProduct getNet() {
+		return net;
 	}
 
 }

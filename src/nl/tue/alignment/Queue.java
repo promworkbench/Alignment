@@ -68,4 +68,6 @@ public interface Queue {
 	public int size();
 
 	public boolean contains(int marking);
+
+	public boolean checkInv();
 }

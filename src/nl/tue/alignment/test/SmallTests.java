@@ -11,6 +11,7 @@ import nl.tue.alignment.SyncProduct;
 import nl.tue.alignment.SyncProductImpl;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.AStar;
+import nl.tue.alignment.algorithms.AStarWithMarkingSplit;
 import nl.tue.alignment.algorithms.Dijkstra;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
@@ -26,6 +27,8 @@ public class SmallTests {
 					"Aaa,Aaa2", "-,As", "-,Aa", "-,Sso", "-,Ro", "-,Ao", "-,Aaa1", "-,Aaa2" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
 							"p13", "p14", "p15", "p16", "p17", "p18" }, //
+					new int[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4,
+							5, 6 },//
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1 }//
 			);
 			setInput(0, 0);
@@ -107,6 +110,7 @@ public class SmallTests {
 					"K,-", "L,-", "K,K", "L,L", "-,L", "-,K" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
 							"p13", "p14" }, //
+					new int[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 0, 1 },//
 					new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1 }//
 			);
 			setInput(0, 0);
@@ -165,8 +169,9 @@ public class SmallTests {
 	public static class SmallNastySyncProductExample extends SyncProductImpl {
 
 		public SmallNastySyncProductExample() {
-			super("Small Nasty Example", new String[] { "A", "B", "C1", "D1", "C2", "D2", "C3", "D3" }, //
+			super("Small Nasty Example", new String[] { "A", "D1", "C1", "B", "C2", "D2", "C3", "D3" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", }, //
+					new int[] { -1, -1, -1, 0, 1, 2, 1, 2 },//
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 0 }//
 			);
 			setInput(0, 0);
@@ -198,11 +203,67 @@ public class SmallTests {
 		}
 	}
 
+	public static class TwoSwapsExample extends SyncProductImpl {
+
+		public TwoSwapsExample() {
+			super("Small Nasty Example", new String[] { "A", "D1", "C1", "B", "C2", "D2", "C3", "D3", "F1", "E1", "E2",
+					"F2", "E3", "F3" }, //
+					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11" }, //
+					new int[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4 },//
+					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0 }//
+			);
+			setInput(0, 0);
+			setOutput(0, 1);
+
+			setInput(1, 1);
+			setOutput(1, 2);
+
+			setInput(2, 2);
+			setOutput(2, 3);
+
+			setInput(3, 4);
+			setOutput(3, 5);
+
+			setInput(4, 5);
+			setOutput(4, 6);
+
+			setInput(5, 6);
+			setOutput(5, 7);
+
+			setInput(6, 2, 5);
+			setOutput(6, 3, 6);
+
+			setInput(7, 1, 6);
+			setOutput(7, 2, 7);
+
+			setInput(8, 3);
+			setOutput(8, 8);
+
+			setInput(9, 8);
+			setOutput(9, 9);
+
+			setInput(10, 7);
+			setOutput(10, 10);
+
+			setInput(11, 10);
+			setOutput(11, 11);
+
+			setInput(12, 8, 7);
+			setOutput(12, 9, 10);
+
+			setInput(13, 3, 10);
+			setOutput(13, 8, 11);
+
+			setInitialMarking(0, 4);
+			setFinalMarking(9, 11);
+		}
+	}
+
 	public static void main(String[] args) throws LPMatrixException {
 
-		testSingleGraph(new SyncProductExampleBook(), Debug.DOT);
-		testSingleGraph(new SmallNastySyncProductExample(), Debug.DOT);
-		testSingleGraph(new NastySyncProductExample(), Debug.DOT);
+		//		testSingleGraph(new SyncProductExampleBook(), Debug.DOT);
+		testSingleGraph(new TwoSwapsExample(), Debug.DOT);
+		//		testSingleGraph(new NastySyncProductExample(), Debug.DOT);
 	}
 
 	public static void doExperiment(SyncProduct net) throws LPMatrixException {
@@ -318,10 +379,10 @@ public class SmallTests {
 			);
 		} else {
 
-			algorithm = new AStar(net, //
+			algorithm = new AStarWithMarkingSplit(net, //
 					moveSort, // moveSort on total order
-					queueSort, // queue sorted "depth-first"
-					preferExact, // prefer Exact solution
+					//					queueSort, // queue sorted "depth-first"
+					//					preferExact, // prefer Exact solution
 					useInt,// use Integers
 					multiThread, // multithreading
 					debug // debug mode

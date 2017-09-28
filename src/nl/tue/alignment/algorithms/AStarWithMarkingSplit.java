@@ -1,0 +1,798 @@
+package nl.tue.alignment.algorithms;
+
+import gnu.trove.list.TIntList;
+import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+
+import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import lpsolve.LpSolve;
+import lpsolve.LpSolveException;
+import nl.tue.alignment.ReplayAlgorithm;
+import nl.tue.alignment.SyncProduct;
+import nl.tue.alignment.Utils;
+import nl.tue.alignment.Utils.Statistic;
+import nl.tue.astar.util.LPProblemProvider;
+import nl.tue.astar.util.ilp.LPMatrix;
+import nl.tue.astar.util.ilp.LPMatrixException;
+
+/**
+ * Implements a variant of AStar shortest path algorithm for alignments. It uses
+ * (I)LP to estimate the remaining distance.
+ * 
+ * This implementation can NOT be used for prefix alignments. The final marking
+ * has to be reached as this is assumed in the underlying (I)LP.
+ * 
+ * @author bfvdonge
+ * 
+ */
+public class AStarWithMarkingSplit extends ReplayAlgorithm {
+
+	private final Object estimatedLock = new Object();
+
+	private final class BlockMonitor implements Runnable {
+
+		private final int currentBlock;
+
+		private final double[] varsBlockMonitor;
+
+		public BlockMonitor(int currentBlock, int numTrans) {
+			this.currentBlock = currentBlock;
+			this.varsBlockMonitor = new double[numTrans];
+			synchronized (AStarWithMarkingSplit.this) {
+				lpSolutionsSize += 12 + 4 + 8 + 12 + 4 + numTrans * 8;
+			}
+		}
+
+		public void run() {
+			int b = currentBlock;
+			int i = 0;
+			do {
+				int m = b * blockSize + i;
+				if (m < markingsReached) {
+					//					System.out.println("Monitor waiting for " + b + "," + i);
+					getLockForComputingEstimate(b, i);
+					//					System.out.println("Monitor locking " + b + "," + i);
+					try {
+						if (!isClosed(b, i) && !hasExactHeuristic(b, i)) {
+							// an open marking without an exact solution for the heuristic
+							LpSolve solver = provider.firstAvailable();
+							int heuristic;
+							try {
+								heuristic = getExactHeuristic(solver, m, getMarking(m), varsBlockMonitor,
+										getHScore(b, i));
+							} finally {
+								provider.finished(solver);
+							}
+							if (heuristic > getHScore(b, i)) {
+								setHScore(b, i, heuristic, true);
+								// sort the marking in the queue
+								assert queue.contains(m);
+								queue.add(m);
+								queueActions++;
+							} else {
+								setHScore(b, i, heuristic, true);
+							}
+						}
+					} finally {
+						//						System.out.println("Monitor releasing " + b + "," + (m & blockMask));
+						releaseLockForComputingEstimate(b, m & blockMask);
+					}
+					i++;
+				} else {
+					synchronized (e_g_h_pt[b]) {
+						try {
+							e_g_h_pt[b].wait(200);
+						} catch (InterruptedException e) {
+						}
+					}
+				}
+			} while (!threadpool.isShutdown() && i < blockSize);
+			synchronized (AStarWithMarkingSplit.this) {
+				lpSolutionsSize -= 12 + 4 + 8 + 12 + 4 + varsBlockMonitor.length * 8;
+			}
+
+			//			System.out.println("Closing monitor for block " + b + ". Threadpool shutdown: " + threadpool.isShutdown()
+			//					+ ".");
+
+		}
+	}
+
+	// for each stored solution, the first byte is used for flagging.
+	// the first bit indicates whether the solution is derived
+	// The next three bits store the number of bits per transition (0 implies 1 bit per transition, 7 implies 8 bits per transition)
+	// The rest of the array  then stores the solution
+	protected static final byte COMPUTED = (byte) 0b00000000;
+	protected static final byte DERIVED = (byte) 0b10000000;
+
+	protected static final byte BITPERTRANSMASK = (byte) 0b01110000;
+	protected static final byte FREEBITSFIRSTBYTE = 4;
+
+	// stores the location of the LP solution plus a flag if it is derived or real
+	protected TIntObjectMap<byte[]> lpSolutions = new TIntObjectHashMap<>(16);
+	protected long lpSolutionsSize = 4;
+
+	protected final double[] rhf;
+	protected int bytesUsed;
+	protected long solveTime = 0;
+
+	//	protected int numRows;
+	//	protected int numCols;
+
+	private ExecutorService threadpool;
+	private LPProblemProvider provider;
+	private LpSolve solver;
+
+	private final boolean doMultiThreading;
+
+	private LPMatrix.SPARSE.LPSOLVE matrix;
+	private final boolean isInteger;
+	private final int numTrans;
+	TIntList splits = new TIntArrayList();
+
+	public AStarWithMarkingSplit(SyncProduct product) throws LPMatrixException {
+		this(product, true, false, false, Debug.NONE);
+	}
+
+	public AStarWithMarkingSplit(SyncProduct product, boolean moveSorting, boolean isInteger, boolean doMultiThreading,
+			Debug debug) throws LPMatrixException {
+		super(product, moveSorting, true, true, debug);
+		this.isInteger = isInteger;
+		this.doMultiThreading = false && doMultiThreading;
+		//		this.numRows = net.numPlaces();
+		matrix = new LPMatrix.SPARSE.LPSOLVE(net.numPlaces() + 1, net.numTransitions());
+
+		// Set the objective to follow the cost function
+		for (short t = net.numTransitions(); t-- > 0;) {
+			matrix.setObjective(t, net.getCost(t));
+			matrix.setMat(net.numPlaces(), t, net.getCost(t));
+
+			short[] input = net.getInput(t);
+			for (int i = input.length; i-- > 0;) {
+				// transition t consumes from place p, hence  incidence matrix
+				// is -1;
+				matrix.adjustMat(input[i], t, -1);
+				assert matrix.getMat(input[i], t) <= 1;
+			}
+			short[] output = net.getOutput(t);
+			for (int i = output.length; i-- > 0;) {
+				matrix.adjustMat(output[i], t, 1);
+				assert matrix.getMat(output[i], t) <= 1;
+			}
+
+			// Use integer variables if specified
+			matrix.setInt(t, isInteger);
+			// Set lower bound of 0
+			matrix.setLowbo(t, 0);
+			// Set upper bound to 255 (we assume unsigned byte is sufficient to store result)
+			matrix.setUpbo(t, 255);
+
+			if (debug != Debug.NONE) {
+				matrix.setColName(t, net.getTransitionLabel(t));
+			}
+
+		}
+
+		rhf = new double[net.numPlaces() + 1];
+		byte[] marking = net.getFinalMarking();
+		for (short p = net.numPlaces(); p-- > 0;) {
+			if (debug != Debug.NONE) {
+				matrix.setRowName(p, net.getPlaceLabel(p));
+			}
+			// set the constraint to equality
+			matrix.setConstrType(p, LPMatrix.EQ);
+			rhf[p] = marking[p];
+		}
+		matrix.setConstrType(net.numPlaces(), LPMatrix.GE);
+
+		matrix.setMinim();
+		numTrans = net.numTransitions();
+		splits.add(-1);
+
+		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
+	}
+
+	private void init() throws LPMatrixException {
+		int monitorThreads;
+		try {
+			solver = matrix.toSolver();
+			if (doMultiThreading) {
+				monitorThreads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
+				provider = new LPProblemProvider(solver.copyLp(), monitorThreads);
+				threadpool = Executors.newFixedThreadPool(monitorThreads);
+
+			} else {
+				monitorThreads = 0;
+				provider = null;
+				threadpool = null;
+			}
+		} catch (LpSolveException e) {
+			throw new LPMatrixException(e);
+		}
+		// bytes for solver
+		bytesUsed = matrix.bytesUsed();
+		// bytes for solvers inside monitorthreads
+		bytesUsed += matrix.bytesUsed() * monitorThreads;
+		//		numCols = net.numTransitions() + 1;
+		varsMainThread = new double[net.numTransitions()];
+		tempForSettingSolution = new int[net.numTransitions()];
+
+	}
+
+	@Override
+	protected void growArrays() {
+		super.growArrays();
+		if (doMultiThreading) {
+			threadpool.submit(new BlockMonitor(block, net.numTransitions()));
+		}
+	}
+
+	@Override
+	public short[] run() throws LPMatrixException {
+		long start = System.nanoTime();
+		init();
+		return super.runReplayAlgorithm(start);
+	}
+
+	protected double[] varsMainThread;
+
+	@Override
+	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
+
+		if (marking == 0)
+			return getExactHeuristic(solver, marking, markingArray, varsMainThread, 0);
+
+		// Compute the heuristic for a marking that is now the head of the queue. All
+		// elements in the top of the queue have the same F score, equal to this marking.
+		// we have therefore reached a point where the original estimate was not accurate enough.
+		int oldFScore = getGScore(marking) + getHScore(marking);
+		int estimate = getExactHeuristic(solver, marking, markingArray, varsMainThread, getHScore(marking));
+
+		int newFScore = getGScore(marking) + estimate;
+
+		assert (newFScore >= oldFScore);
+
+		// how many events have been explained so far?
+		int m = marking;
+		short trans = getPredecessorTransition(m);
+		while (net.getEventOf(trans) < 0 && m > 0) {
+			m = getPredecessor(m);
+			trans = getPredecessorTransition(m);
+		}
+		// if m is 0, no event was explained yet.
+		if (net.getEventOf(trans) <= splits.get(splits.size() - 1)) {
+			// we cannot split the trace, hence there's no point to try. Just update this marking
+			// push it down the queue and try another one.
+			return estimate;
+		}
+		int split = m == 0 ? 0 : net.getEventOf(trans);
+		int blocks = splits.size();
+		splits.add(split);
+
+		// clone the matrix
+		LPMatrix.SPARSE.LPSOLVE newMatrix;
+		try {
+			newMatrix = new LPMatrix.SPARSE.LPSOLVE(splits.size() * net.numPlaces(), splits.size()
+					* net.numTransitions());
+		} catch (LPMatrixException e) {
+			return estimate;
+		}
+
+		splits.add(Integer.MAX_VALUE);
+		int row;
+		for (int b = 0; b <= blocks; b++) {
+			for (int p = 0; p < net.numPlaces(); p++) {
+				row = b * net.numPlaces() + p;
+				if (b == blocks) {
+					// right hand side in last block equals mf - mi
+					newMatrix.setConstrType(row, LPMatrix.EQ);
+					newMatrix.setRh(row, net.getFinalMarking()[p] - net.getInitialMarking()[p]);
+				} else {
+					// all blocks in between GE -mi
+					newMatrix.setConstrType(row, LPMatrix.GE);
+					newMatrix.setRh(row, -net.getInitialMarking()[p]);
+				}
+				for (short t = 0; t < net.numTransitions(); t++) {
+					// get value in top-left A
+					double val = matrix.getMat(p, t);
+					for (int c = t; c < (b + 1) * numTrans; c += numTrans) {
+						newMatrix.setInt(c, isInteger);
+						newMatrix.setObjective(c, net.getCost(t));
+						newMatrix.setLowbo(c, 0);
+						newMatrix.setUpbo(
+								c,
+								net.getEventOf(t) < 0
+										|| (net.getEventOf(t) > splits.get(c / numTrans) && net.getEventOf(t) <= splits
+												.get(c / numTrans + 1)) ? 1 : 0);
+						if (val != 0) {
+							newMatrix.setMat(row, c, val);
+						} // if
+					} // for c
+				} // for col
+
+			}// for row
+
+		}// for b
+		newMatrix.setMinim();
+		splits.removeAt(splits.size() - 1);
+		//			OutputStreamWriter w = new OutputStreamWriter(System.out);
+		//			newMatrix.printLp(w, ", ");
+		//			w.flush();
+
+		LpSolve largeSolver = null;
+		int result = HEURISTICINFINITE;
+		double[] largeVars;
+		try {
+			largeSolver = newMatrix.toSolver();
+			largeVars = new double[newMatrix.getNcolumns()];
+			//				largeSolver.setVerbose(4);
+			result = solveLp(largeSolver, 0, largeVars);
+
+		} catch (LPMatrixException | LpSolveException e) {
+			return estimate;
+		} finally {
+			largeSolver.deleteAndRemoveLp();
+		}
+
+		//			double[] debugVars = new double[largeVars.length];
+		//			m = marking;
+		//			do {
+		//				debugVars[getPredecessorTransition(m)] += 1;
+		//				m = getPredecessor(m);
+		//			} while (m != NOPREDECESSOR);
+		//			for (short t = 0; t < numTrans; t++) {
+		//				debugVars[numTrans + t] = getLpSolution(marking, t);
+		//			}
+		//			System.out.println("Witness cost: " + computeCostForVars(debugVars));			
+
+		assert (result != HEURISTICINFINITE);
+		assert (result <= newFScore);
+		assert (result >= oldFScore);
+		// remember: newFScore >= oldFScore;
+
+		if (result == oldFScore) {
+			// Too bad. We did not find an improvement on the heuristic from m0
+			// using the additional splitpoint.
+			splits.removeAt(splits.size() - 1);
+		} else {
+			assert result == newFScore;
+
+			int dif = result - oldFScore;
+			// we found an improved estimate for the initial marking!
+			// update all open markings (which have equal F score by
+			// definition) without changing the queue.
+			//			assert queue.checkInv();
+			int b, i;
+			TIntList toPromote = new TIntArrayList();
+			for (m = 0; m < markingsReached; m++) {
+				b = m >>> blockBit;
+				i = m & blockMask;
+				if (!isClosed(b, i)) {
+					// we are investigating a non-exact heuristic. No other
+					// open marking in the queue can have a exact value.
+					if (!hasExactHeuristic(b, i)) {
+						setHScore(b, i, getHScore(b, i) + dif, false);
+						assert getHScore(b, i) + getGScore(b, i) == newFScore;
+					} else {
+						assert getHScore(b, i) + getGScore(b, i) >= oldFScore;
+						if (getHScore(b, i) + getGScore(b, i) <= newFScore) {
+							// exact marking. is in the queue and should be promoted later
+							assert queue.contains(m);
+							toPromote.add(m);
+						}
+					}
+				}
+			}
+			for (i = toPromote.size(); i-- > 0;) {
+				addToQueue(toPromote.get(i));
+			}
+			//			assert queue.checkInv();
+			setHScore(marking, estimate, true);
+			System.out.println(splits + "  F=" + newFScore);
+
+		} // else if result == newFScore
+
+		return estimate;
+
+	}
+
+	private int getExactHeuristic(LpSolve solver, int marking, byte[] markingArray, double[] vars, int minCost) {
+
+		long start = System.nanoTime();
+		// start from correct right hand side
+		try {
+			setRH(solver, markingArray, minCost);
+
+			return solveLp(solver, marking, vars);
+
+		} catch (LpSolveException e) {
+			return HEURISTICINFINITE;
+		} finally {
+			synchronized (this) {
+				solveTime += System.nanoTime() - start;
+			}
+		}
+
+	}
+
+	private int solveLp(LpSolve solver, int marking, double[] vars) throws LpSolveException {
+		solver.defaultBasis();
+		int solverResult = solver.solve();
+		synchronized (this) {
+			heuristicsComputed++;
+		}
+
+		//			if (solverResult == LpSolve.INFEASIBLE || solverResult == LpSolve.NUMFAILURE) {
+		//				// BVD: LpSolve has the tendency to give false infeasible or numfailure answers. 
+		//				// It's unclear when or why this happens, but just in case...
+		//				solverResult = solver.solve();
+		//
+		//			}
+		if (solverResult == LpSolve.OPTIMAL) {
+			// retrieve the solution
+			solver.getVariables(vars);
+			setNewLpSolution(marking, vars);
+
+			// compute cost estimate
+			double c = computeCostForVars(vars);
+
+			if (c >= HEURISTICINFINITE) {
+				synchronized (this) {
+					alignmentResult |= Utils.HEURISTICFUNCTIONOVERFLOW;
+				}
+				// continue with maximum heuristic value not equal to infinity.
+				return HEURISTICINFINITE - 1;
+			}
+
+			// assume precision 1E-9 and round down
+			return (int) (c + 1E-9);
+		} else if (solverResult == LpSolve.INFEASIBLE) {
+
+			return HEURISTICINFINITE;
+		} else {
+			//					lp.writeLp("D:/temp/alignment/debugLP-Alignment.lp");
+			//System.err.println("Error code from LpSolve solver:" + solverResult);
+			return HEURISTICINFINITE;
+		}
+	}
+
+	protected void setRH(LpSolve solver, byte[] markingArray, int minCost) throws LpSolveException {
+		for (int p = net.numPlaces(); p-- > 0;) {
+			// set right hand side to final marking 
+			solver.setRh(p + 1, rhf[p] - markingArray[p]);
+		}
+		solver.setRh(net.numPlaces() + 1, minCost);
+	}
+
+	protected double computeCostForVars(double[] vars) {
+		double c = 0;
+		for (int t = vars.length; t-- > 0;) {
+			c += vars[t] * net.getCost((short) (t % numTrans));
+		}
+		return c;
+	}
+
+	protected synchronized int getLpSolution(int marking, short transition) {
+		byte[] solution = getSolution(marking);
+		//		if ((solution[0] & STOREDFULL) == STOREDFULL) {
+		// get the bits used per transition
+		int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> FREEBITSFIRSTBYTE);
+		// which is the first bit?
+		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits;
+		// that implies the following byte
+		int fromByte = fromBit >>> 3;
+		//TODO:ADDEDBYTE
+		fromByte++;
+
+		// with the following index in byte.
+		fromBit &= 7;
+
+		byte currentBit = (byte) (1 << (7 - fromBit));
+		int value = 0;
+		for (int i = 0; i < bits; i++) {
+			// shift value left
+			value <<= 1;
+
+			// flip the bit
+			if ((solution[fromByte] & currentBit) != 0)
+				value++;
+
+			// rotate bit right 
+			currentBit = (byte) (((currentBit & 0xFF) >>> 1) | (currentBit << 7));
+			// increase byte if needed.
+			if (currentBit < 0)
+				fromByte++;
+
+		}
+
+		return value;
+	}
+
+	protected synchronized boolean isDerivedLpSolution(int marking) {
+		return getSolution(marking) != null && (getSolution(marking)[0] & DERIVED) == DERIVED;
+	}
+
+	protected synchronized void setDerivedLpSolution(int from, int to, short transition) {
+		assert getSolution(to) == null;
+		byte[] solutionFrom = getSolution(from);
+
+		byte[] solution = Arrays.copyOf(solutionFrom, solutionFrom.length);
+
+		solution[0] |= DERIVED;
+
+		// get the length of the bits used per transition
+		int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> FREEBITSFIRSTBYTE);
+		// which is the least significant bit?
+		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits + (bits - 1);
+		// that implies the following byte
+		int fromByte = fromBit >>> 3;
+		//TODO:ADDEDBYTE
+		fromByte++;
+
+		// with the following index in byte.
+		fromBit &= 7;
+		// most significant bit in fromBit
+		byte lsBit = (byte) (1 << (7 - fromBit));
+
+		// we need to reduce by 1.
+		for (int i = 0; i < bits; i++) {
+			// flip the bit
+			if ((solution[fromByte] & lsBit) != 0) {
+				// first bit that is 1. Flip and terminate
+				solution[fromByte] ^= lsBit;
+				//					assert getLpSolution(to, transition) == getLpSolution(from, transition) - 1;
+				addSolution(to, solution);
+				return;
+			}
+			// flip and continue;
+			solution[fromByte] ^= lsBit;
+			// rotate bit left
+			lsBit = (byte) (((lsBit & 0xFF) >>> 7) | (lsBit << 1));
+			// decrease byte if needed.
+			if (lsBit == 1)
+				fromByte--;
+
+		}
+		assert false;
+
+		//		}
+	}
+
+	private int[] tempForSettingSolution;
+
+	protected synchronized void setNewLpSolution(int marking, double[] solutionDouble) {
+		// copy the solution from double array to byte array (rounding down)
+		// and compute the maximum.
+		byte bits = 1;
+		for (int i = numTrans; i-- > 0;) {
+			tempForSettingSolution[i] = ((int) (solutionDouble[i] + 5E-11));
+			if (tempForSettingSolution[i] > (1 << bits)) {
+				bits++;
+			}
+		}
+		for (int i = solutionDouble.length; i-- > numTrans;) {
+			tempForSettingSolution[i % numTrans] += ((int) (solutionDouble[i] + 5E-11));
+			if (tempForSettingSolution[i % numTrans] > (1 << bits)) {
+				bits++;
+			}
+		}
+
+		// to store this solution, we need "bits" bits per transition
+		// plus a header consisting of 8-FREEBITSFIRSTBYTE bits.
+		// this translate to 
+		int bytes = 8 - FREEBITSFIRSTBYTE + (tempForSettingSolution.length * bits + 4) / 8;
+
+		assert marking == 0 || getSolution(marking) == null;
+		byte[] solution = new byte[bytes + 1]; //TODO:ADDEDBYTE
+
+		// set the computed flag in the first two bits
+		solution[0] = COMPUTED;
+		// set the number of bits used in the following 3 bits
+		bits--;
+		solution[0] |= bits << FREEBITSFIRSTBYTE;
+
+		solution[1] = (byte) splits.size();
+		//TODO:ADDEDBYTE
+		int currentByte = 1;
+		byte currentBit = (1 << (FREEBITSFIRSTBYTE - 1));
+		for (short t = 0; t < tempForSettingSolution.length; t++) {
+			// tempForSettingSolution[i] can be stored in "bits" bits.
+			for (int b = 1 << bits; b > 0; b >>>= 1) {
+				// copy the appropriate bit
+				if ((tempForSettingSolution[t] & b) != 0)
+					solution[currentByte] |= currentBit;
+
+				// rotate right
+				currentBit = (byte) ((((currentBit & 0xFF) >>> 1) | (currentBit << 7)));
+				if (currentBit < 0)
+					currentByte++;
+
+			}
+			//			assert getLpSolution(marking, t) == tempForSettingSolution[t];
+		}
+		addSolution(marking, solution);
+	}
+
+	private byte[] getSolution(int marking) {
+		return lpSolutions.get(marking);
+	}
+
+	private void addSolution(int marking, byte[] solution) {
+		lpSolutions.put(marking, solution);
+		lpSolutionsSize += 12 + 4 + solution.length; // object size
+		lpSolutionsSize += 1 + 4 + 8; // used flag + key + value pointer
+	}
+
+	/**
+	 * In ILP version, only one given final marking is the target.
+	 */
+	protected boolean isFinal(int marking) {
+		return equalMarking(marking, net.getFinalMarking());
+	}
+
+	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,
+			int toBlock, int toIndex) {
+		if (hasExactHeuristic(fromBlock, fromIndex) && (getLpSolution(from, transition) >= 1)) {
+			// from Marking has exact heuristic
+			// we can derive an exact heuristic from it
+
+			setDerivedLpSolution(from, to, transition);
+			// set the exact h score
+			setHScore(toBlock, toIndex, getHScore(fromBlock, fromIndex) - net.getCost(transition), true);
+			heuristicsDerived++;
+
+		} else {
+			if (isFinal(to)) {
+				setHScore(toBlock, toIndex, 0, true);
+			}
+			int h = getHScore(fromBlock, fromIndex) - net.getCost(transition);
+			//			if (h < 0) {
+			//				h = 0;
+			//			}
+			if (h > getHScore(toBlock, toIndex)) {
+				// estimated heuristic should not decrease.
+				setHScore(toBlock, toIndex, h, false);
+				heuristicsEstimated++;
+			}
+		}
+
+	}
+
+	@Override
+	protected void addToQueue(int marking) {
+		super.addToQueue(marking);
+		if (!hasExactHeuristic(marking)) {
+			synchronized (estimatedLock) {
+				estimatedLock.notifyAll();
+			}
+		}
+	}
+
+	@Override
+	protected long getEstimatedMemorySize() {
+		long val = super.getEstimatedMemorySize();
+		// count space for all computed solutions
+		val += lpSolutionsSize;
+		// count size of matrix
+		val += bytesUsed;
+		// count size of rhs
+		val += rhf.length * 8 + 4;
+		return val;
+	}
+
+	@Override
+	public TObjectIntMap<Utils.Statistic> getStatistics() {
+		TObjectIntMap<Statistic> map = super.getStatistics();
+		map.put(Statistic.HEURISTICTIME, (int) (solveTime / 1000));
+		return map;
+	}
+
+	@Override
+	protected void writeEndOfAlignmentDot() {
+		TObjectIntMap<Statistic> map = getStatistics();
+		for (int m = 0; m < markingsReached; m++) {
+			if (isDerivedLpSolution(m)) {
+				debug.writeMarkingReached(this, m, "color=blue");
+			} else {
+				debug.writeMarkingReached(this, m);
+			}
+		}
+		StringBuilder b = new StringBuilder();
+		b.append("info [shape=plaintext,label=<");
+		for (Statistic s : Statistic.values()) {
+			b.append(s);
+			b.append(": ");
+			b.append(map.get(s));
+			b.append("<br/>");
+		}
+		b.append("Splits: " + (splits.size() - 1));
+		b.append("<br/>");
+		b.append(">];");
+
+		debug.writeDebugInfo(Debug.DOT, b.toString());
+		debug.writeDebugInfo(Debug.DOT, "}");
+	}
+
+	@Override
+	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {
+		super.processedMarking(marking, blockMarking, indexInBlock);
+		synchronized (this) {
+			lpSolutionsSize -= 12 + 4 + lpSolutions.remove(marking).length; // object size
+			lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer
+		}
+	}
+
+	protected void terminateRun() {
+		try {
+			super.terminateRun();
+		} finally {
+			if (doMultiThreading && !threadpool.isShutdown()) {
+				threadpool.shutdown();
+				//				System.out.println("Threadpool shutdown upon termination of run.");
+				do {
+					synchronized (estimatedLock) {
+						estimatedLock.notifyAll();
+					}
+					try {
+						threadpool.awaitTermination(100, TimeUnit.MILLISECONDS);
+					} catch (InterruptedException e) {
+					}
+				} while (!threadpool.isTerminated());
+				provider.deleteLps();
+			}
+			solver.deleteAndRemoveLp();
+		}
+	}
+
+	/**
+	 * Returns the h score for a stored marking (actually, we store F, hence h
+	 * can be <0)
+	 * 
+	 * @param block
+	 *            the memory block the marking is stored in
+	 * @param index
+	 *            the index at which the marking is stored in the memory block
+	 * @return
+	 */
+	@Override
+	public int getHScore(int block, int index) {
+		return (int) ((e_g_h_pt[block][index] & HMASK) >>> HSHIFT) - getGScore(block, index);
+	}
+
+	/**
+	 * set the h score for a stored marking (actually, we store F, hence h can
+	 * be <0)
+	 * 
+	 * @param block
+	 *            the memory block the marking is stored in
+	 * @param index
+	 *            the index at which the marking is stored in the memory block
+	 * @return
+	 */
+	@Override
+	public void setHScore(int block, int index, int score, boolean isExact) {
+		long scoreL = ((long) score + getGScore(block, index)) << HSHIFT;
+		assert (scoreL & HMASK) == scoreL;
+		// overwrite the last three bytes of the score.
+		e_g_h_pt[block][index] &= ~HMASK; // reset to 0
+		e_g_h_pt[block][index] |= scoreL; // set score
+		if (isExact) {
+			e_g_h_pt[block][index] |= EXACTMASK; // set exactFlag
+		} else {
+			e_g_h_pt[block][index] &= ~EXACTMASK; // clear exactFlag
+
+		}
+	}
+
+	@Override
+	protected void writeStatus() {
+		super.writeStatus();
+		debug.writeDebugInfo(Debug.NORMAL, "   Split           :" + String.format("%,d", splits.size() - 1));
+	}
+
+}

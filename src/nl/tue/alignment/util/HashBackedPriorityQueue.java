@@ -199,12 +199,15 @@ public class HashBackedPriorityQueue implements Queue {
 
 		// if the marking which exists at location has updated score
 		// and the new score is better, then sift the marking up
-		if (isBetter(marking, peek(location))) {
+		if (location > 0 && isBetter(marking, peek((location - 1) >>> 1))) {
 			// update to better, if newE better then peek(location)
 			siftUp(location, marking);
 			//			assert checkInv();
 			return true;
-		} else if (isBetter(peek(location), marking)) {
+		} else if (location << 1 + 1 < size && isBetter(peek(location << 1 + 1), marking)) {
+			siftDown(location, marking);
+			return true;
+		} else if (location << 1 + 2 < size && isBetter(peek(location << 1 + 2), marking)) {
 			siftDown(location, marking);
 			return true;
 		}

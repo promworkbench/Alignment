@@ -52,16 +52,24 @@ public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 				boolean b2 = algorithm.hasExactHeuristic(marking2);
 				if (b1 && !b2) {
 					return true;
-				} else if (b2 && !b1) {
-					return false;
-				} else {
-					// when both markings have exact or inexact heuristics, schedule the largest g score first
-					if (algorithm.getGScore(marking1) > algorithm.getGScore(marking2)) {
+				} else if (b2 == b1) {
+					// when both markings have exact or inexact heuristics, schedule the largest event number
+					
+					c1 = getLastEventNumber(marking1);
+					c2 = getLastEventNumber(marking2);
+					if (c1 > c2) {
+						// more events explained;
 						return true;
-					} else if (algorithm.getGScore(marking1) == algorithm.getGScore(marking2)) {
-						// when they are equal, prefer the lowest predecessor
-						return algorithm.getPredecessorTransition(marking1) < algorithm
-								.getPredecessorTransition(marking2);
+					} else if (c2 == c1) {
+						// when both markings have exact or inexact heuristics, schedule the largest g score first
+						
+						if (algorithm.getGScore(marking1) > algorithm.getGScore(marking2)) {
+							return true;
+						} else if (algorithm.getGScore(marking1) == algorithm.getGScore(marking2)) {
+							// when they are equal, prefer the lowest predecessor
+							return algorithm.getPredecessorTransition(marking1) < algorithm
+									.getPredecessorTransition(marking2);
+						}
 					}
 				}
 			}
@@ -69,4 +77,12 @@ public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 		return false;
 	}
 
+	private int getLastEventNumber(int marking) {
+		int eventNumber = -1;
+		while (marking > 0 && eventNumber == -1) {
+			eventNumber = algorithm.getNet().getEventOf(algorithm.getPredecessorTransition(marking));
+			marking = algorithm.getPredecessor(marking);
+		}
+		return eventNumber;
+	}
 }

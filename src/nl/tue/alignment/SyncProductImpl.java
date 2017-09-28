@@ -10,6 +10,8 @@ public class SyncProductImpl implements SyncProduct {
 
 	protected final String[] transitions;
 
+	protected final int[] eventNumbers;
+
 	protected final String[] places;
 
 	protected final int[] cost;
@@ -36,13 +38,16 @@ public class SyncProductImpl implements SyncProduct {
 
 		input = new short[numTransitions()][];
 		output = new short[numTransitions()][];
+		eventNumbers = new int[numTrans];
+		Arrays.fill(eventNumbers, -1);
 
 		initMarking = new byte[numPlaces()];
 		finalMarking = new byte[numPlaces()];
 
 	}
 
-	public SyncProductImpl(String label, String[] transitions, String[] places, int[] cost) {
+	public SyncProductImpl(String label, String[] transitions, String[] places, int[] eventNumbers, int[] cost) {
+		this.eventNumbers = eventNumbers;
 		this.label = label;
 		this.transitions = transitions;
 		this.places = places;
@@ -215,4 +220,13 @@ public class SyncProductImpl implements SyncProduct {
 		}
 
 	}
+
+	public int getEventOf(short transition) {
+		return eventNumbers[transition];
+	}
+
+	public void setEventOf(short transition, int event) {
+		eventNumbers[transition] = event;
+	}
+
 }

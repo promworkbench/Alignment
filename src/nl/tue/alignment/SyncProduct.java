@@ -92,4 +92,14 @@ public interface SyncProduct {
 	 */
 	public String getLabel();
 
+	/**
+	 * returns the event number associated with this transitions. Events are
+	 * assumed numbered 0..n and for model-move transitions, this method returns
+	 * -1
+	 * 
+	 * @param transition
+	 * @return
+	 */
+	public int getEventOf(short transition);
+
 }
