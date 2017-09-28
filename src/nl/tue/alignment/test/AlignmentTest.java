@@ -6,14 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
-import nl.tue.alignment.ReplayAlgorithm.Debug;
-import nl.tue.alignment.SyncProduct;
-import nl.tue.alignment.SyncProductFactory;
-import nl.tue.astar.AStarException;
-import nl.tue.astar.AStarThread.ASynchronousMoveSorting;
-import nl.tue.astar.AStarThread.QueueingModel;
-import nl.tue.astar.AStarThread.Type;
-
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
 import org.deckfour.xes.classification.XEventClassifier;
@@ -59,6 +51,13 @@ import org.processmining.plugins.petrinet.replayer.algorithms.costbasedcomplete.
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
+import nl.tue.alignment.ReplayAlgorithm.Debug;
+import nl.tue.alignment.SyncProduct;
+import nl.tue.alignment.SyncProductFactory;
+import nl.tue.astar.AStarException;
+import nl.tue.astar.AStarThread.ASynchronousMoveSorting;
+import nl.tue.astar.AStarThread.QueueingModel;
+import nl.tue.astar.AStarThread.Type;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class AlignmentTest {

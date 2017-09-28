@@ -391,9 +391,7 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits;
 		// that implies the following byte
 		int fromByte = fromBit >>> 3;
-		//TODO:ADDEDBYTE
-		fromByte++;
-
+		
 		// with the following index in byte.
 		fromBit &= 7;
 
@@ -436,9 +434,7 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits + (bits - 1);
 		// that implies the following byte
 		int fromByte = fromBit >>> 3;
-		//TODO:ADDEDBYTE
-		fromByte++;
-
+	
 		// with the following index in byte.
 		fromBit &= 7;
 		// most significant bit in fromBit
@@ -493,17 +489,15 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 		int bytes = 8 - FREEBITSFIRSTBYTE + (tempForSettingSolution.length * bits + 4) / 8;
 
 		assert marking == 0 || getSolution(marking) == null;
-		byte[] solution = new byte[bytes + 1]; //TODO:ADDEDBYTE
-
+		byte[] solution = new byte[bytes ]; 
+		
 		// set the computed flag in the first two bits
 		solution[0] = COMPUTED;
 		// set the number of bits used in the following 3 bits
 		bits--;
 		solution[0] |= bits << FREEBITSFIRSTBYTE;
 
-		solution[1] = (byte) splits.size();
-		//TODO:ADDEDBYTE
-		int currentByte = 1;
+		int currentByte = 0;
 		byte currentBit = (1 << (FREEBITSFIRSTBYTE - 1));
 		for (short t = 0; t < tempForSettingSolution.length; t++) {
 			// tempForSettingSolution[i] can be stored in "bits" bits.
