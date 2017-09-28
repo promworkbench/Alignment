@@ -584,6 +584,7 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 	public TObjectIntMap<Utils.Statistic> getStatistics() {
 		TObjectIntMap<Statistic> map = super.getStatistics();
 		map.put(Statistic.HEURISTICTIME, (int) (solveTime / 1000));
+		map.put(Statistic.SPLITS, splits.size() - 1);
 		return map;
 	}
 

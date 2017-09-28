@@ -48,7 +48,8 @@ public class Utils {
 		RUNTIME("Time to compute alignment (us)"), //
 		HEURISTICTIME("Time to compute heuristics (us)"), //
 		SETUPTIME("Time to setup algorithm (us)"), //
-		TOTALTIME("Total Time including setup (us)");
+		TOTALTIME("Total Time including setup (us)"), //
+		SPLITS("Number of splits when splitting marking");
 		private final String label;
 
 		private Statistic(String label) {
