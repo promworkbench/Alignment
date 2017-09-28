@@ -133,27 +133,29 @@ public class AlignmentTest {
 		classes = null;
 		System.gc();
 		try {
+			long cost = 0;
 			long start = System.nanoTime();
-//			OutputStreamWriter writer = new OutputStreamWriter(System.out);
+			//			OutputStreamWriter writer = new OutputStreamWriter(System.out);
 			for (SyncProduct product : products) {
-//				try {
-//					((SyncProductImpl) product).toTpn(writer);
-//					writer.flush();
-//				} catch (IOException e) {
-//					// TODO Auto-generated catch block
-//					e.printStackTrace();
-//				}
-				
+				//				try {
+				//					((SyncProductImpl) product).toTpn(writer);
+				//					writer.flush();
+				//				} catch (IOException e) {
+				//					// TODO Auto-generated catch block
+				//					e.printStackTrace();
+				//				}
+
 				if (product != null) {
 					System.out.println("---------------------------- " + product.getLabel());
 					System.out.println("Transitions: " + product.numTransitions());
 					System.out.println("Places: " + product.numPlaces());
-					SmallTests.testSingleGraph(product, Debug.NORMAL);
+					cost += SmallTests.testSingleGraph(product, Debug.NORMAL);
 
 				}
 
 			}
 			System.out.println("Total time: " + (System.nanoTime() - start) / 1000000.0 + " ms");
+			System.out.println("Total cost: " + cost);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -161,7 +163,8 @@ public class AlignmentTest {
 	}
 
 	protected static void doTestOldAlignments(PetrinetGraph net, Marking initialMarking, Marking[] finalMarkings,
-			XLog log, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
+			XLog log, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT,
+			TransEvClassMapping mapping) {
 		int iteration = 0;
 		for (ASynchronousMoveSorting sort : new ASynchronousMoveSorting[] { ASynchronousMoveSorting.TOTAL,
 				ASynchronousMoveSorting.LOGMOVEFIRST }) {
@@ -538,8 +541,8 @@ public class AlignmentTest {
 
 		}
 
-		public void setPluginDescriptor(PluginDescriptor descriptor, int methodIndex) throws FieldSetException,
-				RecursiveCallException {
+		public void setPluginDescriptor(PluginDescriptor descriptor, int methodIndex)
+				throws FieldSetException, RecursiveCallException {
 			throw new NotImplementedException();
 
 		}

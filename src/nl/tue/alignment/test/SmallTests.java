@@ -8,6 +8,7 @@ import nl.tue.alignment.ReplayAlgorithm;
 import nl.tue.alignment.ReplayAlgorithm.Debug;
 import nl.tue.alignment.SyncProduct;
 import nl.tue.alignment.SyncProductImpl;
+import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.AStar;
 import nl.tue.alignment.algorithms.AStarWithMarkingSplit;
@@ -358,7 +359,7 @@ public class SmallTests {
 		}
 	}
 
-	public static void testSingleGraph(SyncProduct net, Debug debug) throws LPMatrixException {
+	public static int testSingleGraph(SyncProduct net, Debug debug) throws LPMatrixException {
 
 		ReplayAlgorithm algorithm;
 		//INITIALIZATION OF CLASSLOADER FOR PROPER RECORDING OF TIMES.
@@ -405,7 +406,7 @@ public class SmallTests {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
+		return algorithm.getStatistics().get(Utils.Statistic.COST);
 		//		for (short t : alignment) {
 		//			System.out.println(net.getTransitionLabel(t));
 		//		}

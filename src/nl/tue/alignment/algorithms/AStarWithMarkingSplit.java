@@ -218,9 +218,7 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 			// using the additional splitpoint.
 			splits.removeAt(splits.size() - 1);
 		} else {
-			assert result == newFScore;
 
-			int dif = result - oldFScore;
 			// we found an improved estimate for the initial marking!
 			// update all open markings (which have equal F score by
 			// definition) without changing the queue.
@@ -234,12 +232,19 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 					// we are investigating a non-exact heuristic. No other
 					// open marking in the queue can have a exact value.
 					if (!hasExactHeuristic(b, i)) {
-						setHScore(b, i, getHScore(b, i) + dif, false);
-						assert getHScore(b, i) + getGScore(b, i) == newFScore;
+						setHScore(b, i, result - getGScore(b, i), false);
+						//						assert getHScore(b, i) + getGScore(b, i) == newFScore;
 					} else {
+						// marking m has an exact score, but was not investigated yet
+						// we can improve the score
 						assert getHScore(b, i) + getGScore(b, i) >= oldFScore;
-						if (getHScore(b, i) + getGScore(b, i) <= newFScore) {
-							// exact marking. is in the queue and should be promoted later
+						if (getHScore(b, i) + getGScore(b, i) < result) {
+							setHScore(b, i, result - getGScore(b, i), false);
+							// exact marking. is in the queue and might have to be requeued later
+							assert queue.contains(m);
+							toRequeue.add(m);
+						} else if (getHScore(b, i) + getGScore(b, i) == result) {
+							// exact marking with equal score. is in the queue and might have to be requeued later
 							assert queue.contains(m);
 							toRequeue.add(m);
 						}
@@ -249,9 +254,12 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 			for (i = toRequeue.size(); i-- > 0;) {
 				addToQueue(toRequeue.get(i));
 			}
-			//			assert queue.checkInv();
+
+			// set H score of marking to estimate.
 			setHScore(marking, estimate, true);
-			//			System.out.println(splits + "  F=" + newFScore);
+			assert !queue.contains(marking);
+			// requeueing will occur in caller method if applicable.
+
 			writeStatus();
 
 		} // else if result == newFScore
@@ -391,7 +399,7 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits;
 		// that implies the following byte
 		int fromByte = fromBit >>> 3;
-		
+
 		// with the following index in byte.
 		fromBit &= 7;
 
@@ -434,7 +442,7 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits + (bits - 1);
 		// that implies the following byte
 		int fromByte = fromBit >>> 3;
-	
+
 		// with the following index in byte.
 		fromBit &= 7;
 		// most significant bit in fromBit
@@ -489,8 +497,8 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 		int bytes = 8 - FREEBITSFIRSTBYTE + (tempForSettingSolution.length * bits + 4) / 8;
 
 		assert marking == 0 || getSolution(marking) == null;
-		byte[] solution = new byte[bytes ]; 
-		
+		byte[] solution = new byte[bytes];
+
 		// set the computed flag in the first two bits
 		solution[0] = COMPUTED;
 		// set the number of bits used in the following 3 bits
