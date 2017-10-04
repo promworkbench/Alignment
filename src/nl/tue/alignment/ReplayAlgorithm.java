@@ -1,9 +1,10 @@
 package nl.tue.alignment;
 
-import java.util.Arrays;
-
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
+
+import java.util.Arrays;
+
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.util.HashBackedPriorityQueue;
 import nl.tue.alignment.util.SortedHashBackedPriorityQueue;
@@ -35,14 +36,8 @@ import nl.tue.alignment.util.VisitedHashSet;
  */
 
 /*- 
- * Internally, information is stored in five arrays:
- * byte[][] markingLo; 
- * byte[][] markingHi; 
- * int[][] ptl_g; 
- * int[][] e_pth_h;
- * int[][] c_p;
- * 
- * These arrays are double arrays, i.e. the used memory is split up into smaller blocks,
+ * Internally, information is stored in two arrays. These arrays are double arrays, 
+ * i.e. the used memory is split up into smaller blocks,
  * which allows for more efficient storage in memory, as well as synchronization on blocks
  * in future multi threaded versions.
  * 
@@ -334,7 +329,6 @@ public abstract class ReplayAlgorithm {
 		map.put(Utils.Statistic.MAXQUEUECAPACITY, queue.maxCapacity());
 		map.put(Utils.Statistic.VISITEDSETCAPACITY, visited.capacity());
 
-		//TODO: Count the bytes in the hashtable backing the queue!
 		map.put(Utils.Statistic.MEMORYUSED, (int) (getEstimatedMemorySize() / 1024));
 		return map;
 	}
@@ -815,8 +809,10 @@ public abstract class ReplayAlgorithm {
 		debug.writeDebugInfo(Debug.NORMAL, "   Queue actions:   " + String.format("%,d", queueActions));
 		debug.writeDebugInfo(Debug.NORMAL, "   Heuristics compu:" + String.format("%,d", heuristicsComputed));
 		debug.writeDebugInfo(Debug.NORMAL, "   Heuristics deriv:" + String.format("%,d", heuristicsDerived));
-		debug.writeDebugInfo(Debug.NORMAL, "   Heuristics est  :"
-				+ String.format("%,d", (markingsReached - heuristicsComputed - heuristicsDerived)));
+		debug.writeDebugInfo(
+				Debug.NORMAL,
+				"   Heuristics est  :"
+						+ String.format("%,d", (markingsReached - heuristicsComputed - heuristicsDerived)));
 		debug.writeDebugInfo(Debug.NORMAL, "   Estimated memory:" + String.format("%,d", getEstimatedMemorySize()));
 		double time = (System.nanoTime() - startConstructor) / 1000000.0;
 		debug.writeDebugInfo(Debug.NORMAL, "   Time (ms):       " + String.format("%,f", time));

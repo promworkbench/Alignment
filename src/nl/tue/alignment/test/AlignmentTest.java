@@ -1,10 +1,22 @@
 package nl.tue.alignment.test;
 
+import gnu.trove.map.TObjectIntMap;
+
 import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
+
+import nl.tue.alignment.ReplayAlgorithm.Debug;
+import nl.tue.alignment.SyncProduct;
+import nl.tue.alignment.SyncProductFactory;
+import nl.tue.alignment.Utils.Statistic;
+import nl.tue.alignment.algorithms.AStarWithMarkingSplit;
+import nl.tue.astar.AStarException;
+import nl.tue.astar.AStarThread.ASynchronousMoveSorting;
+import nl.tue.astar.AStarThread.QueueingModel;
+import nl.tue.astar.AStarThread.Type;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
@@ -51,13 +63,6 @@ import org.processmining.plugins.petrinet.replayer.algorithms.costbasedcomplete.
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
-import nl.tue.alignment.ReplayAlgorithm.Debug;
-import nl.tue.alignment.SyncProduct;
-import nl.tue.alignment.SyncProductFactory;
-import nl.tue.astar.AStarException;
-import nl.tue.astar.AStarThread.ASynchronousMoveSorting;
-import nl.tue.astar.AStarThread.QueueingModel;
-import nl.tue.astar.AStarThread.Type;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class AlignmentTest {
@@ -134,6 +139,7 @@ public class AlignmentTest {
 		System.gc();
 		try {
 			long cost = 0;
+			int memUsed = 0;
 			long start = System.nanoTime();
 			//			OutputStreamWriter writer = new OutputStreamWriter(System.out);
 			for (SyncProduct product : products) {
@@ -149,8 +155,15 @@ public class AlignmentTest {
 					System.out.println("---------------------------- " + product.getLabel());
 					System.out.println("Transitions: " + product.numTransitions());
 					System.out.println("Places: " + product.numPlaces());
-					cost += SmallTests.testSingleGraph(product, Debug.NORMAL);
-
+					AStarWithMarkingSplit algorithm = new AStarWithMarkingSplit(product, //
+							true, // moveSort on total order
+							false, // use Integers
+							Debug.NORMAL // debug mode
+					);
+					algorithm.run();
+					TObjectIntMap<Statistic> stats = algorithm.getStatistics();
+					cost += stats.get(Statistic.COST);
+					memUsed = Math.max(memUsed, stats.get(Statistic.MEMORYUSED));
 				}
 
 			}
@@ -163,8 +176,7 @@ public class AlignmentTest {
 	}
 
 	protected static void doTestOldAlignments(PetrinetGraph net, Marking initialMarking, Marking[] finalMarkings,
-			XLog log, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT,
-			TransEvClassMapping mapping) {
+			XLog log, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
 		int iteration = 0;
 		for (ASynchronousMoveSorting sort : new ASynchronousMoveSorting[] { ASynchronousMoveSorting.TOTAL,
 				ASynchronousMoveSorting.LOGMOVEFIRST }) {
@@ -541,8 +553,8 @@ public class AlignmentTest {
 
 		}
 
-		public void setPluginDescriptor(PluginDescriptor descriptor, int methodIndex)
-				throws FieldSetException, RecursiveCallException {
+		public void setPluginDescriptor(PluginDescriptor descriptor, int methodIndex) throws FieldSetException,
+				RecursiveCallException {
 			throw new NotImplementedException();
 
 		}

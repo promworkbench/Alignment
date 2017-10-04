@@ -1,5 +1,14 @@
 package nl.tue.alignment;
 
+import gnu.trove.list.TIntList;
+import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
+import gnu.trove.set.TLongSet;
+import gnu.trove.set.hash.TLongHashSet;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -19,15 +28,6 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
-
-import gnu.trove.list.TIntList;
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
-import gnu.trove.set.TLongSet;
-import gnu.trove.set.hash.TLongHashSet;
 
 public class SyncProductFactory {
 
@@ -62,8 +62,8 @@ public class SyncProductFactory {
 
 		SyncProduct[] result = new SyncProduct[log.size() + 1];
 		XTrace trace;
-		int startAt = -1;
-		int endAt = 2;//log.size();
+		int startAt = 5;//-1;
+		int endAt = 6;//log.size();
 		for (int tr = startAt; tr < endAt && tr < log.size(); tr++) {
 			System.out.print("Adding trace: ");
 			if (tr == -1) {
@@ -122,8 +122,8 @@ public class SyncProductFactory {
 			}
 			// All moves have been established.
 
-			SyncProductImpl product = new SyncProductImpl(
-					net.getLabel() + " x " + trace.getAttributes().get("concept:name"), moves.toArray(new String[0]),
+			SyncProductImpl product = new SyncProductImpl(net.getLabel() + " x "
+					+ trace.getAttributes().get("concept:name"), moves.toArray(new String[0]),
 					places.toArray(new String[0]), eventNumbers.toArray(), costs.toArray());
 
 			for (short t = 0; t < transitions.length; t++) {

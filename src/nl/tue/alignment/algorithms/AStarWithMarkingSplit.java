@@ -1,12 +1,15 @@
 package nl.tue.alignment.algorithms;
 
-import java.util.Arrays;
-
 import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.set.TIntSet;
+import gnu.trove.set.hash.TIntHashSet;
+
+import java.util.Arrays;
+
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import nl.tue.alignment.ReplayAlgorithm;
@@ -55,7 +58,9 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 	private LPMatrix.SPARSE.LPSOLVE matrix;
 	private final boolean isInteger;
 	private final int numTrans;
-	TIntList splits = new TIntArrayList();
+	TIntList privateSplits = new TIntArrayList();
+	TIntSet noSplit = new TIntHashSet(10, 0.5f, -1);
+	private int maxEventNumber;
 
 	public AStarWithMarkingSplit(SyncProduct product) throws LPMatrixException {
 		this(product, true, false, Debug.NONE);
@@ -113,12 +118,25 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 
 		matrix.setMinim();
 		numTrans = net.numTransitions();
-		splits.add(-1);
+		privateSplits.add(-1);
+
+		maxEventNumber = -1;
+		for (short t = 0; t < numTrans; t++) {
+			if (net.getEventOf(t) > maxEventNumber) {
+				maxEventNumber = net.getEventOf(t);
+			}
+		}
+
+		// split in max 5 equal parts
+		for (int i = 1; i < 5; i++) {
+			privateSplits.add((i * maxEventNumber) / 5);
+		}
 
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
 
 	private void init() throws LPMatrixException {
+
 		solver = matrix.toSolver();
 		// bytes for solver
 		bytesUsed = matrix.bytesUsed();
@@ -142,39 +160,38 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
 
 		if (marking == 0)
-			return getExactHeuristic(solver, marking, markingArray, varsMainThread, 0);
+			return getExactHeuristicInitial();
+
+		//TODO: Compute the heuristic for this marking, but taking into account the current
+		// split points greater than the last event in the trace reaching this marking.
 
 		// Compute the heuristic for a marking that is now the head of the queue. All
 		// elements in the top of the queue have the same F score, equal to this marking.
 		// we have therefore reached a point where the original estimate was not accurate enough.
 		int oldFScore = getGScore(marking) + getHScore(marking);
 		int estimate = getExactHeuristic(solver, marking, markingArray, varsMainThread, getHScore(marking));
-
 		int newFScore = getGScore(marking) + estimate;
 
 		assert (newFScore >= oldFScore);
 
 		// how many events have been explained so far?
-		int m = marking;
-		short trans = getPredecessorTransition(m);
-		while (net.getEventOf(trans) < 0 && m > 0) {
-			m = getPredecessor(m);
-			trans = getPredecessorTransition(m);
-		}
-		// if m is 0, no event was explained yet.
-		if (net.getEventOf(trans) <= splits.get(splits.size() - 1)) {
+		int evt = getLastEventOf(marking);
+		int pos = privateSplits.binarySearch(evt);
+		if (pos >= 0 || noSplit.contains(evt)) { //evt <= privateSplits.get(privateSplits.size() - 1)) {
 			// we cannot split the trace, hence there's no point to try. Just update this marking
 			// push it down the queue and try another one.
 			return estimate;
+		} else {
+			pos = -pos - 1;
+			privateSplits.insert(pos, evt);
 		}
-		int split = m == 0 ? 0 : net.getEventOf(trans);
-		int blocks = splits.size();
-		splits.add(split);
+		//		int split = evt < 0 ? 0 : evt;
+		//		privateSplits.add(split);
 
 		// clone the matrix
 		LPMatrix.SPARSE.LPSOLVE newMatrix;
 		try {
-			newMatrix = buildSplitMatrix(estimate, blocks);
+			newMatrix = buildSplitMatrix(privateSplits, oldFScore);
 		} catch (LPMatrixException e1) {
 			return estimate;
 		}
@@ -183,18 +200,20 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 		//			w.flush();
 
 		LpSolve largeSolver = null;
-		int result = HEURISTICINFINITE;
+		int newFScoreInitialMarking = HEURISTICINFINITE;
 		double[] largeVars;
 		try {
 			largeSolver = newMatrix.toSolver();
 			largeVars = new double[newMatrix.getNcolumns()];
 			//				largeSolver.setVerbose(4);
-			result = solveLp(largeSolver, 0, largeVars);
+			newFScoreInitialMarking = solveLp(largeSolver, 0, largeVars);
 
 		} catch (LPMatrixException | LpSolveException e) {
 			return estimate;
 		} finally {
-			largeSolver.deleteAndRemoveLp();
+			if (largeSolver != null) {
+				largeSolver.deleteAndRemoveLp();
+			}
 		}
 
 		//			double[] debugVars = new double[largeVars.length];
@@ -208,15 +227,17 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 		//			}
 		//			System.out.println("Witness cost: " + computeCostForVars(debugVars));			
 
-		assert (result != HEURISTICINFINITE);
-		assert (result <= newFScore);
-		assert (result >= oldFScore);
+		assert (newFScoreInitialMarking != HEURISTICINFINITE);
+		//		assert (newFScoreInitialMarking <= newFScore);
+		assert (newFScoreInitialMarking >= oldFScore);
 		// remember: newFScore >= oldFScore;
 
-		if (result == oldFScore) {
+		if (newFScoreInitialMarking == oldFScore) {
 			// Too bad. We did not find an improvement on the heuristic from m0
 			// using the additional splitpoint.
-			splits.removeAt(splits.size() - 1);
+			noSplit.add(evt);
+			privateSplits.removeAt(pos);
+
 		} else {
 
 			// we found an improved estimate for the initial marking!
@@ -225,25 +246,25 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 			//			assert queue.checkInv();
 			int b, i;
 			TIntList toRequeue = new TIntArrayList();
-			for (m = 0; m < markingsReached; m++) {
+			for (int m = 0; m < markingsReached; m++) {
 				b = m >>> blockBit;
 				i = m & blockMask;
 				if (!isClosed(b, i)) {
 					// we are investigating a non-exact heuristic. No other
 					// open marking in the queue can have a exact value.
 					if (!hasExactHeuristic(b, i)) {
-						setHScore(b, i, result - getGScore(b, i), false);
+						setHScore(b, i, newFScoreInitialMarking - getGScore(b, i), false);
 						//						assert getHScore(b, i) + getGScore(b, i) == newFScore;
 					} else {
 						// marking m has an exact score, but was not investigated yet
 						// we can improve the score
 						assert getHScore(b, i) + getGScore(b, i) >= oldFScore;
-						if (getHScore(b, i) + getGScore(b, i) < result) {
-							setHScore(b, i, result - getGScore(b, i), false);
+						if (getHScore(b, i) + getGScore(b, i) < newFScoreInitialMarking) {
+							setHScore(b, i, newFScoreInitialMarking - getGScore(b, i), false);
 							// exact marking. is in the queue and might have to be requeued later
 							assert queue.contains(m);
 							toRequeue.add(m);
-						} else if (getHScore(b, i) + getGScore(b, i) == result) {
+						} else if (getHScore(b, i) + getGScore(b, i) == newFScoreInitialMarking) {
 							// exact marking with equal score. is in the queue and might have to be requeued later
 							assert queue.contains(m);
 							toRequeue.add(m);
@@ -256,7 +277,9 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 			}
 
 			// set H score of marking to estimate.
-			setHScore(marking, estimate, true);
+			if (estimate >= getHScore(marking)) {
+				setHScore(marking, estimate, true);
+			}
 			assert !queue.contains(marking);
 			// requeueing will occur in caller method if applicable.
 
@@ -268,15 +291,28 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 
 	}
 
+	protected int getLastEventOf(int marking) {
+		int m = marking;
+		short trans = getPredecessorTransition(m);
+		while (net.getEventOf(trans) < 0 && m > 0) {
+			m = getPredecessor(m);
+			trans = getPredecessorTransition(m);
+		}
+		int evt = net.getEventOf(trans);
+		return evt;
+	}
+
 	private LPSOLVE newMatrix = null;
 
-	private LPMatrix.SPARSE.LPSOLVE buildSplitMatrix(int estimate, int blocks) throws LPMatrixException {
+	private LPMatrix.SPARSE.LPSOLVE buildSplitMatrix(TIntList splits, int lowerBound) throws LPMatrixException {
 		if (newMatrix != null) {
 			bytesUsed -= newMatrix.bytesUsed();
 		}
-		newMatrix = new LPMatrix.SPARSE.LPSOLVE(splits.size() * net.numPlaces(), splits.size() * net.numTransitions());
+		int objRow = splits.size() * net.numPlaces();
+		newMatrix = new LPMatrix.SPARSE.LPSOLVE(objRow + 1, splits.size() * net.numTransitions());
+		int blocks = splits.size() - 1;
 
-		splits.add(Integer.MAX_VALUE);
+		splits.add(maxEventNumber);
 		int row;
 		for (int b = 0; b <= blocks; b++) {
 			for (int p = 0; p < net.numPlaces(); p++) {
@@ -296,9 +332,20 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 					for (int c = t; c < (b + 1) * numTrans; c += numTrans) {
 						newMatrix.setInt(c, isInteger);
 						newMatrix.setObjective(c, net.getCost(t));
+						newMatrix.setMat(objRow, c, net.getCost(t));
 						newMatrix.setLowbo(c, 0);
-						newMatrix.setUpbo(c, net.getEventOf(t) < 0 || (net.getEventOf(t) > splits.get(c / numTrans)
-								&& net.getEventOf(t) <= splits.get(c / numTrans + 1)) ? 1 : 0);
+						newMatrix.setUpbo(c, 0);
+						if (net.getEventOf(t) < 0) {
+							newMatrix.setUpbo(c, 1);
+						} else if (net.getEventOf(t) > splits.get(c / numTrans) && //
+								net.getEventOf(t) <= splits.get(c / numTrans + 1)) {
+							newMatrix.setUpbo(c, 1);
+						}
+						//						newMatrix.setUpbo(
+						//								c,
+						//								net.getEventOf(t) < 0
+						//										|| (net.getEventOf(t) > splits[c / numTrans] && net.getEventOf(t) <= splits
+						//												.get(c / numTrans + 1)) ? 1 : 0);
 						if (val != 0) {
 							newMatrix.setMat(row, c, val);
 						} // if
@@ -308,10 +355,33 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 			} // for row
 
 		} // for b
+		newMatrix.setConstrType(objRow, LPMatrix.GE);
+		newMatrix.setRh(objRow, lowerBound);
 		newMatrix.setMinim();
-		splits.removeAt(splits.size() - 1);
 		bytesUsed += newMatrix.bytesUsed();
+		splits.removeAt(splits.size() - 1);
 		return newMatrix;
+	}
+
+	private int getExactHeuristicInitial() {
+
+		LpSolve largeSolver = null;
+		try {
+			newMatrix = buildSplitMatrix(privateSplits, 0);
+
+			largeSolver = newMatrix.toSolver();
+			double[] largeVars = new double[newMatrix.getNcolumns()];
+			//				largeSolver.setVerbose(4);
+			return solveLp(largeSolver, 0, largeVars);
+
+		} catch (LPMatrixException | LpSolveException ex) {
+			return HEURISTICINFINITE;
+		} finally {
+			if (largeSolver != null) {
+				largeSolver.deleteAndRemoveLp();
+			}
+		}
+
 	}
 
 	private int getExactHeuristic(LpSolve solver, int marking, byte[] markingArray, double[] vars, int minCost) {
@@ -542,8 +612,8 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 		return equalMarking(marking, net.getFinalMarking());
 	}
 
-	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
-			int toIndex) {
+	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,
+			int toBlock, int toIndex) {
 		if (hasExactHeuristic(fromBlock, fromIndex) && (getLpSolution(from, transition) >= 1)) {
 			// from Marking has exact heuristic
 			// we can derive an exact heuristic from it
@@ -586,7 +656,7 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 	public TObjectIntMap<Utils.Statistic> getStatistics() {
 		TObjectIntMap<Statistic> map = super.getStatistics();
 		map.put(Statistic.HEURISTICTIME, (int) (solveTime / 1000));
-		map.put(Statistic.SPLITS, splits.size() - 1);
+		map.put(Statistic.SPLITS, privateSplits.size() - 1);
 		return map;
 	}
 
@@ -608,7 +678,7 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 			b.append(map.get(s));
 			b.append("<br/>");
 		}
-		b.append("Splits: " + (splits.size() - 1));
+		b.append("Splits: " + (privateSplits.size() - 1));
 		b.append("<br/>");
 		b.append(">];");
 
@@ -618,7 +688,7 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 
 	protected void writeEndOfAlignmentNormal() {
 		super.writeEndOfAlignmentNormal();
-		debug.writeDebugInfo(Debug.NORMAL, "Splits: " + (splits.size() - 1));
+		debug.writeDebugInfo(Debug.NORMAL, "Splits: " + (privateSplits.size() - 1));
 	}
 
 	@Override
@@ -681,7 +751,7 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 	@Override
 	protected void writeStatus() {
 		super.writeStatus();
-		debug.writeDebugInfo(Debug.NORMAL, "   Split           :" + String.format("%,d", splits.size() - 1));
+		debug.writeDebugInfo(Debug.NORMAL, "   Split           :" + String.format("%,d", privateSplits.size() - 1));
 	}
 
 }
