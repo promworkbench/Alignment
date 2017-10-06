@@ -255,6 +255,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			//			double[] vars = new double[indexMap.length];
 			//			solver.getVariables(vars);
 			//			System.out.println(res + " : " + Arrays.toString(vars));
+			debug.writeDebugInfo(Debug.NORMAL, "Solver: "+ solver.getNrows()+" rows, "+solver.getNcolumns()+" columns.");
+			
 		} catch (LpSolveException e) {
 			throw new LPMatrixException(e);
 		}
@@ -292,8 +294,11 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	@Override
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
 		// find an available solver and block until one is available.
-
-		return getExactHeuristic(solver, marking, markingArray, markingBlock, markingIndex, varsMainThread);
+		debug.writeDebugInfo(Debug.NORMAL, "Start solve: "+ System.currentTimeMillis());
+		int res = getExactHeuristic(solver, marking, markingArray, markingBlock, markingIndex, varsMainThread);
+		debug.writeDebugInfo(Debug.NORMAL, "End solve: "+ System.currentTimeMillis());
+		
+		return res;
 	}
 
 	protected int getLastEventOf(int marking) {
@@ -590,7 +595,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	protected void writeEndOfAlignmentDot() {
 		TObjectIntMap<Statistic> map = getStatistics();
 		for (int m = 0; m < markingsReached; m++) {
-			if (isDerivedLpSolution(m)) {
+			if (!isClosed(m) && isDerivedLpSolution(m)) {
 				debug.writeMarkingReached(this, m, "color=blue");
 			} else {
 				debug.writeMarkingReached(this, m);
@@ -614,6 +619,11 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {
 		super.processedMarking(marking, blockMarking, indexInBlock);
 		synchronized (this) {
+			if (isDerivedLpSolution(marking)) {
+				debug.writeMarkingReached(this, marking, "color=blue");
+			} else {
+				debug.writeMarkingReached(this, marking);
+			}
 			lpSolutionsSize -= 12 + 4 + lpSolutions.remove(marking).length; // object size
 			lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer
 		}

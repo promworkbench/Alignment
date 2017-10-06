@@ -12,7 +12,7 @@ import nl.tue.alignment.ReplayAlgorithm.Debug;
 import nl.tue.alignment.SyncProduct;
 import nl.tue.alignment.SyncProductFactory;
 import nl.tue.alignment.Utils.Statistic;
-import nl.tue.alignment.algorithms.AStarWithMarkingSplit;
+import nl.tue.alignment.algorithms.AStarLargeLP;
 import nl.tue.astar.AStarException;
 import nl.tue.astar.AStarThread.ASynchronousMoveSorting;
 import nl.tue.astar.AStarThread.QueueingModel;
@@ -155,8 +155,11 @@ public class AlignmentTest {
 					System.out.println("---------------------------- " + product.getLabel());
 					System.out.println("Transitions: " + product.numTransitions());
 					System.out.println("Places: " + product.numPlaces());
-					AStarWithMarkingSplit algorithm = new AStarWithMarkingSplit(product, //
+					AStarLargeLP algorithm = new AStarLargeLP(product, //
 							true, // moveSort on total order
+							true, ///
+							true, //
+							false,//
 							false, // use Integers
 							Debug.NORMAL // debug mode
 					);

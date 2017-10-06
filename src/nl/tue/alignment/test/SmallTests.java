@@ -263,8 +263,8 @@ public class SmallTests {
 
 	public static void main(String[] args) throws LPMatrixException {
 
-		testSingleGraph(new SyncProductExampleBook(), Debug.DOT);
-		//		testSingleGraph(new TwoSwapsExample(), Debug.DOT);
+		//		testSingleGraph(new SyncProductExampleBook(), Debug.DOT);
+		testSingleGraph(new TwoSwapsExample(), Debug.DOT);
 		//		testSingleGraph(new NastySyncProductExample(), Debug.DOT);
 	}
 
