@@ -1,7 +1,9 @@
 package nl.tue.alignment;
 
 import gnu.trove.list.TIntList;
+import gnu.trove.list.TShortList;
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.list.array.TShortArrayList;
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
@@ -58,7 +60,7 @@ public class SyncProductFactory {
 			placeLabels[pi] = placeList[pi].getLabel();// + "_" + pi;
 		}
 		List<String> places = new ArrayList<String>();
-		TIntList eventNumbers = new TIntArrayList();
+		TShortList eventNumbers = new TShortArrayList();
 
 		SyncProduct[] result = new SyncProduct[log.size() + 1];
 		XTrace trace;
@@ -78,7 +80,7 @@ public class SyncProductFactory {
 			moves.clear();
 			moves.addAll(Arrays.asList(moveModel));
 			for (int i = 0; i < moves.size(); i++) {
-				eventNumbers.add(-1);
+				eventNumbers.add(SyncProduct.NOEVENT);
 			}
 			places.clear();
 			places.addAll(Arrays.asList(placeLabels));
@@ -97,7 +99,7 @@ public class SyncProductFactory {
 			TIntObjectMap<TLongSet> trans2events = new TIntObjectHashMap<>();
 
 			int sm = transitions.length;
-			for (int e = 0; e < events.length; e++) {
+			for (short e = 0; e < events.length; e++) {
 				XEventClass clazz = classes.getClassOf(events[e]);
 				moves.add("-," + clazz + "_" + e);
 				eventNumbers.add(e);

@@ -1,8 +1,9 @@
 package nl.tue.alignment.test;
 
+import gnu.trove.map.TObjectIntMap;
+
 import java.util.Arrays;
 
-import gnu.trove.map.TObjectIntMap;
 import lpsolve.LpSolve;
 import nl.tue.alignment.ReplayAlgorithm;
 import nl.tue.alignment.ReplayAlgorithm.Debug;
@@ -11,6 +12,7 @@ import nl.tue.alignment.SyncProductImpl;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.AStar;
+import nl.tue.alignment.algorithms.AStarLargeLP;
 import nl.tue.alignment.algorithms.AStarWithMarkingSplit;
 import nl.tue.alignment.algorithms.Dijkstra;
 import nl.tue.astar.util.ilp.LPMatrixException;
@@ -22,13 +24,12 @@ public class SmallTests {
 	public static class SyncProductExampleBook extends SyncProductImpl {
 
 		public SyncProductExampleBook() {
-			super("Book Example",
-					new String[] { "As,-", "Aa,-", "Fa,-", "Sso,-", "Ro,-", "Co,-", "t,-", "Da1,-", "Do,-", "Da2,-",
-							"Ao,-", "Aaa,-", "As,As", "Aa,Aa", "Sso,Sso", "Ro,Ro", "Ao,Ao", "Aaa,Aaa1", "Aaa,Aaa2",
-							"-,As", "-,Aa", "-,Sso", "-,Ro", "-,Ao", "-,Aaa1", "-,Aaa2" }, //
+			super("Book Example", new String[] { "As,-", "Aa,-", "Fa,-", "Sso,-", "Ro,-", "Co,-", "t,-", "Da1,-",
+					"Do,-", "Da2,-", "Ao,-", "Aaa,-", "As,As", "Aa,Aa", "Sso,Sso", "Ro,Ro", "Ao,Ao", "Aaa,Aaa1",
+					"Aaa,Aaa2", "-,As", "-,Aa", "-,Sso", "-,Ro", "-,Ao", "-,Aaa1", "-,Aaa2" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
 							"p13", "p14", "p15", "p16", "p17", "p18" }, //
-					new int[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4,
+					new short[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4,
 							5, 6 }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1 }//
 			);
@@ -107,12 +108,11 @@ public class SmallTests {
 	public static class NastySyncProductExample extends SyncProductImpl {
 
 		public NastySyncProductExample() {
-			super("Nasty Example",
-					new String[] { "A,-", "B,-", "C,-", "D,-", "E,-", "F,-", "G,-", "H,-", "I,-", "J,-", "K,-", "L,-",
-							"K,K", "L,L", "-,L", "-,K" }, //
+			super("Nasty Example", new String[] { "A,-", "B,-", "C,-", "D,-", "E,-", "F,-", "G,-", "H,-", "I,-", "J,-",
+					"K,-", "L,-", "K,K", "L,L", "-,L", "-,K" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
 							"p13", "p14" }, //
-					new int[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 0, 1 }, //
+					new short[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 0, 1 }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1 }//
 			);
 			setInput(0, 0);
@@ -173,7 +173,7 @@ public class SmallTests {
 		public SmallNastySyncProductExample() {
 			super("Small Nasty Example", new String[] { "A", "D1", "C1", "B", "C2", "D2", "C3", "D3" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", }, //
-					new int[] { -1, -1, -1, 0, 1, 2, 1, 2 }, //
+					new short[] { -1, -1, -1, 0, 1, 2, 1, 2 }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 0 }//
 			);
 			setInput(0, 0);
@@ -208,10 +208,10 @@ public class SmallTests {
 	public static class TwoSwapsExample extends SyncProductImpl {
 
 		public TwoSwapsExample() {
-			super("Small Nasty Example",
-					new String[] { "A", "D1", "C1", "B", "C2", "D2", "C3", "D3", "F1", "E1", "E2", "F2", "E3", "F3" }, //
+			super("Small Nasty Example", new String[] { "A", "D1", "C1", "B", "C2", "D2", "C3", "D3", "F1", "E1", "E2",
+					"F2", "E3", "F3" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11" }, //
-					new int[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4 }, //
+					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4 }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0 }//
 			);
 			setInput(0, 0);
@@ -263,8 +263,8 @@ public class SmallTests {
 
 	public static void main(String[] args) throws LPMatrixException {
 
-		//		testSingleGraph(new SyncProductExampleBook(), Debug.DOT);
-		testSingleGraph(new TwoSwapsExample(), Debug.DOT);
+		testSingleGraph(new SyncProductExampleBook(), Debug.DOT);
+		//		testSingleGraph(new TwoSwapsExample(), Debug.DOT);
 		//		testSingleGraph(new NastySyncProductExample(), Debug.DOT);
 	}
 
@@ -364,14 +364,14 @@ public class SmallTests {
 		ReplayAlgorithm algorithm;
 		//INITIALIZATION OF CLASSLOADER FOR PROPER RECORDING OF TIMES.
 		algorithm = new Dijkstra(net, true, true, Debug.NONE);
-		algorithm = new AStar(net, true, true, true, false, true, Debug.NONE);
+		algorithm = new AStarLargeLP(net, true, true, true, false, false, Debug.NONE);
 
 		boolean dijkstra = false;
-		boolean split = true;
+		boolean split = false;
 		boolean moveSort = true; // moveSort on total order
 		boolean queueSort = true; // queue sorted "depth-first"
 		boolean preferExact = true; // prefer Exact solution
-		boolean multiThread = true;
+		boolean multiThread = false;
 		boolean useInt = false; //  use Integer
 
 		if (dijkstra) {
@@ -391,7 +391,7 @@ public class SmallTests {
 					debug // debug mode
 			);
 		} else {
-			algorithm = new AStar(net, //
+			algorithm = new AStarLargeLP(net, //
 					moveSort, // moveSort on total order
 					queueSort, // queue sorted "depth-first"
 					preferExact, // prefer Exact solution

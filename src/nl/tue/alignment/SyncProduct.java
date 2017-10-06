@@ -3,6 +3,7 @@ package nl.tue.alignment;
 public interface SyncProduct {
 
 	public static final int MAXTRANS = 0b0011111111;
+	public static final short NOEVENT = -1;
 
 	/**
 	 * Returns the number of transitions. At most MAXTRANS transitions are
@@ -100,6 +101,6 @@ public interface SyncProduct {
 	 * @param transition
 	 * @return
 	 */
-	public int getEventOf(short transition);
+	public short getEventOf(short transition);
 
 }
