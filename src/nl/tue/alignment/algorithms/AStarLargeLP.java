@@ -251,6 +251,19 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			solver.setMinim();
 			solver.setVerbose(0);
 
+			solver.setScaling(LpSolve.SCALE_GEOMETRIC | LpSolve.SCALE_EQUILIBRATE | LpSolve.SCALE_INTEGERS);
+			solver.setScalelimit(5);
+			solver.setPivoting(LpSolve.PRICER_DEVEX | LpSolve.PRICE_ADAPTIVE);
+			solver.setMaxpivot(250);
+			solver.setBbFloorfirst(LpSolve.BRANCH_AUTOMATIC);
+			solver.setBbRule(LpSolve.NODE_PSEUDONONINTSELECT | LpSolve.NODE_GREEDYMODE | LpSolve.NODE_DYNAMICMODE
+					| LpSolve.NODE_RCOSTFIXING);
+			solver.setBbDepthlimit(-50);
+			solver.setAntiDegen(LpSolve.ANTIDEGEN_FIXEDVARS | LpSolve.ANTIDEGEN_STALLING);
+			solver.setImprove(LpSolve.IMPROVE_DUALFEAS | LpSolve.IMPROVE_THETAGAP);
+			solver.setBasiscrash(LpSolve.CRASH_NOTHING);
+			solver.setSimplextype(LpSolve.SIMPLEX_DUAL_PRIMAL);
+
 			//			int res = solver.solve();
 			//			double[] vars = new double[indexMap.length];
 			//			solver.getVariables(vars);
