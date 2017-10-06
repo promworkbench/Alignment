@@ -404,7 +404,22 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 	}
 
 	private int solveLp(LpSolve solver, int marking, double[] vars) throws LpSolveException {
+
+		solver.setScaling(LpSolve.SCALE_GEOMETRIC | LpSolve.SCALE_EQUILIBRATE | LpSolve.SCALE_INTEGERS);
+		solver.setScalelimit(5);
+		solver.setPivoting(LpSolve.PRICER_DEVEX | LpSolve.PRICE_ADAPTIVE);
+		solver.setMaxpivot(250);
+		solver.setBbFloorfirst(LpSolve.BRANCH_AUTOMATIC);
+		solver.setBbRule(LpSolve.NODE_PSEUDONONINTSELECT | LpSolve.NODE_GREEDYMODE | LpSolve.NODE_DYNAMICMODE
+				| LpSolve.NODE_RCOSTFIXING);
+		solver.setBbDepthlimit(-50);
+		solver.setAntiDegen(LpSolve.ANTIDEGEN_FIXEDVARS | LpSolve.ANTIDEGEN_STALLING);
+		solver.setImprove(LpSolve.IMPROVE_DUALFEAS | LpSolve.IMPROVE_THETAGAP);
+		solver.setBasiscrash(LpSolve.CRASH_NOTHING);
+		solver.setSimplextype(LpSolve.SIMPLEX_DUAL_PRIMAL);
+
 		solver.defaultBasis();
+
 		int solverResult = solver.solve();
 		synchronized (this) {
 			heuristicsComputed++;

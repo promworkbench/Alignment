@@ -268,8 +268,9 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			//			double[] vars = new double[indexMap.length];
 			//			solver.getVariables(vars);
 			//			System.out.println(res + " : " + Arrays.toString(vars));
-			debug.writeDebugInfo(Debug.NORMAL, "Solver: "+ solver.getNrows()+" rows, "+solver.getNcolumns()+" columns.");
-			
+			debug.writeDebugInfo(Debug.NORMAL, "Solver: " + solver.getNrows() + " rows, " + solver.getNcolumns()
+					+ " columns.");
+
 		} catch (LpSolveException e) {
 			throw new LPMatrixException(e);
 		}
@@ -307,10 +308,11 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	@Override
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
 		// find an available solver and block until one is available.
-		debug.writeDebugInfo(Debug.NORMAL, "Start solve: "+ System.currentTimeMillis());
+		long s = System.currentTimeMillis();
+		debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
 		int res = getExactHeuristic(solver, marking, markingArray, markingBlock, markingIndex, varsMainThread);
-		debug.writeDebugInfo(Debug.NORMAL, "End solve: "+ System.currentTimeMillis());
-		
+		debug.writeDebugInfo(Debug.NORMAL, "End solve: " + (System.currentTimeMillis() - s) / 1000.0 + " ms.");
+
 		return res;
 	}
 
@@ -593,7 +595,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		val += lpSolutionsSize;
 		// count size of matrix
 		val += bytesUsed;
-		// count size of rhs
+		// count size of solver
+		
 		return val;
 	}
 
