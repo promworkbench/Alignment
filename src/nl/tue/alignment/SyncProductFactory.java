@@ -64,8 +64,8 @@ public class SyncProductFactory {
 
 		SyncProduct[] result = new SyncProduct[log.size() + 1];
 		XTrace trace;
-		int startAt = 5;//-1;
-		int endAt = 6;//log.size();
+		int startAt = -1;//-1;
+		int endAt = 5;//log.size();
 		for (int tr = startAt; tr < endAt && tr < log.size(); tr++) {
 			System.out.print("Adding trace: ");
 			if (tr == -1) {

@@ -165,6 +165,10 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		}
 		modelMoves = trans2LSMove.get(SyncProduct.NOEVENT).size();
 		numEvents++;
+		if (numEvents == 0) {
+			// ensure model is not empty for empty trace
+			numEvents = 1;
+		}
 
 		indexMap = new short[(numEvents - 1) * modelMoves + product.numTransitions()];
 
@@ -184,8 +188,9 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 			int start = 1;
 			for (short e = 0; e < numEvents; e++) {
-				if (trans2LSMove.get(e) != null) {
-					TShortIterator it = trans2LSMove.get(SyncProduct.NOEVENT).iterator();
+				TShortIterator it;
+				if (trans2LSMove.get(SyncProduct.NOEVENT) != null) {
+					it = trans2LSMove.get(SyncProduct.NOEVENT).iterator();
 					// first the model moves in this block
 					while (it.hasNext()) {
 						Arrays.fill(col, 0);
@@ -210,6 +215,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 						solver.setInt(c, false);
 						solver.setObj(c, product.getCost(t));
 					}
+				}
+				if (trans2LSMove.get(e) != null) {
 					it = trans2LSMove.get(e).iterator();
 					while (it.hasNext()) {
 						Arrays.fill(col, 0);
@@ -596,7 +603,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		// count size of matrix
 		val += bytesUsed;
 		// count size of solver
-		
+
 		return val;
 	}
 
