@@ -447,7 +447,7 @@ public abstract class ReplayAlgorithm {
 
 							// set the score to exact score
 							setHScore(bm, im, heuristic, true);
-							setClosed(im, im);
+							setClosed(bm, im);
 							closedActions++;
 							continue;
 						} else if (heuristic > getHScore(bm, im)) {

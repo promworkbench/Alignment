@@ -170,24 +170,32 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			numEvents = 1;
 		}
 
-		indexMap = new short[(numEvents - 1) * modelMoves + product.numTransitions()];
-
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
+
+	private short[] splitpoints;
+
+	private int rows;
 
 	private void init() throws LPMatrixException {
 		int monitorThreads;
 
+		splitpoints = new short[] { 0, 2, 4, (short) numEvents };
+		rows = (splitpoints.length - 1) * product.numPlaces();
+
+		indexMap = new short[(splitpoints.length - 2) * modelMoves + product.numTransitions()];
+
 		try {
-			solver = LpSolve.makeLp(numEvents * product.numPlaces(), 0);
+			solver = LpSolve.makeLp(rows, 0);
 			solver.setAddRowmode(false);
 
-			double[] col = new double[1 + numEvents * product.numPlaces()];
+			double[] col = new double[1 + rows];
 			short[] input, output;
 			int c = 0;
 
 			int start = 1;
-			for (short e = 0; e < numEvents; e++) {
+			for (int s = 1; s < splitpoints.length; s++) {
+				// add model moves in this block (if any)
 				TShortIterator it;
 				if (trans2LSMove.get(SyncProduct.NOEVENT) != null) {
 					it = trans2LSMove.get(SyncProduct.NOEVENT).iterator();
@@ -214,43 +222,47 @@ public class AStarLargeLP extends ReplayAlgorithm {
 						solver.setUpbo(c, 255);
 						solver.setInt(c, false);
 						solver.setObj(c, product.getCost(t));
-					}
-				}
-				if (trans2LSMove.get(e) != null) {
-					it = trans2LSMove.get(e).iterator();
-					while (it.hasNext()) {
-						Arrays.fill(col, 0);
-						short t = it.next();
-						input = product.getInput(t);
-						for (int i = 0; i < input.length; i++) {
-							for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
-								col[p] -= 1;
+					} // for all modelMoves
+				} // if modelMoves
+
+				//add log and sync moves in this block.
+				for (short e = splitpoints[s - 1]; e < splitpoints[s]; e++) {
+					if (trans2LSMove.get(e) != null) {
+						it = trans2LSMove.get(e).iterator();
+						while (it.hasNext()) {
+							Arrays.fill(col, 0);
+							short t = it.next();
+							input = product.getInput(t);
+							for (int i = 0; i < input.length; i++) {
+								for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
+									col[p] -= 1;
+								}
 							}
-						}
-						output = product.getOutput(t);
-						for (int i = 0; i < output.length; i++) {
-							for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
-								col[p] += 1;
+							output = product.getOutput(t);
+							for (int i = 0; i < output.length; i++) {
+								for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
+									col[p] += 1;
+								}
 							}
-						}
-						solver.addColumn(col);
-						indexMap[c] = t;
-						c++;
-						solver.setUpbo(c, 0);
-						solver.setUpbo(c, 1);
-						solver.setInt(c, false);
-						solver.setObj(c, product.getCost(t));
-					}
+							solver.addColumn(col);
+							indexMap[c] = t;
+							c++;
+							solver.setUpbo(c, 0);
+							solver.setUpbo(c, 1);
+							solver.setInt(c, false);
+							solver.setObj(c, product.getCost(t));
+						} // for all sync/log moves
+					} // if sync/logMoves
 				}
 				start += product.numPlaces();
 			}
 
 			int r;
-			for (r = 1; r <= (numEvents - 1) * product.numPlaces(); r++) {
+			for (r = 1; r <= rows - product.numPlaces(); r++) {
 				solver.setConstrType(r, LpSolve.GE);
 				solver.setRh(r, -product.getInitialMarking()[(r - 1) % product.numPlaces()]);
 			}
-			for (; r <= numEvents * product.numPlaces(); r++) {
+			for (; r <= rows; r++) {
 				solver.setConstrType(r, LpSolve.EQ);
 				solver.setRh(r, product.getFinalMarking()[(r - 1) % product.numPlaces()]
 						- product.getInitialMarking()[(r - 1) % product.numPlaces()]);
@@ -279,6 +291,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 					+ " columns.");
 
 		} catch (LpSolveException e) {
+			solver.deleteAndRemoveLp();
 			throw new LPMatrixException(e);
 		}
 
@@ -291,7 +304,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			threadpool = null;
 		}
 		varsMainThread = new double[indexMap.length];
-		tempForSettingSolution = new int[net.numTransitions()];
+		tempForSettingSolutionDouble = new double[net.numTransitions()];
 
 	}
 
@@ -315,6 +328,9 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	@Override
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
 		// find an available solver and block until one is available.
+		
+		//TODO: Handle case marking==0 separately from care marking>0
+
 		long s = System.currentTimeMillis();
 		debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
 		int res = getExactHeuristic(solver, marking, markingArray, markingBlock, markingIndex, varsMainThread);
@@ -342,15 +358,20 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		try {
 
 			int e = getLastEventOf(marking);
+			int i = 0;
+			while (splitpoints[i] < e) {
+				i++;
+			}
+			i--;
 
 			int r;
-			for (r = 1; r <= (e + 1) * product.numPlaces(); r++) {
+			for (r = 1; r <= i * product.numPlaces(); r++) {
 				solver.setRh(r, 0);
 			}
-			for (; r <= (numEvents - 1) * product.numPlaces(); r++) {
+			for (; r <= rows - product.numPlaces(); r++) {
 				solver.setRh(r, -markingArray[(r - 1) % product.numPlaces()]);
 			}
-			for (; r <= numEvents * product.numPlaces(); r++) {
+			for (; r <= rows; r++) {
 				solver.setRh(r, product.getFinalMarking()[(r - 1) % product.numPlaces()]
 						- markingArray[(r - 1) % product.numPlaces()]);
 			}
@@ -492,16 +513,17 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		//		}
 	}
 
-	private int[] tempForSettingSolution;
+	private double[] tempForSettingSolutionDouble;
 
 	protected synchronized void setNewLpSolution(int marking, double[] solutionDouble) {
 		// copy the solution from double array to byte array (rounding down)
 		// and compute the maximum.
-		Arrays.fill(tempForSettingSolution, 0);
+		Arrays.fill(tempForSettingSolutionDouble, 0);
 		byte bits = 1;
 		for (int i = solutionDouble.length; i-- > 0;) {
-			tempForSettingSolution[indexMap[i]] += ((int) (solutionDouble[i] + 5E-11));
-			if (tempForSettingSolution[indexMap[i]] > (1 << bits)) {
+			// sum double values, compensating for LpSolve precision.
+			tempForSettingSolutionDouble[indexMap[i]] += solutionDouble[i] + 1E-10;
+			if (tempForSettingSolutionDouble[indexMap[i]] > (1 << bits)) {
 				bits++;
 			}
 		}
@@ -509,7 +531,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		// to store this solution, we need "bits" bits per transition
 		// plus a header consisting of 8-FREEBITSFIRSTBYTE bits.
 		// this translate to 
-		int bytes = 8 - FREEBITSFIRSTBYTE + (tempForSettingSolution.length * bits + 4) / 8;
+		int bytes = 8 - FREEBITSFIRSTBYTE + (tempForSettingSolutionDouble.length * bits + 4) / 8;
 
 		assert getSolution(marking) == null;
 		byte[] solution = new byte[bytes];
@@ -522,11 +544,13 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 		int currentByte = 0;
 		byte currentBit = (1 << (FREEBITSFIRSTBYTE - 1));
-		for (short t = 0; t < tempForSettingSolution.length; t++) {
+		for (short t = 0; t < tempForSettingSolutionDouble.length; t++) {
 			// tempForSettingSolution[i] can be stored in "bits" bits.
 			for (int b = 1 << bits; b > 0; b >>>= 1) {
+				// round the sum down.
+				int val = (int) tempForSettingSolutionDouble[t];
 				// copy the appropriate bit
-				if ((tempForSettingSolution[t] & b) != 0)
+				if ((val & b) != 0)
 					solution[currentByte] |= currentBit;
 
 				// rotate right
