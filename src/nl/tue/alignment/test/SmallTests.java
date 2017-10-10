@@ -208,8 +208,8 @@ public class SmallTests {
 	public static class TwoSwapsExample extends SyncProductImpl {
 
 		public TwoSwapsExample() {
-			super("Small Nasty Example", new String[] { "A,-", "D,-", "C,-", "-,B", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E",
-					"-,F", "E,E", "F,F" }, //
+			super("Small Nasty Example", new String[] { "A,-", "D,-", "C,-", "-,B", "-,C", "-,D", "C,C", "D,D", "F,-",
+					"E,-", "-,E", "-,F", "E,E", "F,F" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11" }, //
 					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4 }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0 }//
@@ -364,7 +364,7 @@ public class SmallTests {
 		ReplayAlgorithm algorithm;
 		//INITIALIZATION OF CLASSLOADER FOR PROPER RECORDING OF TIMES.
 		algorithm = new Dijkstra(net, true, true, Debug.NONE);
-		algorithm = new AStarLargeLP(net, true, true, true, false, false, Debug.NONE);
+		algorithm = new AStarLargeLP(net, Debug.NONE);
 
 		boolean dijkstra = false;
 		boolean split = false;
@@ -392,11 +392,6 @@ public class SmallTests {
 			);
 		} else {
 			algorithm = new AStarLargeLP(net, //
-					moveSort, // moveSort on total order
-					queueSort, // queue sorted "depth-first"
-					preferExact, // prefer Exact solution
-					useInt, // use Integers
-					multiThread, // multithreading
 					debug // debug mode
 			);
 		}

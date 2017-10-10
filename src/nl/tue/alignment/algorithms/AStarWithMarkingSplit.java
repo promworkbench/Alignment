@@ -68,7 +68,7 @@ public class AStarWithMarkingSplit extends ReplayAlgorithm {
 
 	public AStarWithMarkingSplit(SyncProduct product, boolean moveSorting, boolean isInteger, Debug debug)
 			throws LPMatrixException {
-		super(product, moveSorting, true, true, debug);
+		super(product, moveSorting, true, true, false, debug);
 		this.isInteger = isInteger;
 		//		this.numRows = net.numPlaces();
 		matrix = new LPMatrix.SPARSE.LPSOLVE(net.numPlaces() + 1, net.numTransitions());

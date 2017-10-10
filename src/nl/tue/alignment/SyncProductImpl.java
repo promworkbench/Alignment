@@ -69,6 +69,13 @@ public class SyncProductImpl implements SyncProduct {
 		return (short) places.length;
 	}
 
+	private void setSortedArray(short[] array, short[] plist) {
+		Arrays.sort(plist);
+		for (int i = plist.length; i-- > 0;) {
+			array[i] = plist[i];
+		}
+	}
+
 	private void setSortedArray(short[] array, int[] plist) {
 		Arrays.sort(plist);
 		for (int i = plist.length; i-- > 0;) {
@@ -76,12 +83,12 @@ public class SyncProductImpl implements SyncProduct {
 		}
 	}
 
-	public void setInput(short t, int... plist) {
+	public void setInput(short t, short... plist) {
 		input[t] = new short[plist.length];
 		setSortedArray(input[t], plist);
 	}
 
-	public void setOutput(short t, int... plist) {
+	public void setOutput(short t, short... plist) {
 		output[t] = new short[plist.length];
 		setSortedArray(output[t], plist);
 	}
@@ -96,14 +103,14 @@ public class SyncProductImpl implements SyncProduct {
 		setSortedArray(output[t], plist);
 	}
 
-	public void addToOutput(int t, short... p) {
-		output[t] = Arrays.copyOf(getOutput((short) t), getOutput((short) t).length + p.length);
+	public void addToOutput(short t, short... p) {
+		output[t] = Arrays.copyOf(getOutput(t), getOutput(t).length + p.length);
 		System.arraycopy(p, 0, output[t], output[t].length - p.length, p.length);
 		Arrays.sort(output[t]);
 	}
 
-	public void addToInput(int t, short... p) {
-		input[t] = Arrays.copyOf(getInput((short) t), getInput((short) t).length + p.length);
+	public void addToInput(short t, short... p) {
+		input[t] = Arrays.copyOf(getInput(t), getInput(t).length + p.length);
 		System.arraycopy(p, 0, input[t], input[t].length - p.length, p.length);
 		Arrays.sort(input[t]);
 	}

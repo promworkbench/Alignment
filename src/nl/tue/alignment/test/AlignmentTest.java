@@ -21,11 +21,13 @@ import nl.tue.astar.AStarThread.Type;
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
 import org.deckfour.xes.classification.XEventClassifier;
+import org.deckfour.xes.factory.XFactoryRegistry;
 import org.deckfour.xes.in.XMxmlParser;
 import org.deckfour.xes.info.XLogInfo;
 import org.deckfour.xes.info.XLogInfoFactory;
 import org.deckfour.xes.info.impl.XLogInfoImpl;
 import org.deckfour.xes.model.XLog;
+import org.deckfour.xes.model.XTrace;
 import org.jbpt.petri.Flow;
 import org.jbpt.petri.NetSystem;
 import org.jbpt.petri.io.PNMLSerializer;
@@ -128,10 +130,9 @@ public class AlignmentTest {
 		XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
 		XEventClasses classes = summary.getEventClasses();
 
-		SyncProduct[] products = SyncProductFactory.getSyncProduct(net, log, classes, mapping, costMOS, costMOT,
+		SyncProductFactory factory = new SyncProductFactory(net, classes, mapping, costMOS, costMOT,
 				new HashMap<Transition, Integer>(1), initialMarking, finalMarkings[0]);
 
-		log = null;
 		net = null;
 		eventClassifier = null;
 		summary = null;
@@ -139,10 +140,43 @@ public class AlignmentTest {
 		System.gc();
 		try {
 			long cost = 0;
+			int splits = 0;
 			int memUsed = 0;
 			long start = System.nanoTime();
 			//			OutputStreamWriter writer = new OutputStreamWriter(System.out);
-			for (SyncProduct product : products) {
+
+			SyncProduct product = factory.getSyncProduct(XFactoryRegistry.instance().currentDefault().createTrace());
+			//				try {
+			//					((SyncProductImpl) product).toTpn(writer);
+			//					writer.flush();
+			//				} catch (IOException e) {
+			//					// TODO Auto-generated catch block
+			//					e.printStackTrace();
+			//				}
+			int t = 0;
+
+			if (product != null) {
+				System.out.println("---------------------------- " + product.getLabel());
+				System.out.println("Trace: " + t + " / " + log.size());
+				System.out.println("Transitions: " + product.numTransitions());
+				System.out.println("Places: " + product.numPlaces());
+				AStarLargeLP algorithm = new AStarLargeLP(product, Debug.NORMAL // debug mode
+				);
+				//					AStarWithMarkingSplit algorithm = new AStarWithMarkingSplit(product, //
+				//							true, // moveSort on total order
+				//							false, // use Integers
+				//							Debug.NORMAL // debug mode
+				//					);
+				algorithm.run();
+				TObjectIntMap<Statistic> stats = algorithm.getStatistics();
+				splits = Math.max(splits, stats.get(Statistic.SPLITS));
+				cost += stats.get(Statistic.COST);
+				memUsed = Math.max(memUsed, stats.get(Statistic.MEMORYUSED));
+			}
+
+			for (XTrace trace : log) {
+				t++;
+				product = factory.getSyncProduct(trace);
 				//				try {
 				//					((SyncProductImpl) product).toTpn(writer);
 				//					writer.flush();
@@ -153,16 +187,11 @@ public class AlignmentTest {
 
 				if (product != null) {
 					System.out.println("---------------------------- " + product.getLabel());
+					System.out.println("Trace: " + t + " / " + log.size());
 					System.out.println("Transitions: " + product.numTransitions());
 					System.out.println("Places: " + product.numPlaces());
-										AStarLargeLP algorithm = new AStarLargeLP(product, //
-												true, // moveSort on total order
-												true, ///
-												true, //
-												false,//
-												false, // use Integers
-												Debug.NORMAL // debug mode
-										);
+					AStarLargeLP algorithm = new AStarLargeLP(product, Debug.NORMAL // debug mode
+					);
 					//					AStarWithMarkingSplit algorithm = new AStarWithMarkingSplit(product, //
 					//							true, // moveSort on total order
 					//							false, // use Integers
@@ -170,13 +199,15 @@ public class AlignmentTest {
 					//					);
 					algorithm.run();
 					TObjectIntMap<Statistic> stats = algorithm.getStatistics();
+					splits = Math.max(splits, stats.get(Statistic.SPLITS));
 					cost += stats.get(Statistic.COST);
 					memUsed = Math.max(memUsed, stats.get(Statistic.MEMORYUSED));
 				}
 
 			}
-			System.out.println("Total time: " + (System.nanoTime() - start) / 1000000.0 + " ms");
-			System.out.println("Total cost: " + cost);
+			System.out.println("Total time:     " + (System.nanoTime() - start) / 1000000.0 + " ms");
+			System.out.println("Total cost:     " + cost);
+			System.out.println("Maximum splits: " + splits);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

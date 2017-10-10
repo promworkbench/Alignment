@@ -136,7 +136,7 @@ public class AStar extends ReplayAlgorithm {
 
 	public AStar(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact,
 			boolean isInteger, boolean doMultiThreading, Debug debug) throws LPMatrixException {
-		super(product, moveSorting, queueSorting, preferExact, debug);
+		super(product, moveSorting, queueSorting, preferExact, doMultiThreading, debug);
 		this.doMultiThreading = doMultiThreading;
 		//		this.numRows = net.numPlaces();
 		matrix = new LPMatrix.SPARSE.LPSOLVE(net.numPlaces(), net.numTransitions());

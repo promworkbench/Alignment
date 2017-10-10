@@ -1,15 +1,16 @@
 package nl.tue.alignment;
 
+import gnu.trove.iterator.TShortIterator;
 import gnu.trove.list.TIntList;
 import gnu.trove.list.TShortList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.list.array.TShortArrayList;
-import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
-import gnu.trove.set.TLongSet;
-import gnu.trove.set.hash.TLongHashSet;
+import gnu.trove.map.TObjectShortMap;
+import gnu.trove.map.TShortObjectMap;
+import gnu.trove.map.hash.TObjectShortHashMap;
+import gnu.trove.map.hash.TShortObjectHashMap;
+import gnu.trove.set.TShortSet;
+import gnu.trove.set.hash.TShortHashSet;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,13 +20,10 @@ import java.util.Map;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
-import org.deckfour.xes.factory.XFactoryRegistry;
-import org.deckfour.xes.model.XEvent;
-import org.deckfour.xes.model.XLog;
+import org.deckfour.xes.extension.std.XConceptExtension;
 import org.deckfour.xes.model.XTrace;
-import org.deckfour.xes.model.impl.XAttributeLiteralImpl;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
-import org.processmining.models.graphbased.directed.petrinet.elements.Arc;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.models.semantics.petrinet.Marking;
@@ -33,163 +31,260 @@ import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMap
 
 public class SyncProductFactory {
 
-	public static SyncProduct[] getSyncProduct(Petrinet net, XLog log, XEventClasses classes, TransEvClassMapping map,
+	private static class StringList {
+		private String[] list;
+		int size = 0;
+
+		public StringList(int capacity) {
+			list = new String[capacity];
+		}
+
+		public void add(String s) {
+			ensureCapacity(size);
+			list[size] = s;
+			size++;
+		}
+
+		private void ensureCapacity(int insertAt) {
+			if (list.length <= insertAt) {
+				list = Arrays.copyOf(list, list.length * 2);
+			}
+		}
+
+		public void trunctate(int size) {
+			this.size = size;
+		}
+
+		public String get(int index) {
+			return list[index];
+		}
+
+		public int size() {
+			return size;
+		}
+
+		public String[] asArray() {
+			return Arrays.copyOf(list, size);
+		}
+
+		public String toString() {
+
+			int iMax = size - 1;
+			if (iMax == -1)
+				return "[]";
+
+			StringBuilder b = new StringBuilder();
+			b.append('[');
+			for (int i = 0;; i++) {
+				b.append(list[i]);
+				if (i == iMax)
+					return b.append(']').toString();
+				b.append(", ");
+			}
+		}
+	}
+
+	private final int transitions;
+	private final TIntList t2mmCost;
+	private final TIntList t2smCost;
+	private final TObjectShortMap<Object> t2id;
+	private final StringList t2name;
+	private final List<short[]> t2input;
+	private final List<short[]> t2output;
+	private final TShortList t2eid;
+
+	private final int classCount;
+	private final TObjectShortMap<XEventClass> c2id;
+	private final TIntList c2lmCost;
+	private final TShortObjectMap<TShortSet> c2t;
+
+	private final int places;
+	private final StringList p2name;
+	private final byte[] initMarking;
+	private final byte[] finMarking;
+	private final XEventClasses classes;
+	private final String label;
+
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map,
 			Map<Transition, Integer> mapTrans2Cost, Map<XEventClass, Integer> mapEvClass2Cost,
 			Map<Transition, Integer> mapSync2Cost, Marking initialMarking, Marking finalMarking) {
+		label = net.getLabel();
+		this.classes = classes;
+		this.classCount = classes.size();
+		c2id = new TObjectShortHashMap<>(this.classCount, 0.75f, (short) -1);
+		c2lmCost = new TIntArrayList(this.classCount);
+		c2t = new TShortObjectHashMap<>(this.classCount);
+		for (XEventClass clazz : classes.getClasses()) {
+			c2id.put(clazz, (short) c2lmCost.size());
+			c2lmCost.add(mapEvClass2Cost.get(clazz));
+		}
+
+		transitions = net.getTransitions().size();
+		t2mmCost = new TIntArrayList(transitions * 2);
+		t2smCost = new TIntArrayList(transitions * 2);
+		t2eid = new TShortArrayList(transitions * 2);
+		t2name = new StringList(transitions * 2);
+		t2input = new ArrayList<>(transitions * 2);
+		t2output = new ArrayList<>(transitions * 2);
+
+		places = net.getPlaces().size();
+		p2name = new StringList(places * 2);
+		TObjectShortMap<Place> p2id = new TObjectShortHashMap<>(net.getPlaces().size(), 0.75f, (short) -1);
+		t2id = new TObjectShortHashMap<>(net.getTransitions().size(), 0.75f, (short) -1);
 
 		// build list of move_model transitions
-		Transition[] transitions = new Transition[net.getTransitions().size()];
-		String[] moveModel = new String[transitions.length];
-		TIntList costs = new TIntArrayList();
+		Integer cost;
 		Iterator<Transition> it = net.getTransitions().iterator();
-		for (int t = 0; t < transitions.length; t++) {
-			transitions[t] = it.next();
-			moveModel[t] = transitions[t].getLabel() + "_" + t + ",-";
-			costs.add(mapTrans2Cost.get(transitions[t]));
+		while (it.hasNext()) {
+			Transition t = it.next();
+			t2id.put(t, (short) t2name.size());
 
-		}
-		List<String> moves = new ArrayList<String>();
-
-		Place[] placeList = new Place[net.getPlaces().size()];
-		String[] placeLabels = new String[net.getPlaces().size()];
-		TObjectIntMap<Place> place2index = new TObjectIntHashMap<>(net.getPlaces().size());
-		Iterator<Place> itp = net.getPlaces().iterator();
-		for (int pi = 0; pi < placeList.length; pi++) {
-			placeList[pi] = itp.next();
-			place2index.put(placeList[pi], pi);
-			placeLabels[pi] = placeList[pi].getLabel();// + "_" + pi;
-		}
-		List<String> places = new ArrayList<String>();
-		TShortList eventNumbers = new TShortArrayList();
-
-		SyncProduct[] result = new SyncProduct[log.size() + 1];
-		XTrace trace;
-		int startAt = -1;//-1;
-		int endAt = 6;//log.size();
-		for (int tr = startAt; tr < endAt && tr < log.size(); tr++) {
-			System.out.print("Adding trace: ");
-			if (tr == -1) {
-				trace = XFactoryRegistry.instance().currentDefault().createTrace();
-				trace.getAttributes().put("concept:name", new XAttributeLiteralImpl("concept:name", "Empty trace"));
-				System.out.println("Empty trace");
-			} else {
-				trace = log.get(tr);
-				System.out.println(trace.getAttributes().get("concept:name"));
-			}
-			eventNumbers.clear();
-			moves.clear();
-			moves.addAll(Arrays.asList(moveModel));
-			for (int i = 0; i < moves.size(); i++) {
-				eventNumbers.add(SyncProduct.NOEVENT);
-			}
-			places.clear();
-			places.addAll(Arrays.asList(placeLabels));
-
-			if (costs.size() > transitions.length) {
-				costs.remove(transitions.length, costs.size() - transitions.length);
-			}
-
-			XEvent[] events = (XEvent[]) trace.toArray(new XEvent[0]);
-
-			// start with places places
-			for (int e = 0; e <= events.length; e++) {
-				places.add("pe" + e);
-			}
-
-			TIntObjectMap<TLongSet> trans2events = new TIntObjectHashMap<>();
-
-			int sm = transitions.length;
-			for (short e = 0; e < events.length; e++) {
-				XEventClass clazz = classes.getClassOf(events[e]);
-				moves.add("-," + clazz + "_" + e);
-				eventNumbers.add(e);
-				costs.add(mapEvClass2Cost.get(clazz));
-				for (int t = 0; t < transitions.length; t++) {
-					if (map.containsKey(transitions[t]) && map.get(transitions[t]).equals(clazz)) {
-						// sync move
-						moves.add(sm, transitions[t].getLabel() + "_" + t + "," + clazz + "_" + e);
-						eventNumbers.insert(sm, e);
-						costs.insert(sm,
-								mapSync2Cost.get(transitions[t]) == null ? 0 : mapSync2Cost.get(transitions[t]));
-						if (trans2events.get(t) == null) {
-							trans2events.put(t, new TLongHashSet(3));
-						}
-						long x = sm;
-						x = x << 32;
-						x |= e;
-						trans2events.get(t).add(x);
-						sm++;
-					}
+			// update mapping from event class to transitions
+			XEventClass clazz = map.get(t);
+			if (clazz != null) {
+				TShortSet set = c2t.get(c2id.get(clazz));
+				if (set == null) {
+					set = new TShortHashSet(3);
+					c2t.put(c2id.get(clazz), set);
 				}
+				set.add((short) t2name.size());
 			}
-			// All moves have been established.
 
-			SyncProductImpl product = new SyncProductImpl(net.getLabel() + " x "
-					+ trace.getAttributes().get("concept:name"), moves.toArray(new String[0]),
-					places.toArray(new String[0]), eventNumbers.toArray(), costs.toArray());
+			cost = mapTrans2Cost.get(t);
+			t2mmCost.add(cost == null ? 0 : cost);
+			cost = mapSync2Cost.get(t);
+			t2smCost.add(cost == null ? 0 : cost);
+			t2name.add(t.getLabel());
+			t2eid.add(SyncProduct.NOEVENT);
 
-			for (short t = 0; t < transitions.length; t++) {
-				if (trans2events.get(t) != null) {
-					for (long sm_e : trans2events.get(t).toArray()) {
-						int smt = (int) ((sm_e >>> 32) & 0xFFFFFFFF);
-						int e = (int) (sm_e & 0xFFFFFFFF);
-						// there's a synchronous product of t with event e which is transition sm
-						product.addToOutput(smt, (short) (placeLabels.length + e + 1));
-						product.addToInput(smt, (short) (placeLabels.length + e));
-					}
+			short[] input = new short[net.getInEdges(t).size()];
+			int i = 0;
+			for (PetrinetEdge<?, ?> e : net.getInEdges(t)) {
+				Place p = (Place) e.getSource();
+				short id = p2id.get(p);
+				if (id == -1) {
+					id = (short) p2id.size();
+					p2id.put(p, id);
+					p2name.add(p.getLabel());
 				}
-				for (short p = 0; p < placeList.length; p++) {
-					Arc arc = net.getArc(transitions[t], placeList[p]);
-					if (arc != null) {
-						int i = 0;
-						do {
-							// add arc for output in modelmove
-							product.addToOutput(t, p);
-							if (trans2events.get(t) != null) {
-								for (long sm_e : trans2events.get(t).toArray()) {
-									int smt = (int) ((sm_e >>> 32) & 0xFFFFFFFF);
-									// there's a synchronous product of t with event e which is transition sm
-									product.addToOutput(smt, p);
-								}
-							}
-						} while (++i < arc.getWeight());
-					}
-					arc = net.getArc(placeList[p], transitions[t]);
-					if (arc != null) {
-						int i = 0;
-						do {
-							// add arc for output in modelmove
-							product.addToInput(t, p);
-							if (trans2events.get(t) != null) {
-								for (long sm_e : trans2events.get(t).toArray()) {
-									int smt = (int) (sm_e >>> 32) & 0xFFFFFFFF;
-									int e = (int) (sm_e & 0xFFFFFFFF);
-									// there's a synchronous product of t with event e which is transition sm
-									product.addToInput(smt, p);
-								}
-							}
-						} while (++i < arc.getWeight());
-					}
+				input[i++] = id;
+			}
+			t2input.add(input);
+			short[] output = new short[net.getOutEdges(t).size()];
+			i = 0;
+			for (PetrinetEdge<?, ?> e : net.getOutEdges(t)) {
+				Place p = (Place) e.getTarget();
+				short id = p2id.get(p);
+				if (id == -1) {
+					id = (short) p2id.size();
+					p2id.put(p, id);
+					p2name.add(p.getLabel());
 				}
+				output[i++] = id;
 			}
-			for (int e = 0; e < events.length; e++) {
-				product.addToInput(sm + e, (short) (placeLabels.length + e));
-				product.addToOutput(sm + e, (short) (placeLabels.length + e + 1));
-			}
-
-			for (Place place : initialMarking) {
-				int p = place2index.get(place);
-				product.addToInitialMarking(p);
-			}
-			product.addToInitialMarking(placeLabels.length);
-			for (Place place : finalMarking) {
-				int p = place2index.get(place);
-				product.addToFinalMarking(p);
-			}
-			product.addToFinalMarking(placeLabels.length + events.length);
-			result[tr - startAt] = product;
+			t2output.add(output);
 		}
 
-		return result;
+		initMarking = new byte[p2name.size()];
+		for (Place p : initialMarking) {
+			short id = p2id.get(p);
+			if (id >= 0) {
+				initMarking[id]++;
+			}
+		}
+
+		finMarking = new byte[p2name.size()];
+		for (Place p : finalMarking) {
+			short id = p2id.get(p);
+			if (id >= 0) {
+				finMarking[id]++;
+			}
+		}
+
+	}
+
+	public SyncProduct getSyncProduct(XTrace trace) {
+		// for this trace, compute the log-moves
+		// compute the sync moves
+		for (short e = 0; e < trace.size(); e++) {
+			XEventClass clazz = classes.getClassOf(trace.get(e));
+			short cid = c2id.get(clazz);
+			// add a place
+			p2name.add("pe_" + e);
+			// add log move
+			t2name.add(clazz.toString());
+			t2mmCost.add(c2lmCost.get(cid));
+			t2eid.add(e);
+
+			TShortSet set = c2t.get(cid);
+			if (set != null) {
+				TShortIterator it = set.iterator();
+				while (it.hasNext()) {
+					// add sync move
+					short t = it.next();
+					t2name.add(t2name.get(t) + "," + clazz);
+					t2mmCost.add(t2smCost.get(t));
+					t2eid.add(e);
+				}
+			}
+		}
+		if (trace.size() > 0) {
+			p2name.add("pe_" + trace.size());
+		}
+
+		String traceLabel = XConceptExtension.instance().extractName(trace);
+		if (traceLabel == null) {
+			traceLabel = "XTrace@" + Integer.toHexString(trace.hashCode());
+		}
+		SyncProductImpl product = new SyncProductImpl(label + " x " + traceLabel, //label
+				t2name.asArray(), //transition labels
+				p2name.asArray(), // place labels
+				t2eid.toArray(), //event numbers
+				t2mmCost.toArray());
+
+		short t = 0;
+		for (; t < transitions; t++) {
+			// first the model moves
+			product.setInput(t, t2input.get(t));
+			product.setOutput(t, t2output.get(t));
+		}
+
+		for (short e = 0; e < trace.size(); e++) {
+			XEventClass clazz = classes.getClassOf(trace.get(e));
+			short cid = c2id.get(clazz);
+			product.setInput(t, places + e);
+			product.setOutput(t, places + e + 1);
+			t++;
+
+			TShortSet set = c2t.get(cid);
+			if (set != null) {
+				TShortIterator it = set.iterator();
+				while (it.hasNext()) {
+					// add sync move
+					short t2 = it.next();
+					product.setInput(t, t2input.get(t2));
+					product.setOutput(t, t2output.get(t2));
+
+					product.addToInput(t, (short) (places + e));
+					product.addToOutput(t, (short) (places + e + 1));
+					t++;
+				}
+			}
+		}
+
+		product.setInitialMarking(Arrays.copyOf(initMarking, p2name.size()));
+		product.setFinalMarking(Arrays.copyOf(finMarking, p2name.size()));
+		if (trace.size() > 0) {
+			product.addToInitialMarking(places);
+			product.addToFinalMarking(places + trace.size());
+		}
+
+		// trim to size;
+		p2name.trunctate(places);
+		t2name.trunctate(transitions);
+		t2mmCost.remove(transitions, t2mmCost.size() - transitions);
+		t2eid.remove(transitions, t2eid.size() - transitions);
+
+		return product;
 	}
 }

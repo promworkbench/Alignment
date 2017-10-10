@@ -10,9 +10,6 @@ import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.map.hash.TShortObjectHashMap;
 
 import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
@@ -33,75 +30,6 @@ import nl.tue.astar.util.ilp.LPMatrixException;
  * 
  */
 public class AStarLargeLP extends ReplayAlgorithm {
-
-	private final Object estimatedLock = new Object();
-
-	//	private final class BlockMonitor implements Runnable {
-	//
-	//		private final int currentBlock;
-	//
-	//		private final double[] varsBlockMonitor;
-	//
-	//		public BlockMonitor(int currentBlock, int numTrans) {
-	//			this.currentBlock = currentBlock;
-	//			this.varsBlockMonitor = new double[numTrans];
-	//			synchronized (AStarLargeLP.this) {
-	//				lpSolutionsSize += 12 + 4 + 8 + 12 + 4 + numTrans * 8;
-	//			}
-	//		}
-	//
-	//		public void run() {
-	//			int b = currentBlock;
-	//			int i = 0;
-	//			do {
-	//				int m = b * blockSize + i;
-	//				if (m < markingsReached) {
-	//					//					System.out.println("Monitor waiting for " + b + "," + i);
-	//					getLockForComputingEstimate(b, i);
-	//					//					System.out.println("Monitor locking " + b + "," + i);
-	//					try {
-	//						if (!isClosed(b, i) && !hasExactHeuristic(b, i)) {
-	//							// an open marking without an exact solution for the heuristic
-	//							LpSolve solver = provider.firstAvailable();
-	//							int heuristic;
-	//							try {
-	//								heuristic = getExactHeuristic(solver, m, getMarking(m), b, i, varsBlockMonitor);
-	//							} finally {
-	//								provider.finished(solver);
-	//							}
-	//							if (heuristic > getHScore(b, i)) {
-	//								setHScore(b, i, heuristic, true);
-	//								// sort the marking in the queue
-	//								assert queue.contains(m);
-	//								queue.add(m);
-	//								queueActions++;
-	//							} else {
-	//								setHScore(b, i, heuristic, true);
-	//							}
-	//						}
-	//					} finally {
-	//						//						System.out.println("Monitor releasing " + b + "," + (m & blockMask));
-	//						releaseLockForComputingEstimate(b, m & blockMask);
-	//					}
-	//					i++;
-	//				} else {
-	//					synchronized (e_g_h_pt[b]) {
-	//						try {
-	//							e_g_h_pt[b].wait(200);
-	//						} catch (InterruptedException e) {
-	//						}
-	//					}
-	//				}
-	//			} while (!threadpool.isShutdown() && i < blockSize);
-	//			synchronized (AStarLargeLP.this) {
-	//				lpSolutionsSize -= 12 + 4 + 8 + 12 + 4 + varsBlockMonitor.length * 8;
-	//			}
-	//
-	//			//			System.out.println("Closing monitor for block " + b + ". Threadpool shutdown: " + threadpool.isShutdown()
-	//			//					+ ".");
-	//
-	//		}
-	//	}
 
 	// for each stored solution, the first byte is used for flagging.
 	// the first bit indicates whether the solution is derived
@@ -126,10 +54,6 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 	private final TShortObjectMap<TShortList> trans2LSMove = new TShortObjectHashMap<>();
 
-	private ExecutorService threadpool;
-
-	private final boolean doMultiThreading;
-
 	private LpSolve solver;
 
 	private int numEvents;
@@ -138,15 +62,13 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 	private SyncProduct product;
 
-	public AStarLargeLP(SyncProduct product) throws LPMatrixException {
-		this(product, true, true, true, false, false, Debug.NONE);
+	public AStarLargeLP(SyncProduct product) {
+		this(product, Debug.NONE);
 	}
 
-	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact,
-			boolean isInteger, boolean doMultiThreading, Debug debug) {
-		super(product, false /* moveSorting */, queueSorting, true /* preferExact */, debug);
+	public AStarLargeLP(SyncProduct product, Debug debug) {
+		super(product, false, true, true, false, debug);
 		this.product = product;
-		this.doMultiThreading = doMultiThreading;
 
 		trans2LSMove.put(SyncProduct.NOEVENT, new TShortArrayList(10));
 		numEvents = -1;
@@ -180,7 +102,6 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	private int rows;
 
 	private void init() throws LPMatrixException {
-		int monitorThreads;
 		lpSolutions.clear();
 		lpSolutionsSize = 0;
 
@@ -302,14 +223,6 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			throw new LPMatrixException(e);
 		}
 
-		if (doMultiThreading) {
-			monitorThreads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
-			threadpool = Executors.newFixedThreadPool(monitorThreads);
-
-		} else {
-			monitorThreads = 0;
-			threadpool = null;
-		}
 		varsMainThread = new double[indexMap.length];
 		tempForSettingSolutionDouble = new double[net.numTransitions()];
 
@@ -318,9 +231,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	@Override
 	protected void growArrays() {
 		super.growArrays();
-		if (doMultiThreading) {
-			//			threadpool.submit(new BlockMonitor(block, net.numTransitions()));
-		}
+
 	}
 
 	@Override
@@ -351,7 +262,6 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		if (marking == 0 || insert >= 0 || event == SyncProduct.NOEVENT) {
 			// No event was explained yet, or the last explained event is already a splitpoint.
 			// There's little we can do but continue with the replayer.
-			long s = System.currentTimeMillis();
 			//			debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
 			int res = getExactHeuristic(solver, marking, markingArray, markingBlock, markingIndex, varsMainThread);
 			//			debug.writeDebugInfo(Debug.NORMAL, "End solve: " + (System.currentTimeMillis() - s) / 1000.0 + " ms.");
@@ -641,16 +551,6 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	@Override
-	protected void addToQueue(int marking) {
-		super.addToQueue(marking);
-		if (!hasExactHeuristic(marking)) {
-			synchronized (estimatedLock) {
-				estimatedLock.notifyAll();
-			}
-		}
-	}
-
-	@Override
 	protected long getEstimatedMemorySize() {
 		long val = super.getEstimatedMemorySize();
 		// count space for all computed solutions
@@ -718,19 +618,6 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			try {
 				super.terminateRun();
 			} finally {
-				if (doMultiThreading && !threadpool.isShutdown()) {
-					threadpool.shutdown();
-					//				System.out.println("Threadpool shutdown upon termination of run.");
-					do {
-						synchronized (estimatedLock) {
-							estimatedLock.notifyAll();
-						}
-						try {
-							threadpool.awaitTermination(100, TimeUnit.MILLISECONDS);
-						} catch (InterruptedException e) {
-						}
-					} while (!threadpool.isTerminated());
-				}
 				solver.deleteAndRemoveLp();
 			}
 			terminated = true;

@@ -268,15 +268,18 @@ public abstract class ReplayAlgorithm {
 	protected long startConstructor;
 	protected short numPlaces;
 	private boolean queueSorting;
+	private boolean multiThreading;
 
-	public ReplayAlgorithm(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact) {
-		this(product, moveSorting, queueSorting, preferExact, Debug.NONE);
+	public ReplayAlgorithm(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact,
+			boolean multiThreading) {
+		this(product, moveSorting, queueSorting, preferExact, multiThreading, Debug.NONE);
 	}
 
 	public ReplayAlgorithm(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact,
-			Debug debug) {
+			boolean multiThreading, Debug debug) {
 		this.queueSorting = queueSorting;
 		this.preferExact = preferExact;
+		this.multiThreading = multiThreading;
 		this.debug = debug;
 		startConstructor = System.nanoTime();
 
@@ -1189,18 +1192,20 @@ public abstract class ReplayAlgorithm {
 	 * @param i
 	 */
 	protected void getLockForComputingEstimate(int b, int i) {
-		synchronized (e_g_h_pt[b]) {
-			while (isComputing(b, i)) {
-				// currently computing, so lock cannot be obtained
-				try {
-					// wait until not computing anymore
-					e_g_h_pt[b].wait(100);
-				} catch (InterruptedException e) {
+		if (multiThreading) {
+			synchronized (e_g_h_pt[b]) {
+				while (isComputing(b, i)) {
+					// currently computing, so lock cannot be obtained
+					try {
+						// wait until not computing anymore
+						e_g_h_pt[b].wait(100);
+					} catch (InterruptedException e) {
+					}
 				}
+				// lock can be obtained
+				// set the computing flag
+				e_g_h_pt[b][i] |= COMPUTINGMASK;
 			}
-			// lock can be obtained
-			// set the computing flag
-			e_g_h_pt[b][i] |= COMPUTINGMASK;
 		}
 	}
 
@@ -1212,9 +1217,11 @@ public abstract class ReplayAlgorithm {
 	 * @param i
 	 */
 	protected void releaseLockForComputingEstimate(int b, int i) {
-		synchronized (e_g_h_pt[b]) {
-			e_g_h_pt[b][i] &= ~COMPUTINGMASK;
-			e_g_h_pt[b].notify();
+		if (multiThreading) {
+			synchronized (e_g_h_pt[b]) {
+				e_g_h_pt[b][i] &= ~COMPUTINGMASK;
+				e_g_h_pt[b].notify();
+			}
 		}
 	}
 

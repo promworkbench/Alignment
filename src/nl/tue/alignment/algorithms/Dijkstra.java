@@ -21,7 +21,7 @@ public class Dijkstra extends ReplayAlgorithm {
 	}
 
 	public Dijkstra(SyncProduct product, boolean moveSorting, boolean queueSorting, Debug debug) {
-		super(product, moveSorting, queueSorting, true, debug);
+		super(product, moveSorting, queueSorting, true, false, debug);
 		tempFinalMarking = new byte[numPlaces];
 	}
 
