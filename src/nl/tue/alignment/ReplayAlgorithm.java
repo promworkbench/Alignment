@@ -364,6 +364,7 @@ public abstract class ReplayAlgorithm {
 		//		}
 		//		Utils.shuffleArray(trans, new Random());
 
+		
 		debug.writeDebugInfo(Debug.DOT, "Digraph D {");
 		try {
 			block = -1;
@@ -458,6 +459,7 @@ public abstract class ReplayAlgorithm {
 						// compute the exact heuristic
 						heuristic = getExactHeuristic(m, marking_m, bm, im);
 						if (heuristic == RESTART) {
+							
 							return runReplayAlgorithm(startTime);
 						} else if (heuristic == HEURISTICINFINITE) {
 							// marking from which final marking is unreachable

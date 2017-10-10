@@ -21,6 +21,7 @@ import java.util.Map;
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
 import org.deckfour.xes.extension.std.XConceptExtension;
+import org.deckfour.xes.factory.XFactoryRegistry;
 import org.deckfour.xes.model.XTrace;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
@@ -201,6 +202,12 @@ public class SyncProductFactory {
 			}
 		}
 
+	}
+
+	public SyncProduct getSyncProduct() {
+		XTrace et = XFactoryRegistry.instance().currentDefault().createTrace();
+		XConceptExtension.instance().assignName(et, "Empty");
+		return getSyncProduct(et);
 	}
 
 	public SyncProduct getSyncProduct(XTrace trace) {

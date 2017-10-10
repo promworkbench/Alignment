@@ -21,7 +21,7 @@ import nl.tue.astar.AStarThread.Type;
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
 import org.deckfour.xes.classification.XEventClassifier;
-import org.deckfour.xes.factory.XFactoryRegistry;
+import org.deckfour.xes.extension.std.XConceptExtension;
 import org.deckfour.xes.in.XMxmlParser;
 import org.deckfour.xes.info.XLogInfo;
 import org.deckfour.xes.info.XLogInfoFactory;
@@ -145,7 +145,7 @@ public class AlignmentTest {
 			long start = System.nanoTime();
 			//			OutputStreamWriter writer = new OutputStreamWriter(System.out);
 
-			SyncProduct product = factory.getSyncProduct(XFactoryRegistry.instance().currentDefault().createTrace());
+			SyncProduct product = factory.getSyncProduct();
 			//				try {
 			//					((SyncProductImpl) product).toTpn(writer);
 			//					writer.flush();
@@ -153,14 +153,32 @@ public class AlignmentTest {
 			//					// TODO Auto-generated catch block
 			//					e.printStackTrace();
 			//				}
+
+			System.out.print("TraceNum");
+			System.out.print(",");
+			System.out.print("TraceName");
+			System.out.print(",");
+			System.out.print("SP:trans");
+			System.out.print(",");
+			System.out.print("SP:places");
+			System.out.print(",");
+			System.out.print("A:reliable");
+			System.out.print(",");
+			System.out.print("A:cost");
+			System.out.print(",");
+			System.out.print("A:time(us)");
+			System.out.print(",");
+			System.out.print("A:splits");
+			System.out.println();
+
 			int t = 0;
 
 			if (product != null) {
-				System.out.println("---------------------------- " + product.getLabel());
-				System.out.println("Trace: " + t + " / " + log.size());
-				System.out.println("Transitions: " + product.numTransitions());
-				System.out.println("Places: " + product.numPlaces());
-				AStarLargeLP algorithm = new AStarLargeLP(product, Debug.NORMAL // debug mode
+				//				System.out.println("---------------------------- " + product.getLabel());
+				//				System.out.println("Trace: " + t + " / " + log.size());
+				//				System.out.println("Transitions: " + product.numTransitions());
+				//				System.out.println("Places: " + product.numPlaces());
+				AStarLargeLP algorithm = new AStarLargeLP(product, Debug.NONE // debug mode
 				);
 				//					AStarWithMarkingSplit algorithm = new AStarWithMarkingSplit(product, //
 				//							true, // moveSort on total order
@@ -172,6 +190,24 @@ public class AlignmentTest {
 				splits = Math.max(splits, stats.get(Statistic.SPLITS));
 				cost += stats.get(Statistic.COST);
 				memUsed = Math.max(memUsed, stats.get(Statistic.MEMORYUSED));
+
+				System.out.print(t);
+				System.out.print(",");
+				System.out.print("Empty");
+				System.out.print(",");
+				System.out.print(product.numTransitions());
+				System.out.print(",");
+				System.out.print(product.numPlaces());
+				System.out.print(",");
+				System.out.print(stats.get(Statistic.RELIABLE) == 1);
+				System.out.print(",");
+				System.out.print(stats.get(Statistic.COST));
+				System.out.print(",");
+				System.out.print(stats.get(Statistic.TOTALTIME));
+				System.out.print(",");
+				System.out.print(stats.get(Statistic.SPLITS));
+				System.out.println();
+
 			}
 
 			for (XTrace trace : log) {
@@ -186,11 +222,11 @@ public class AlignmentTest {
 				//				}
 
 				if (product != null) {
-					System.out.println("---------------------------- " + product.getLabel());
-					System.out.println("Trace: " + t + " / " + log.size());
-					System.out.println("Transitions: " + product.numTransitions());
-					System.out.println("Places: " + product.numPlaces());
-					AStarLargeLP algorithm = new AStarLargeLP(product, Debug.NORMAL // debug mode
+					//					System.out.println("---------------------------- " + product.getLabel());
+					//					System.out.println("Trace: " + t + " / " + log.size());
+					//					System.out.println("Transitions: " + product.numTransitions());
+					//					System.out.println("Places: " + product.numPlaces());
+					AStarLargeLP algorithm = new AStarLargeLP(product, Debug.NONE // debug mode
 					);
 					//					AStarWithMarkingSplit algorithm = new AStarWithMarkingSplit(product, //
 					//							true, // moveSort on total order
@@ -202,6 +238,24 @@ public class AlignmentTest {
 					splits = Math.max(splits, stats.get(Statistic.SPLITS));
 					cost += stats.get(Statistic.COST);
 					memUsed = Math.max(memUsed, stats.get(Statistic.MEMORYUSED));
+
+					System.out.print(t);
+					System.out.print(",");
+					System.out.print(XConceptExtension.instance().extractName(trace));
+					System.out.print(",");
+					System.out.print(product.numTransitions());
+					System.out.print(",");
+					System.out.print(product.numPlaces());
+					System.out.print(",");
+					System.out.print(stats.get(Statistic.RELIABLE) == 1);
+					System.out.print(",");
+					System.out.print(stats.get(Statistic.COST));
+					System.out.print(",");
+					System.out.print(stats.get(Statistic.TOTALTIME));
+					System.out.print(",");
+					System.out.print(stats.get(Statistic.SPLITS));
+					System.out.println();
+
 				}
 
 			}
