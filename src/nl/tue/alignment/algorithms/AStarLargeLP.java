@@ -143,8 +143,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact,
-			boolean isInteger, boolean doMultiThreading, Debug debug) throws LPMatrixException {
-		super(product, moveSorting, queueSorting, preferExact, debug);
+			boolean isInteger, boolean doMultiThreading, Debug debug) {
+		super(product, false /* moveSorting */, queueSorting, true /* preferExact */, debug);
 		this.product = product;
 		this.doMultiThreading = doMultiThreading;
 
@@ -169,6 +169,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			// ensure model is not empty for empty trace
 			numEvents = 1;
 		}
+		//		splitpoints = new short[] { 0, 2, 4, (short) numEvents };
+		splitpoints = new short[] { 0, (short) numEvents };
 
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
@@ -179,13 +181,18 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 	private void init() throws LPMatrixException {
 		int monitorThreads;
+		lpSolutions.clear();
+		lpSolutionsSize = 0;
 
-		splitpoints = new short[] { 0, 2, 4, (short) numEvents };
 		rows = (splitpoints.length - 1) * product.numPlaces();
 
 		indexMap = new short[(splitpoints.length - 2) * modelMoves + product.numTransitions()];
 
 		try {
+			if (solver != null) {
+				solver.deleteAndRemoveLp();
+			}
+
 			solver = LpSolve.makeLp(rows, 0);
 			solver.setAddRowmode(false);
 
@@ -287,8 +294,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			//			double[] vars = new double[indexMap.length];
 			//			solver.getVariables(vars);
 			//			System.out.println(res + " : " + Arrays.toString(vars));
-			debug.writeDebugInfo(Debug.NORMAL, "Solver: " + solver.getNrows() + " rows, " + solver.getNcolumns()
-					+ " columns.");
+			//			debug.writeDebugInfo(Debug.NORMAL, "Solver: " + solver.getNrows() + " rows, " + solver.getNcolumns()
+			//					+ " columns.");
 
 		} catch (LpSolveException e) {
 			solver.deleteAndRemoveLp();
@@ -317,36 +324,60 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	@Override
-	public short[] run() throws LPMatrixException {
-		long start = System.nanoTime();
-		init();
-		return super.runReplayAlgorithm(start);
+	protected short[] runReplayAlgorithm(long startTime) {
+		try {
+			init();
+		} catch (LPMatrixException e) {
+			throw new RuntimeException(e);
+		}
+		return super.runReplayAlgorithm(startTime);
 	}
 
 	protected double[] varsMainThread;
+	protected int splits = 0;
 
 	@Override
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
 		// find an available solver and block until one is available.
-		
+
 		//TODO: Handle case marking==0 separately from care marking>0
 
-		long s = System.currentTimeMillis();
-		debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
-		int res = getExactHeuristic(solver, marking, markingArray, markingBlock, markingIndex, varsMainThread);
-		debug.writeDebugInfo(Debug.NORMAL, "End solve: " + (System.currentTimeMillis() - s) / 1000.0 + " ms.");
+		short event = marking == 0 ? SyncProduct.NOEVENT : getLastEventOf(marking);
 
-		return res;
+		// the current shortest path explains the events up to and including event, but cannot continue
+		// serializing a previous LP solution at this stage. Hence, around 'marking' should be a 
+		// split marking and therefore event+1 needs to be added to the splitpoints.
+		int insert = Arrays.binarySearch(splitpoints, ++event);
+		if (marking == 0 || insert >= 0 || event == SyncProduct.NOEVENT) {
+			// No event was explained yet, or the last explained event is already a splitpoint.
+			// There's little we can do but continue with the replayer.
+			long s = System.currentTimeMillis();
+			//			debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
+			int res = getExactHeuristic(solver, marking, markingArray, markingBlock, markingIndex, varsMainThread);
+			//			debug.writeDebugInfo(Debug.NORMAL, "End solve: " + (System.currentTimeMillis() - s) / 1000.0 + " ms.");
+
+			return res;
+		}
+
+		insert = -insert - 1;
+		splitpoints = Arrays.copyOf(splitpoints, splitpoints.length + 1);
+		System.arraycopy(splitpoints, insert, splitpoints, insert + 1, splitpoints.length - insert - 1);
+		splitpoints[insert] = event;
+		splits++;
+
+		return RESTART;
+		// Handle this case now.
+
 	}
 
-	protected int getLastEventOf(int marking) {
+	protected short getLastEventOf(int marking) {
 		int m = marking;
 		short trans = getPredecessorTransition(m);
 		while (net.getEventOf(trans) < 0 && m > 0) {
 			m = getPredecessor(m);
 			trans = getPredecessorTransition(m);
 		}
-		int evt = net.getEventOf(trans);
+		short evt = net.getEventOf(trans);
 		return evt;
 	}
 
@@ -635,6 +666,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	public TObjectIntMap<Utils.Statistic> getStatistics() {
 		TObjectIntMap<Statistic> map = super.getStatistics();
 		map.put(Statistic.HEURISTICTIME, (int) (solveTime / 1000));
+		map.put(Statistic.SPLITS, splits);
 		return map;
 	}
 
@@ -656,6 +688,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			b.append(map.get(s));
 			b.append("<br/>");
 		}
+		b.append("Splitpoints: ");
+		b.append(Arrays.toString(splitpoints));
 		b.append(">];");
 
 		debug.writeDebugInfo(Debug.DOT, b.toString());
@@ -676,25 +710,68 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		}
 	}
 
+	boolean terminated = false;
+
+	@Override
 	protected void terminateRun() {
-		try {
-			super.terminateRun();
-		} finally {
-			if (doMultiThreading && !threadpool.isShutdown()) {
-				threadpool.shutdown();
-				//				System.out.println("Threadpool shutdown upon termination of run.");
-				do {
-					synchronized (estimatedLock) {
-						estimatedLock.notifyAll();
-					}
-					try {
-						threadpool.awaitTermination(100, TimeUnit.MILLISECONDS);
-					} catch (InterruptedException e) {
-					}
-				} while (!threadpool.isTerminated());
+		if (!terminated) {
+			try {
+				super.terminateRun();
+			} finally {
+				if (doMultiThreading && !threadpool.isShutdown()) {
+					threadpool.shutdown();
+					//				System.out.println("Threadpool shutdown upon termination of run.");
+					do {
+						synchronized (estimatedLock) {
+							estimatedLock.notifyAll();
+						}
+						try {
+							threadpool.awaitTermination(100, TimeUnit.MILLISECONDS);
+						} catch (InterruptedException e) {
+						}
+					} while (!threadpool.isTerminated());
+				}
+				solver.deleteAndRemoveLp();
 			}
-			solver.deleteAndRemoveLp();
+			terminated = true;
 		}
+	}
+
+	@Override
+	protected short[] handleFinalMarkingReached(long startTime, int marking) {
+		// Final marking reached.
+		int s = splitpoints.length - 2;
+		int n = getPredecessor(marking);
+		int m2 = marking;
+		short t;
+		while (n != NOPREDECESSOR) {
+			t = getPredecessorTransition(m2);
+			if (s > 0 && product.getEventOf(t) == splitpoints[s]) {
+				debug.writeEdgeTraversed(this, n, t, m2, "color=red,fontcolor=red,style=dashed");
+				s--;
+			} else {
+				debug.writeEdgeTraversed(this, n, t, m2, "color=red,fontcolor=red");
+			}
+			alignmentLength++;
+			alignmentCost += net.getCost(t);
+			m2 = n;
+			n = getPredecessor(n);
+		}
+		short[] alignment = new short[alignmentLength];
+		n = getPredecessor(marking);
+		m2 = marking;
+		int l = alignmentLength;
+		while (n != NOPREDECESSOR) {
+			t = getPredecessorTransition(m2);
+			alignment[--l] = t;
+			m2 = n;
+			n = getPredecessor(n);
+		}
+
+		alignmentResult |= Utils.OPTIMALALIGNMENT;
+		runTime = (int) ((System.nanoTime() - startTime) / 1000);
+
+		return alignment;
 	}
 
 }

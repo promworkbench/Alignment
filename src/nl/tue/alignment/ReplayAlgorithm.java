@@ -176,6 +176,8 @@ public abstract class ReplayAlgorithm {
 
 	protected static int HEURISTICINFINITE = 0b00000000111111111111111111111111;
 
+	protected static final int RESTART = -1;
+
 	/**
 	 * Stores the blockSize as a power of 2
 	 */
@@ -194,7 +196,7 @@ public abstract class ReplayAlgorithm {
 	/**
 	 * Stores the last block in use
 	 */
-	protected int block = -1;
+	protected int block;
 
 	/**
 	 * Stores the first new index in current block
@@ -205,7 +207,7 @@ public abstract class ReplayAlgorithm {
 	 * For each marking stores: 1 bit: whether it is estimated 24 bit: Value of
 	 * g function 24 bit: Value of h function 15 bit: Predecessor transition
 	 */
-	protected long[][] e_g_h_pt = new long[0][];
+	protected long[][] e_g_h_pt;
 
 	/**
 	 * Stores the predecessor relation for which the distance so far is minimal.
@@ -217,12 +219,12 @@ public abstract class ReplayAlgorithm {
 	 * For marking m, it is in the closed set if (p[m] & CLOSEDMASK) ==
 	 * CLOSEDMASK
 	 */
-	protected int[][] c_p = new int[0][];
+	protected int[][] c_p;
 
 	/**
 	 * Stores the closed set
 	 */
-	protected final VisitedSet visited;
+	protected VisitedSet visited;
 
 	/**
 	 * The synchronous product under investigation
@@ -232,7 +234,7 @@ public abstract class ReplayAlgorithm {
 	/**
 	 * Stores the open set as a priority queue
 	 */
-	protected final Queue queue;
+	protected Queue queue;
 
 	/**
 	 * Indicate if moves should be considered totally ordered.
@@ -265,6 +267,7 @@ public abstract class ReplayAlgorithm {
 
 	protected long startConstructor;
 	protected short numPlaces;
+	private boolean queueSorting;
 
 	public ReplayAlgorithm(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact) {
 		this(product, moveSorting, queueSorting, preferExact, Debug.NONE);
@@ -272,6 +275,7 @@ public abstract class ReplayAlgorithm {
 
 	public ReplayAlgorithm(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact,
 			Debug debug) {
+		this.queueSorting = queueSorting;
 		this.preferExact = preferExact;
 		this.debug = debug;
 		startConstructor = System.nanoTime();
@@ -289,17 +293,6 @@ public abstract class ReplayAlgorithm {
 			i++;
 		}
 		this.blockBit = i;
-
-		this.visited = new VisitedHashSet(this, Utils.DEFAULTVISITEDSIZE);
-		if (queueSorting) {
-			if (preferExact) {
-				this.queue = new SortedHashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE, true);
-			} else {
-				this.queue = new SortedHashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE, false);
-			}
-		} else {
-			this.queue = new HashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE);
-		}
 
 		// Array used internally for firing transitions.
 		firingMarking = new byte[product.numPlaces()];
@@ -349,6 +342,14 @@ public abstract class ReplayAlgorithm {
 	}
 
 	public short[] run() throws Exception {
+		pollActions = 0;
+		closedActions = 0;
+		queueActions = 0;
+		edgesTraversed = 0;
+		markingsReached = 0;
+		heuristicsComputed = 0;
+		heuristicsEstimated = 0;
+		heuristicsDerived = 0;
 		return runReplayAlgorithm(System.nanoTime());
 	}
 
@@ -362,16 +363,26 @@ public abstract class ReplayAlgorithm {
 
 		debug.writeDebugInfo(Debug.DOT, "Digraph D {");
 		try {
+			block = -1;
+			indexInBlock = 0;
+			c_p = new int[0][];
+			e_g_h_pt = new long[0][];
+
+			this.visited = new VisitedHashSet(this, Utils.DEFAULTVISITEDSIZE);
+			if (queueSorting) {
+				if (preferExact) {
+					this.queue = new SortedHashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE,
+							true);
+				} else {
+					this.queue = new SortedHashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE,
+							false);
+				}
+			} else {
+				this.queue = new HashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE);
+			}
+
 			growArrays();
 
-			pollActions = 0;
-			closedActions = 0;
-			queueActions = 1;
-			edgesTraversed = 0;
-			markingsReached = 0;
-			heuristicsComputed = 0;
-			heuristicsEstimated = 0;
-			heuristicsDerived = 0;
 			alignmentLength = 0;
 			alignmentCost = 0;
 			alignmentResult = 0;
@@ -403,13 +414,16 @@ public abstract class ReplayAlgorithm {
 			}
 
 			queue.add(0);
-			assert queue.size() == markingsReached - closedActions;
+			queueActions++;
+			int markingsReachedInRun = 1;
+			int closedActionsInRun = 0;
+			assert queue.size() == markingsReachedInRun - closedActionsInRun;
 
 			byte[] marking_m = new byte[numPlaces];
 
 			while (!queue.isEmpty()) {
 
-				assert queue.size() == markingsReached - closedActions;
+				assert queue.size() == markingsReachedInRun - closedActionsInRun;
 
 				int m = queue.peek();
 				int bm = m >>> blockBit;
@@ -425,9 +439,9 @@ public abstract class ReplayAlgorithm {
 						continue;
 					}
 
-					if (debug == Debug.NORMAL && pollActions % 10000 == 0) {
-						writeStatus();
-					}
+					//					if (debug == Debug.NORMAL && pollActions % 10000 == 0) {
+					//						writeStatus();
+					//					}
 					m = queue.poll();
 					pollActions++;
 
@@ -440,8 +454,9 @@ public abstract class ReplayAlgorithm {
 
 						// compute the exact heuristic
 						heuristic = getExactHeuristic(m, marking_m, bm, im);
-
-						if (heuristic == HEURISTICINFINITE) {
+						if (heuristic == RESTART) {
+							return runReplayAlgorithm(startTime);
+						} else if (heuristic == HEURISTICINFINITE) {
 							// marking from which final marking is unreachable
 							// ignore state and continue
 
@@ -466,6 +481,7 @@ public abstract class ReplayAlgorithm {
 					// add m to the closed set
 					setClosed(bm, im);
 					closedActions++;
+					closedActionsInRun++;
 				} finally {
 					// release the lock after potentially closing the marking
 					releaseLockForComputingEstimate(bm, im);
@@ -498,6 +514,7 @@ public abstract class ReplayAlgorithm {
 						try {
 							if (n == newIndex) {
 								markingsReached++;
+								markingsReachedInRun++;
 							}
 
 							//					System.out.println("   Fire " + t + ": " + Utils.print(getMarking(n), net.numPlaces()));
@@ -558,13 +575,6 @@ public abstract class ReplayAlgorithm {
 			return null;
 		} finally {
 			terminateRun();
-
-			if (debug == Debug.DOT) {
-				writeEndOfAlignmentDot();
-			}
-			if (debug == Debug.NORMAL) {
-				writeEndOfAlignmentNormal();
-			}
 
 		}
 
@@ -637,6 +647,12 @@ public abstract class ReplayAlgorithm {
 	}
 
 	protected void terminateRun() {
+		if (debug == Debug.DOT) {
+			writeEndOfAlignmentDot();
+		}
+		if (debug == Debug.NORMAL) {
+			writeEndOfAlignmentNormal();
+		}
 	}
 
 	protected abstract void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,

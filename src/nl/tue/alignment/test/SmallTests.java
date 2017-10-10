@@ -208,8 +208,8 @@ public class SmallTests {
 	public static class TwoSwapsExample extends SyncProductImpl {
 
 		public TwoSwapsExample() {
-			super("Small Nasty Example", new String[] { "A", "D1", "C1", "B", "C2", "D2", "C3", "D3", "F1", "E1", "E2",
-					"F2", "E3", "F3" }, //
+			super("Small Nasty Example", new String[] { "A,-", "D,-", "C,-", "-,B", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E",
+					"-,F", "E,E", "F,F" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11" }, //
 					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4 }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0 }//
