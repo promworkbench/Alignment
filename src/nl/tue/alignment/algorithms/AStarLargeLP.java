@@ -290,6 +290,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		System.arraycopy(splitpoints, insert, splitpoints, insert + 1, splitpoints.length - insert - 1);
 		splitpoints[insert] = event;
 		splits++;
+		debug.writeMarkingReached(this, marking,"peripheries=2");
 
 		return RESTART;
 		// Handle this case now.
@@ -652,49 +653,49 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	@Override
-	protected void terminateRun(boolean done, int markingsReachedInRun, int closedActionsInRun) {
+	protected void terminateIteration(boolean done, int markingsReachedInRun, int closedActionsInRun) {
 		try {
-			super.terminateRun(done, markingsReachedInRun, closedActionsInRun);
+			super.terminateIteration(done, markingsReachedInRun, closedActionsInRun);
 		} finally {
 			solver.deleteAndRemoveLp();
 		}
 	}
 
-	@Override
-	protected short[] handleFinalMarkingReached(long startTime, int marking) {
-		// Final marking reached.
-		int s = splitpoints.length - 2;
-		int n = getPredecessor(marking);
-		int m2 = marking;
-		short t;
-		while (n != NOPREDECESSOR) {
-			t = getPredecessorTransition(m2);
-			if (s > 0 && product.getEventOf(t) == splitpoints[s]) {
-				debug.writeEdgeTraversed(this, n, t, m2, "color=red,fontcolor=red,style=dashed");
-				s--;
-			} else {
-				debug.writeEdgeTraversed(this, n, t, m2, "color=red,fontcolor=red");
-			}
-			alignmentLength++;
-			alignmentCost += net.getCost(t);
-			m2 = n;
-			n = getPredecessor(n);
-		}
-		short[] alignment = new short[alignmentLength];
-		n = getPredecessor(marking);
-		m2 = marking;
-		int l = alignmentLength;
-		while (n != NOPREDECESSOR) {
-			t = getPredecessorTransition(m2);
-			alignment[--l] = t;
-			m2 = n;
-			n = getPredecessor(n);
-		}
-
-		alignmentResult |= Utils.OPTIMALALIGNMENT;
-		runTime = (int) ((System.nanoTime() - startTime) / 1000);
-
-		return alignment;
-	}
+	//	@Override
+	//	protected short[] handleFinalMarkingReached(long startTime, int marking) {
+	//		// Final marking reached.
+	//		int s = splitpoints.length - 2;
+	//		int n = getPredecessor(marking);
+	//		int m2 = marking;
+	//		short t;
+	//		while (n != NOPREDECESSOR) {
+	//			t = getPredecessorTransition(m2);
+	//			if (s > 0 && product.getEventOf(t) == splitpoints[s]) {
+	//				debug.writeEdgeTraversed(this, n, t, m2, "color=red,fontcolor=red,style=dashed");
+	//				s--;
+	//			} else {
+	//				debug.writeEdgeTraversed(this, n, t, m2, "color=red,fontcolor=red");
+	//			}
+	//			alignmentLength++;
+	//			alignmentCost += net.getCost(t);
+	//			m2 = n;
+	//			n = getPredecessor(n);
+	//		}
+	//		short[] alignment = new short[alignmentLength];
+	//		n = getPredecessor(marking);
+	//		m2 = marking;
+	//		int l = alignmentLength;
+	//		while (n != NOPREDECESSOR) {
+	//			t = getPredecessorTransition(m2);
+	//			alignment[--l] = t;
+	//			m2 = n;
+	//			n = getPredecessor(n);
+	//		}
+	//
+	//		alignmentResult |= Utils.OPTIMALALIGNMENT;
+	//		runTime = (int) ((System.nanoTime() - startTime) / 1000);
+	//
+	//		return alignment;
+	//	}
 
 }

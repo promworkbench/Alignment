@@ -539,9 +539,9 @@ public class AStar extends ReplayAlgorithm {
 		}
 	}
 
-	protected void terminateRun(boolean done, int markingsReachedInRun, int closedActionsInRun) {
+	protected void terminateIteration(boolean done, int markingsReachedInRun, int closedActionsInRun) {
 		try {
-			super.terminateRun(done, markingsReachedInRun, closedActionsInRun);
+			super.terminateIteration(done, markingsReachedInRun, closedActionsInRun);
 		} finally {
 			if (doMultiThreading && !threadpool.isShutdown()) {
 				threadpool.shutdown();

@@ -1,7 +1,5 @@
 package nl.tue.alignment;
 
-import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.util.Arrays;
 
 public class SyncProductImpl implements SyncProduct {
@@ -205,33 +203,6 @@ public class SyncProductImpl implements SyncProduct {
 		return label;
 	}
 
-	public void toTpn(OutputStreamWriter stream) throws IOException {
-		for (short p = 0; p < numPlaces(); p++) {
-			stream.write("place \"place_" + p);
-			stream.write("\"");
-			if (getInitialMarking()[p] > 0) {
-				stream.write("init " + getInitialMarking()[p]);
-			}
-			stream.write(";\n");
-		}
-		for (short t = 0; t < numTransitions(); t++) {
-			stream.write("trans \"t_" + t);
-			stream.write("\"~\"");
-			stream.write(getTransitionLabel(t));
-			stream.write("\" in ");
-			for (short p : getInput(t)) {
-				stream.write(" \"place_" + p);
-				stream.write("\"");
-			}
-			stream.write(" out ");
-			for (short p : getOutput(t)) {
-				stream.write(" \"place_" + p);
-				stream.write("\"");
-			}
-			stream.write(";\n");
-		}
-
-	}
 
 	public short getEventOf(short transition) {
 		return eventNumbers[transition];

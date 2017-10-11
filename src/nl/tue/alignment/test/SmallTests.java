@@ -2,6 +2,8 @@ package nl.tue.alignment.test;
 
 import gnu.trove.map.TObjectIntMap;
 
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.Arrays;
 
 import lpsolve.LpSolve;
@@ -232,10 +234,12 @@ public class SmallTests {
 		}
 	}
 
-	public static void main(String[] args) throws LPMatrixException {
-
+	public static void main(String[] args) throws LPMatrixException, IOException {
+		SyncProduct net = new TwoSwapsExample();
 		//		testSingleGraph(new SyncProductExampleBook(), Debug.DOT);
-		testSingleGraph(new TwoSwapsExample(), Debug.DOT);
+
+		testSingleGraph(net, Debug.DOT);
+		Utils.toDot(net, new OutputStreamWriter(System.out));
 		//		testSingleGraph(new NastySyncProductExample(), Debug.DOT);
 	}
 

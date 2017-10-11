@@ -1,5 +1,11 @@
 package nl.tue.alignment;
 
+import gnu.trove.iterator.TShortIterator;
+import gnu.trove.set.TShortSet;
+import gnu.trove.set.hash.TShortHashSet;
+
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.Random;
 
 public class Utils {
@@ -136,5 +142,124 @@ public class Utils {
 
 	public static int syncMoveCost(SyncProduct product, short[] alignment) {
 		return getCostForType(product, alignment, SyncProduct.SYNC_MOVE, SyncProduct.SYNC_MOVE);
+	}
+
+	public static void toTpn(SyncProduct product, OutputStreamWriter stream) throws IOException {
+		for (short p = 0; p < product.numPlaces(); p++) {
+			stream.write("place \"place_" + p);
+			stream.write("\"");
+			if (product.getInitialMarking()[p] > 0) {
+				stream.write("init " + product.getInitialMarking()[p]);
+			}
+			stream.write(";\n");
+		}
+		for (short t = 0; t < product.numTransitions(); t++) {
+			stream.write("trans \"t_" + t);
+			stream.write("\"~\"");
+			stream.write(product.getTransitionLabel(t));
+			stream.write("\" in ");
+			for (short p : product.getInput(t)) {
+				stream.write(" \"place_" + p);
+				stream.write("\"");
+			}
+			stream.write(" out ");
+			for (short p : product.getOutput(t)) {
+				stream.write(" \"place_" + p);
+				stream.write("\"");
+			}
+			stream.write(";\n");
+		}
+		stream.flush();
+
+	}
+
+	public static void toDot(SyncProduct product, OutputStreamWriter stream) throws IOException {
+		stream.write("Digraph P { \n rankdir=LR;\n");
+
+		for (short p = 0; p < product.numPlaces(); p++) {
+			stream.write("p" + p);
+			stream.write(" [label=<" + product.getPlaceLabel(p));
+			if (product.getInitialMarking()[p] > 0) {
+				stream.write("<br/>i:" + product.getInitialMarking()[p]);
+			}
+			if (product.getFinalMarking()[p] > 0) {
+				stream.write("<br/>f:" + product.getFinalMarking()[p]);
+			}
+			stream.write(">,shape=circle];");
+			stream.write("\n");
+		}
+		stream.write("{ rank=same;");
+		for (short p = 0; p < product.numPlaces(); p++) {
+			if (product.getInitialMarking()[p] > 0) {
+				stream.write("p" + p + "; ");
+			}
+		}
+		stream.write("}\n");
+		stream.write("{ rank=same;");
+		for (short p = 0; p < product.numPlaces(); p++) {
+			if (product.getFinalMarking()[p] > 0) {
+				stream.write("p" + p + "; ");
+			}
+		}
+		stream.write("}\n");
+
+		TShortSet events = new TShortHashSet(product.numTransitions(), 0.5f, (short) -2);
+		for (short t = 0; t < product.numTransitions(); t++) {
+			events.add(product.getEventOf(t));
+			stream.write("t" + t);
+			stream.write(" [label=<" + product.getTransitionLabel(t));
+			stream.write("<br/>" + product.getCost(t));
+			stream.write(">");
+
+			if (product.getTypeOf(t) == SyncProduct.LOG_MOVE) {
+				stream.write(",style=filled,fillcolor=goldenrod2,fontColor=black");
+			} else if (product.getTypeOf(t) == SyncProduct.MODEL_MOVE) {
+				stream.write(",style=filled,fillcolor=darkorchid1,fontColor=black");
+			} else if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
+				stream.write(",style=filled,fillcolor=forestgreen,fontColor=black");
+			} else if (product.getTypeOf(t) == SyncProduct.TAU_MOVE) {
+				stream.write(",style=filled,fillcolor=honeydew4,fontColor=white");
+			}
+
+			stream.write(",shape=box];");
+			stream.write("\n");
+			for (short p : product.getInput(t)) {
+				stream.write("p" + p + " -> t" + t);
+				if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
+					stream.write(" [weight=2]");
+				} else {
+					stream.write(" [weight=10]");
+				}
+				stream.write(";\n");
+			}
+			for (short p : product.getOutput(t)) {
+				stream.write("t" + t + " -> p" + p);
+				if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
+					stream.write(" [weight=2]");
+				} else {
+					stream.write(" [weight=10]");
+				}
+				stream.write(";\n");
+			}
+		}
+
+		events.remove(SyncProduct.NOEVENT);
+
+		short e;
+		for (TShortIterator it = events.iterator(); it.hasNext();) {
+			e = it.next();
+			stream.write("{ rank=same;");
+			for (short t = 0; t < product.numTransitions(); t++) {
+				if (product.getEventOf(t) == e) {
+					stream.write("t" + t + "; ");
+				}
+			}
+			stream.write("}\n");
+
+		}
+
+		stream.write("}");
+		stream.flush();
+
 	}
 }

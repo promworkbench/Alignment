@@ -429,7 +429,7 @@ public abstract class ReplayAlgorithm {
 				completed = true;
 				return null;
 			} finally {
-				terminateRun(completed, markingsReachedInRun, closedActionsInRun);
+				terminateIteration(completed, markingsReachedInRun, closedActionsInRun);
 			}
 		} while ((alignmentResult & Utils.OPTIMALALIGNMENT) == 0 && //
 				(alignmentResult & Utils.FAILEDALIGNMENT) == 0);
@@ -547,6 +547,8 @@ public abstract class ReplayAlgorithm {
 				// compute the exact heuristic
 				heuristic = getExactHeuristic(m, marking_m, bm, im);
 				if (heuristic == RESTART) {
+					setClosed(bm, im);
+					closedActions++;
 					return CloseResult.RESTARTNEEDED;
 				} else if (heuristic == HEURISTICINFINITE) {
 					// marking from which final marking is unreachable
@@ -714,7 +716,7 @@ public abstract class ReplayAlgorithm {
 		}
 	}
 
-	protected void terminateRun(boolean done, int markingsReachedInRun, int closedActionsInRun) {
+	protected void terminateIteration(boolean done, int markingsReachedInRun, int closedActionsInRun) {
 		if (debug == Debug.DOT) {
 			writeEndOfAlignmentDot(done, markingsReachedInRun, closedActionsInRun);
 		}
