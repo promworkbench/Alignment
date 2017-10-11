@@ -9,6 +9,7 @@ import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.util.HashBackedPriorityQueue;
 import nl.tue.alignment.util.SortedHashBackedPriorityQueue;
 import nl.tue.alignment.util.VisitedHashSet;
+import nl.tue.astar.util.ilp.LPMatrixException;
 
 /**
  * The replay algorithm implements a replayer using the AStar skeleton. It
@@ -363,7 +364,7 @@ public abstract class ReplayAlgorithm {
 		return val;
 	}
 
-	public short[] run() throws Exception {
+	public short[] run() throws LPMatrixException {
 		pollActions = 0;
 		closedActions = 0;
 		queueActions = 0;
@@ -376,7 +377,7 @@ public abstract class ReplayAlgorithm {
 		return runReplayAlgorithm(System.nanoTime());
 	}
 
-	protected short[] runReplayAlgorithm(long startTime) throws Exception {
+	protected short[] runReplayAlgorithm(long startTime) throws LPMatrixException {
 
 		//		short[] trans = new short[net.numTransitions()];
 		//		for (short t = net.numTransitions(); t-- > 0;) {
@@ -584,7 +585,7 @@ public abstract class ReplayAlgorithm {
 
 	}
 
-	protected void initializeIteration() throws Exception {
+	protected void initializeIteration() throws LPMatrixException {
 		initializeIterationInternal();
 	}
 

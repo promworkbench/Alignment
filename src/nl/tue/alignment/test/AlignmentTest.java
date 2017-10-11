@@ -3,10 +3,10 @@ package nl.tue.alignment.test;
 import gnu.trove.map.TObjectIntMap;
 
 import java.io.File;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executor;
 
 import nl.tue.alignment.ReplayAlgorithm;
 import nl.tue.alignment.ReplayAlgorithm.Debug;
@@ -15,10 +15,6 @@ import nl.tue.alignment.SyncProductFactory;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.AStarLargeLP;
-import nl.tue.astar.AStarException;
-import nl.tue.astar.AStarThread.ASynchronousMoveSorting;
-import nl.tue.astar.AStarThread.QueueingModel;
-import nl.tue.astar.AStarThread.Type;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
@@ -28,46 +24,23 @@ import org.deckfour.xes.in.XMxmlParser;
 import org.deckfour.xes.info.XLogInfo;
 import org.deckfour.xes.info.XLogInfoFactory;
 import org.deckfour.xes.info.impl.XLogInfoImpl;
+import org.deckfour.xes.model.XEvent;
 import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.XTrace;
 import org.jbpt.petri.Flow;
 import org.jbpt.petri.NetSystem;
 import org.jbpt.petri.io.PNMLSerializer;
-import org.processmining.framework.connections.Connection;
-import org.processmining.framework.connections.ConnectionCannotBeObtained;
-import org.processmining.framework.connections.ConnectionManager;
-import org.processmining.framework.plugin.PluginContext;
-import org.processmining.framework.plugin.PluginContextID;
-import org.processmining.framework.plugin.PluginDescriptor;
-import org.processmining.framework.plugin.PluginExecutionResult;
-import org.processmining.framework.plugin.PluginManager;
-import org.processmining.framework.plugin.PluginParameterBinding;
-import org.processmining.framework.plugin.ProMFuture;
-import org.processmining.framework.plugin.Progress;
-import org.processmining.framework.plugin.RecursiveCallException;
-import org.processmining.framework.plugin.events.Logger.MessageLevel;
-import org.processmining.framework.plugin.events.PluginLifeCycleEventListener.List;
-import org.processmining.framework.plugin.events.ProgressEventListener.ListenerList;
-import org.processmining.framework.plugin.impl.FieldSetException;
-import org.processmining.framework.providedobjects.ProvidedObjectManager;
-import org.processmining.framework.util.Pair;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetFactory;
 import org.processmining.models.semantics.petrinet.Marking;
-import org.processmining.plugins.astar.petrinet.AbstractPetrinetReplayer;
-import org.processmining.plugins.astar.petrinet.PetrinetReplayerWithILP;
-import org.processmining.plugins.astar.petrinet.PetrinetReplayerWithoutILP;
 import org.processmining.plugins.astar.petrinet.impl.AbstractPILPDelegate;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
-import org.processmining.plugins.petrinet.replayer.algorithms.IPNReplayParameter;
-import org.processmining.plugins.petrinet.replayer.algorithms.costbasedcomplete.CostBasedCompleteParam;
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
+import org.processmining.plugins.petrinet.replayresult.PNRepResultImpl;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
-
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class AlignmentTest {
 
@@ -125,8 +98,8 @@ public class AlignmentTest {
 		doTestNewAlignments((Petrinet) net, initialMarking, finalMarkings, log, costMOS, costMOT, mapping);
 	}
 
-	protected static void doTestNewAlignments(Petrinet net, Marking initialMarking, Marking[] finalMarkings, XLog log,
-			Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
+	protected static PNRepResult doTestNewAlignments(Petrinet net, Marking initialMarking, Marking[] finalMarkings,
+			XLog log, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
 
 		XEventClassifier eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
 		XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
@@ -140,6 +113,8 @@ public class AlignmentTest {
 		summary = null;
 		classes = null;
 		System.gc();
+
+		List<SyncReplayResult> result = new ArrayList<>();
 		try {
 			long cost = 0;
 			int splits = 0;
@@ -148,6 +123,7 @@ public class AlignmentTest {
 			//			OutputStreamWriter writer = new OutputStreamWriter(System.out);
 
 			SyncProduct product = factory.getSyncProduct();
+
 			//				try {
 			//					((SyncProductImpl) product).toTpn(writer);
 			//					writer.flush();
@@ -183,6 +159,7 @@ public class AlignmentTest {
 
 			int t = 0;
 
+			int maxCost = 0;
 			if (product != null) {
 				//				System.out.println("---------------------------- " + product.getLabel());
 				//				System.out.println("Trace: " + t + " / " + log.size());
@@ -199,7 +176,8 @@ public class AlignmentTest {
 				short[] alignment = algorithm.run();
 				TObjectIntMap<Statistic> stats = algorithm.getStatistics();
 				splits = Math.max(splits, stats.get(Statistic.SPLITS));
-				cost += stats.get(Statistic.COST);
+				maxCost = stats.get(Statistic.COST);
+				cost = stats.get(Statistic.COST);
 				memUsed = Math.max(memUsed, stats.get(Statistic.MEMORYUSED));
 
 				System.out.print(t);
@@ -232,13 +210,6 @@ public class AlignmentTest {
 			for (XTrace trace : log) {
 				t++;
 				product = factory.getSyncProduct(trace);
-				//				try {
-				//					((SyncProductImpl) product).toTpn(writer);
-				//					writer.flush();
-				//				} catch (IOException e) {
-				//					// TODO Auto-generated catch block
-				//					e.printStackTrace();
-				//				}
 
 				if (product != null) {
 					//					System.out.println("---------------------------- " + product.getLabel());
@@ -247,14 +218,16 @@ public class AlignmentTest {
 					//					System.out.println("Places: " + product.numPlaces());
 
 					ReplayAlgorithm algorithm = new AStarLargeLP(product, false, false, Debug.NONE);
-					//					ReplayAlgorithm algorithm = new AStar(product);
 
-					//							true, // moveSort on total order
-					//							false, // use Integers
-					//							Debug.NORMAL // debug mode
-					//					);
 					short[] alignment = algorithm.run();
 					TObjectIntMap<Statistic> stats = algorithm.getStatistics();
+					int traceCost = getTraceCost(trace, classes, costMOT);
+					SyncReplayResult srr = Utils.toSyncReplayResult(factory, stats, alignment, trace, t - 1);
+					srr.addInfo(PNRepResult.TRACEFITNESS,
+							1 - (srr.getInfo().get(PNRepResult.RAWFITNESSCOST) / (maxCost + traceCost)));
+
+					result.add(srr);
+
 					splits = Math.max(splits, stats.get(Statistic.SPLITS));
 					cost += stats.get(Statistic.COST);
 					memUsed = Math.max(memUsed, stats.get(Statistic.MEMORYUSED));
@@ -294,79 +267,14 @@ public class AlignmentTest {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		return new PNRepResultImpl(result);
 	}
 
-	protected static void doTestOldAlignments(PetrinetGraph net, Marking initialMarking, Marking[] finalMarkings,
-			XLog log, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
-		int iteration = 0;
-		for (ASynchronousMoveSorting sort : new ASynchronousMoveSorting[] { ASynchronousMoveSorting.TOTAL,
-				ASynchronousMoveSorting.LOGMOVEFIRST }) {
-			System.out.println("start: " + iteration + " sorting: " + sort);
-			long start = System.currentTimeMillis();
-			int cost1 = AlignmentTest.computeCost(costMOS, costMOT, initialMarking, finalMarkings,
-					new TestPluginContext(), net, log, mapping, true, sort);
-			long mid = System.currentTimeMillis();
-			System.out.println("   With ILP cost: " + cost1 + "  t: " + (mid - start));
-
-			//				long mid2 = System.currentTimeMillis();
-			//				int cost2 = AlignmentTest.computeCost(costMOS, costMOT, initialMarking, finalMarkings,  new TestPluginContext(), net, log,
-			//						mapping, false, sort);
-			//				long end = System.currentTimeMillis();
-			//
-			//				System.out.println("   No ILP   cost: " + cost2 + "  t: " + (end - mid2));
-			//				if (cost1 != cost2) {
-			//					System.err.println("ERROR");
-			//				}
-			System.gc();
-			System.out.flush();
-			iteration++;
-		}
-		return;
-	}
-
-	public static int computeCost(Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT,
-			Marking initialMarking, Marking[] finalMarkings, PluginContext context, PetrinetGraph net, XLog log,
-			TransEvClassMapping mapping, boolean useILP, ASynchronousMoveSorting sorting) {
-		AbstractPetrinetReplayer<?, ?> replayEngine;
-		if (useILP) {
-			replayEngine = new PetrinetReplayerWithILP();
-		} else {
-			replayEngine = new PetrinetReplayerWithoutILP();
-		}
-
-		IPNReplayParameter parameters = new CostBasedCompleteParam(costMOT, costMOS);
-		parameters.setInitialMarking(initialMarking);
-		parameters.setFinalMarkings(finalMarkings[0]);
-		parameters.setAsynchronousMoveSort(sorting);
-		parameters.setGUIMode(false);
-		parameters.setCreateConn(false);
-		parameters.setNumThreads(8);
-		parameters.setType(Type.PLAIN);
-		parameters.setQueueingModel(QueueingModel.DEPTHFIRSTWITHCERTAINTYPRIORITY);
-
+	private static int getTraceCost(XTrace trace, XEventClasses classes, Map<XEventClass, Integer> costMOT) {
 		int cost = 0;
-		try {
-			PNRepResult result = replayEngine.replayLog(context, net, log, mapping, parameters);
-
-			long q = 0;
-			long g = 0;
-			for (SyncReplayResult res : result) {
-				if (res.isReliable()) {
-					q += res.getInfo().get(PNRepResult.QUEUEDSTATE);
-					g += res.getInfo().get(PNRepResult.NUMSTATEGENERATED);
-					cost += ((int) res.getInfo().get(PNRepResult.RAWFITNESSCOST).doubleValue())
-							* res.getTraceIndex().size();
-				} else {
-					System.err.println("Error in traces " + res.getTraceIndex());
-				}
-			}
-			System.out.println("Queued states: " + q);
-			System.out.println("Generated states: " + g);
-
-		} catch (AStarException e) {
-			e.printStackTrace();
+		for (XEvent e : trace) {
+			cost += costMOT.get(classes.getClassOf(e));
 		}
-
 		return cost;
 	}
 
@@ -393,7 +301,6 @@ public class AlignmentTest {
 		}
 
 		// transitions
-		int l = 0;
 		Map<org.jbpt.petri.Transition, Transition> t2t = new HashMap<org.jbpt.petri.Transition, Transition>();
 		for (org.jbpt.petri.Transition t : sys.getTransitions()) {
 			Transition tt = net.addTransition(t.getLabel());
@@ -484,14 +391,11 @@ public class AlignmentTest {
 		XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
 
 		for (Transition t : net.getTransitions()) {
-			boolean mapped = false;
-
 			for (XEventClass evClass : summary.getEventClasses().getClasses()) {
 				String id = evClass.getId();
 
 				if (t.getLabel().equals(id)) {
 					mapping.put(t, evClass);
-					mapped = true;
 					break;
 				}
 			}
@@ -503,220 +407,6 @@ public class AlignmentTest {
 		}
 
 		return mapping;
-	}
-
-	private static class TestPluginContext implements PluginContext {
-
-		private final Progress progress = new Progress() {
-
-			public void setMinimum(int value) {
-			}
-
-			public void setMaximum(int value) {
-			}
-
-			public void setValue(int value) {
-			}
-
-			public void setCaption(String message) {
-			}
-
-			public String getCaption() {
-				throw new NotImplementedException();
-			}
-
-			public int getValue() {
-				throw new NotImplementedException();
-			}
-
-			public void inc() {
-				System.out.print(".");
-			}
-
-			public void setIndeterminate(boolean makeIndeterminate) {
-			}
-
-			public boolean isIndeterminate() {
-				throw new NotImplementedException();
-			}
-
-			public int getMinimum() {
-				throw new NotImplementedException();
-			}
-
-			public int getMaximum() {
-				throw new NotImplementedException();
-			}
-
-			public boolean isCancelled() {
-				return false;
-			}
-
-			public void cancel() {
-			}
-
-		};
-
-		public PluginManager getPluginManager() {
-			throw new NotImplementedException();
-
-		}
-
-		public ProvidedObjectManager getProvidedObjectManager() {
-			throw new NotImplementedException();
-
-		}
-
-		public ConnectionManager getConnectionManager() {
-			throw new NotImplementedException();
-
-		}
-
-		public PluginContextID createNewPluginContextID() {
-			throw new NotImplementedException();
-
-		}
-
-		public void invokePlugin(PluginDescriptor plugin, int index, Object... objects) {
-			throw new NotImplementedException();
-
-		}
-
-		public void invokeBinding(PluginParameterBinding binding, Object... objects) {
-			throw new NotImplementedException();
-
-		}
-
-		public Class<? extends PluginContext> getPluginContextType() {
-			throw new NotImplementedException();
-
-		}
-
-		public <T, C extends Connection> Collection<T> tryToFindOrConstructAllObjects(Class<T> type,
-				Class<C> connectionType, String role, Object... input) throws ConnectionCannotBeObtained {
-			throw new NotImplementedException();
-
-		}
-
-		public <T, C extends Connection> T tryToFindOrConstructFirstObject(Class<T> type, Class<C> connectionType,
-				String role, Object... input) throws ConnectionCannotBeObtained {
-			throw new NotImplementedException();
-
-		}
-
-		public <T, C extends Connection> T tryToFindOrConstructFirstNamedObject(Class<T> type, String name,
-				Class<C> connectionType, String role, Object... input) throws ConnectionCannotBeObtained {
-			throw new NotImplementedException();
-
-		}
-
-		public PluginContext createChildContext(String label) {
-			throw new NotImplementedException();
-
-		}
-
-		public Progress getProgress() {
-			return progress;
-		}
-
-		public ListenerList getProgressEventListeners() {
-			throw new NotImplementedException();
-
-		}
-
-		public List getPluginLifeCycleEventListeners() {
-			throw new NotImplementedException();
-
-		}
-
-		public PluginContextID getID() {
-			throw new NotImplementedException();
-
-		}
-
-		public String getLabel() {
-			throw new NotImplementedException();
-
-		}
-
-		public Pair<PluginDescriptor, Integer> getPluginDescriptor() {
-			throw new NotImplementedException();
-
-		}
-
-		public PluginContext getParentContext() {
-			throw new NotImplementedException();
-
-		}
-
-		public java.util.List<PluginContext> getChildContexts() {
-			throw new NotImplementedException();
-		}
-
-		public PluginExecutionResult getResult() {
-			throw new NotImplementedException();
-		}
-
-		public ProMFuture<?> getFutureResult(int i) {
-			throw new NotImplementedException();
-		}
-
-		public Executor getExecutor() {
-			throw new NotImplementedException();
-		}
-
-		public boolean isDistantChildOf(PluginContext context) {
-			throw new NotImplementedException();
-		}
-
-		public void setFuture(PluginExecutionResult resultToBe) {
-			throw new NotImplementedException();
-
-		}
-
-		public void setPluginDescriptor(PluginDescriptor descriptor, int methodIndex) throws FieldSetException,
-				RecursiveCallException {
-			throw new NotImplementedException();
-
-		}
-
-		public boolean hasPluginDescriptorInPath(PluginDescriptor descriptor, int methodIndex) {
-			throw new NotImplementedException();
-		}
-
-		public void log(String message, MessageLevel level) {
-			System.out.println(message);
-		}
-
-		public void log(String message) {
-			System.out.println(message);
-		}
-
-		public void log(Throwable exception) {
-			exception.printStackTrace();
-		}
-
-		public org.processmining.framework.plugin.events.Logger.ListenerList getLoggingListeners() {
-			throw new NotImplementedException();
-		}
-
-		public PluginContext getRootContext() {
-			throw new NotImplementedException();
-		}
-
-		public boolean deleteChild(PluginContext child) {
-			throw new NotImplementedException();
-		}
-
-		public <T extends Connection> T addConnection(T c) {
-			throw new NotImplementedException();
-		}
-
-		public void clear() {
-			throw new NotImplementedException();
-
-		}
-
 	}
 
 }

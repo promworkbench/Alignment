@@ -96,6 +96,7 @@ public class SyncProductFactory {
 	private final List<short[]> t2output;
 	private final TShortList t2eid;
 	private final TByteList t2type;
+	private final Transition[] t2transition;
 
 	private final int classCount;
 	private final TObjectShortMap<XEventClass> c2id;
@@ -131,6 +132,7 @@ public class SyncProductFactory {
 		t2name = new StringList(transitions * 2);
 		t2input = new ArrayList<>(transitions * 2);
 		t2output = new ArrayList<>(transitions * 2);
+		t2transition = new Transition[transitions];
 
 		places = net.getPlaces().size();
 		p2name = new StringList(places * 2);
@@ -143,6 +145,7 @@ public class SyncProductFactory {
 		while (it.hasNext()) {
 			Transition t = it.next();
 			t2id.put(t, (short) t2name.size());
+			t2transition[t2name.size()] = t;
 
 			// update mapping from event class to transitions
 			XEventClass clazz = map.get(t);
@@ -302,5 +305,13 @@ public class SyncProductFactory {
 		t2type.remove(transitions, t2type.size() - transitions);
 
 		return product;
+	}
+
+	public XEventClass getClassOf(XTrace trace, short event) {
+		return classes.getClassOf(trace.get(event));
+	}
+
+	public Transition getTransition(short t) {
+		return t2transition[t];
 	}
 }
