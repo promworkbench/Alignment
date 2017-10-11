@@ -9,11 +9,12 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 
 import nl.tue.alignment.ReplayAlgorithm;
+import nl.tue.alignment.ReplayAlgorithm.Debug;
 import nl.tue.alignment.SyncProduct;
 import nl.tue.alignment.SyncProductFactory;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
-import nl.tue.alignment.algorithms.AStar;
+import nl.tue.alignment.algorithms.AStarLargeLP;
 import nl.tue.astar.AStarException;
 import nl.tue.astar.AStarThread.ASynchronousMoveSorting;
 import nl.tue.astar.AStarThread.QueueingModel;
@@ -187,9 +188,10 @@ public class AlignmentTest {
 				//				System.out.println("Trace: " + t + " / " + log.size());
 				//				System.out.println("Transitions: " + product.numTransitions());
 				//				System.out.println("Places: " + product.numPlaces());
-				//				ReplayAlgorithm algorithm = new AStarLargeLP(product);
-				ReplayAlgorithm algorithm = new AStar(product);
-				//					AStarWithMarkingSplit algorithm = new AStarWithMarkingSplit(product, //
+
+				ReplayAlgorithm algorithm = new AStarLargeLP(product, false, false, Debug.NONE);
+				//				ReplayAlgorithm algorithm = new AStar(product);
+
 				//							true, // moveSort on total order
 				//							false, // use Integers
 				//							Debug.NORMAL // debug mode
@@ -243,9 +245,10 @@ public class AlignmentTest {
 					//					System.out.println("Trace: " + t + " / " + log.size());
 					//					System.out.println("Transitions: " + product.numTransitions());
 					//					System.out.println("Places: " + product.numPlaces());
-					//					ReplayAlgorithm algorithm = new AStarLargeLP(product);
-					ReplayAlgorithm algorithm = new AStar(product);
-					//					AStarWithMarkingSplit algorithm = new AStarWithMarkingSplit(product, //
+
+					ReplayAlgorithm algorithm = new AStarLargeLP(product, false, false, Debug.NONE);
+					//					ReplayAlgorithm algorithm = new AStar(product);
+
 					//							true, // moveSort on total order
 					//							false, // use Integers
 					//							Debug.NORMAL // debug mode

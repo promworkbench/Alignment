@@ -45,7 +45,6 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	protected TIntObjectMap<byte[]> lpSolutions = new TIntObjectHashMap<>(16);
 	protected long lpSolutionsSize = 4;
 
-	protected int bytesUsed;
 	protected long solveTime = 0;
 	protected int heuristicsComputedInRun = 0;;
 
@@ -62,14 +61,16 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	private int modelMoves;
 
 	private SyncProduct product;
+	private boolean useInteger;
 
 	public AStarLargeLP(SyncProduct product) {
-		this(product, Debug.NONE);
+		this(product, false, false, Debug.NONE);
 	}
 
-	public AStarLargeLP(SyncProduct product, Debug debug) {
-		super(product, false, true, true, false, debug);
+	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug) {
+		super(product, moveSorting, true, true, false, debug);
 		this.product = product;
+		this.useInteger = useInteger;
 
 		trans2LSMove.put(SyncProduct.NOEVENT, new TShortArrayList(10));
 		numEvents = -1;
@@ -102,6 +103,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	private short[] lastSplitpoints;
 
 	private int rows;
+	private int coefficients;
 
 	private void init() throws LPMatrixException {
 		lpSolutions.clear();
@@ -115,7 +117,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			if (solver != null) {
 				solver.deleteAndRemoveLp();
 			}
-
+			coefficients = 0;
 			solver = LpSolve.makeLp(rows, 0);
 			solver.setAddRowmode(false);
 
@@ -137,21 +139,26 @@ public class AStarLargeLP extends ReplayAlgorithm {
 						for (int i = 0; i < input.length; i++) {
 							for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
 								col[p] -= 1;
+								coefficients++;
 							}
 						}
 						output = product.getOutput(t);
 						for (int i = 0; i < output.length; i++) {
 							for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
 								col[p] += 1;
+								coefficients++;
 							}
 						}
 						solver.addColumn(col);
 						indexMap[c] = t;
 						c++;
-						solver.setUpbo(c, 0);
+						solver.setLowbo(c, 0);
+						coefficients++;
 						solver.setUpbo(c, 255);
-						solver.setInt(c, false);
+						coefficients++;
+						solver.setInt(c, useInteger);
 						solver.setObj(c, product.getCost(t));
+						coefficients++;
 					} // for all modelMoves
 				} // if modelMoves
 
@@ -166,21 +173,26 @@ public class AStarLargeLP extends ReplayAlgorithm {
 							for (int i = 0; i < input.length; i++) {
 								for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
 									col[p] -= 1;
+									coefficients++;
 								}
 							}
 							output = product.getOutput(t);
 							for (int i = 0; i < output.length; i++) {
 								for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
 									col[p] += 1;
+									coefficients++;
 								}
 							}
 							solver.addColumn(col);
 							indexMap[c] = t;
 							c++;
-							solver.setUpbo(c, 0);
+							solver.setLowbo(c, 0);
+							coefficients++;
 							solver.setUpbo(c, 1);
-							solver.setInt(c, false);
+							coefficients++;
+							solver.setInt(c, useInteger);
 							solver.setObj(c, product.getCost(t));
+							coefficients++;
 						} // for all sync/log moves
 					} // if sync/logMoves
 				}
@@ -191,11 +203,13 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			for (r = 1; r <= rows - product.numPlaces(); r++) {
 				solver.setConstrType(r, LpSolve.GE);
 				solver.setRh(r, -product.getInitialMarking()[(r - 1) % product.numPlaces()]);
+				coefficients++;
 			}
 			for (; r <= rows; r++) {
 				solver.setConstrType(r, LpSolve.EQ);
 				solver.setRh(r, product.getFinalMarking()[(r - 1) % product.numPlaces()]
 						- product.getInitialMarking()[(r - 1) % product.numPlaces()]);
+				coefficients++;
 			}
 			solver.setMinim();
 			solver.setVerbose(0);
@@ -254,8 +268,14 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		// the current shortest path explains the events up to and including event, but cannot continue
 		// serializing a previous LP solution at this stage. Hence, around 'marking' should be a 
 		// split marking and therefore event+1 needs to be added to the splitpoints.
-		int insert = Arrays.binarySearch(splitpoints, ++event);
-		if (marking == 0 || insert >= 0 || event == SyncProduct.NOEVENT) {
+		int insert;
+		do {
+			// find the insertion point
+			insert = Arrays.binarySearch(splitpoints, ++event);
+			// if event already a splitpoint, add the first larger event.
+		} while (insert >= 0);
+
+		if (marking == 0 || event > numEvents || event == SyncProduct.NOEVENT) {
 			// No event was explained yet, or the last explained event is already a splitpoint.
 			// There's little we can do but continue with the replayer.
 			//			debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
@@ -552,7 +572,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		// count space for all computed solutions
 		val += lpSolutionsSize;
 		// count size of matrix
-		val += bytesUsed;
+		// approximate memory for LpSolve
+		val += 8 * coefficients * 2;
 		// count size of solver
 
 		return val;

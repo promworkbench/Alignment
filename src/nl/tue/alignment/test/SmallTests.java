@@ -334,12 +334,13 @@ public class SmallTests {
 
 		ReplayAlgorithm algorithm;
 		//INITIALIZATION OF CLASSLOADER FOR PROPER RECORDING OF TIMES.
-		algorithm = new Dijkstra(net, true, true, Debug.NONE);
-		algorithm = new AStarLargeLP(net, Debug.NONE);
+		algorithm = new Dijkstra(net);
+		algorithm = new AStarLargeLP(net);
+		algorithm = new AStar(net);
 
 		boolean dijkstra = false;
 		boolean split = true;
-		boolean moveSort = true; // moveSort on total order
+		boolean moveSort = false; // moveSort on total order
 		boolean queueSort = true; // queue sorted "depth-first"
 		boolean preferExact = true; // prefer Exact solution
 		boolean multiThread = false; // do multithreading
@@ -353,6 +354,8 @@ public class SmallTests {
 			);
 		} else if (split) {
 			algorithm = new AStarLargeLP(net, //
+					moveSort, // moveSort on total order
+					useInt, // use Integers
 					debug // debug mode
 			);
 
