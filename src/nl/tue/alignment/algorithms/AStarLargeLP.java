@@ -47,6 +47,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 	protected int bytesUsed;
 	protected long solveTime = 0;
+	protected int heuristicsComputedInRun = 0;;
 
 	//	protected int numRows;
 	//	protected int numCols;
@@ -98,6 +99,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	private short[] splitpoints;
+	private short[] lastSplitpoints;
 
 	private int rows;
 
@@ -222,7 +224,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			solver.deleteAndRemoveLp();
 			throw new LPMatrixException(e);
 		}
-
+		heuristicsComputedInRun = 0;
 		varsMainThread = new double[indexMap.length];
 		tempForSettingSolutionDouble = new double[net.numTransitions()];
 
@@ -235,13 +237,9 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	@Override
-	protected short[] runReplayAlgorithm(long startTime) {
-		try {
-			init();
-		} catch (LPMatrixException e) {
-			throw new RuntimeException(e);
-		}
-		return super.runReplayAlgorithm(startTime);
+	protected void initializeIteration() throws LPMatrixException {
+		init();
+		super.initializeIterationInternal();
 	}
 
 	protected double[] varsMainThread;
@@ -250,8 +248,6 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	@Override
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
 		// find an available solver and block until one is available.
-
-		//TODO: Handle case marking==0 separately from care marking>0
 
 		short event = marking == 0 ? SyncProduct.NOEVENT : getLastEventOf(marking);
 
@@ -265,10 +261,10 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			//			debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
 			int res = getExactHeuristic(solver, marking, markingArray, markingBlock, markingIndex, varsMainThread);
 			//			debug.writeDebugInfo(Debug.NORMAL, "End solve: " + (System.currentTimeMillis() - s) / 1000.0 + " ms.");
-
+			heuristicsComputedInRun++;
 			return res;
 		}
-
+		lastSplitpoints = splitpoints;
 		insert = -insert - 1;
 		splitpoints = Arrays.copyOf(splitpoints, splitpoints.length + 1);
 		System.arraycopy(splitpoints, insert, splitpoints, insert + 1, splitpoints.length - insert - 1);
@@ -571,29 +567,53 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	@Override
-	protected void writeEndOfAlignmentDot() {
+	protected void writeEndOfAlignmentDot(boolean done, int markingsReachedInRun, int closedActionsInRun) {
 		TObjectIntMap<Statistic> map = getStatistics();
-		for (int m = 0; m < markingsReached; m++) {
+		for (int m = 0; m < markingsReachedInRun; m++) {
 			if (!isClosed(m) && isDerivedLpSolution(m)) {
 				debug.writeMarkingReached(this, m, "color=blue");
 			} else {
 				debug.writeMarkingReached(this, m);
 			}
 		}
-		StringBuilder b = new StringBuilder();
-		b.append("info [shape=plaintext,label=<");
-		for (Statistic s : Statistic.values()) {
-			b.append(s);
-			b.append(": ");
-			b.append(map.get(s));
-			b.append("<br/>");
+		if (done) {
+			lastSplitpoints = splitpoints;
 		}
+		// close the subgraph
+		StringBuilder b = new StringBuilder();
+		b.append("info" + iteration + " [shape=plaintext,label=<");
+		b.append("Iteration: " + iteration);
+		b.append("<br/>");
+		b.append("Markings reached: " + markingsReachedInRun);
+		b.append("<br/>");
+		b.append("Markings closed: " + closedActionsInRun);
+		b.append("<br/>");
+		b.append("Heuristics computed: " + heuristicsComputedInRun);
+		b.append("<br/>");
 		b.append("Splitpoints: ");
-		b.append(Arrays.toString(splitpoints));
+		b.append(Arrays.toString(lastSplitpoints));
 		b.append(">];");
-
 		debug.writeDebugInfo(Debug.DOT, b.toString());
+		// close the subgraph
 		debug.writeDebugInfo(Debug.DOT, "}");
+		if (done) {
+			b = new StringBuilder();
+			b.append("subgraph cluster_info {");
+			b.append("label=<Global results>;");
+			b.append("info [shape=plaintext,label=<");
+			for (Statistic s : Statistic.values()) {
+				b.append(s);
+				b.append(": ");
+				b.append(map.get(s));
+				b.append("<br/>");
+			}
+			b.append(">];");
+			debug.writeDebugInfo(Debug.DOT, b.toString());
+			// close the subgraph
+			debug.writeDebugInfo(Debug.DOT, "}");
+			// close the graph
+			debug.writeDebugInfo(Debug.DOT, "}");
+		}
 	}
 
 	@Override
@@ -610,17 +630,12 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		}
 	}
 
-	boolean terminated = false;
-
 	@Override
-	protected void terminateRun() {
-		if (!terminated) {
-			try {
-				super.terminateRun();
-			} finally {
-				solver.deleteAndRemoveLp();
-			}
-			terminated = true;
+	protected void terminateRun(boolean done, int markingsReachedInRun, int closedActionsInRun) {
+		try {
+			super.terminateRun(done, markingsReachedInRun, closedActionsInRun);
+		} finally {
+			solver.deleteAndRemoveLp();
 		}
 	}
 

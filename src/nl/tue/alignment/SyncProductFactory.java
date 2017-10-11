@@ -1,8 +1,10 @@
 package nl.tue.alignment;
 
 import gnu.trove.iterator.TShortIterator;
+import gnu.trove.list.TByteList;
 import gnu.trove.list.TIntList;
 import gnu.trove.list.TShortList;
+import gnu.trove.list.array.TByteArrayList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.list.array.TShortArrayList;
 import gnu.trove.map.TObjectShortMap;
@@ -93,6 +95,7 @@ public class SyncProductFactory {
 	private final List<short[]> t2input;
 	private final List<short[]> t2output;
 	private final TShortList t2eid;
+	private final TByteList t2type;
 
 	private final int classCount;
 	private final TObjectShortMap<XEventClass> c2id;
@@ -124,6 +127,7 @@ public class SyncProductFactory {
 		t2mmCost = new TIntArrayList(transitions * 2);
 		t2smCost = new TIntArrayList(transitions * 2);
 		t2eid = new TShortArrayList(transitions * 2);
+		t2type = new TByteArrayList(transitions * 2);
 		t2name = new StringList(transitions * 2);
 		t2input = new ArrayList<>(transitions * 2);
 		t2output = new ArrayList<>(transitions * 2);
@@ -157,6 +161,7 @@ public class SyncProductFactory {
 			t2smCost.add(cost == null ? 0 : cost);
 			t2name.add(t.getLabel());
 			t2eid.add(SyncProduct.NOEVENT);
+			t2type.add(t.isInvisible() ? SyncProduct.TAU_MOVE : SyncProduct.MODEL_MOVE);
 
 			short[] input = new short[net.getInEdges(t).size()];
 			int i = 0;
@@ -222,6 +227,7 @@ public class SyncProductFactory {
 			t2name.add(clazz.toString());
 			t2mmCost.add(c2lmCost.get(cid));
 			t2eid.add(e);
+			t2type.add(SyncProduct.LOG_MOVE);
 
 			TShortSet set = c2t.get(cid);
 			if (set != null) {
@@ -232,6 +238,7 @@ public class SyncProductFactory {
 					t2name.add(t2name.get(t) + "," + clazz);
 					t2mmCost.add(t2smCost.get(t));
 					t2eid.add(e);
+					t2type.add(SyncProduct.SYNC_MOVE);
 				}
 			}
 		}
@@ -247,6 +254,7 @@ public class SyncProductFactory {
 				t2name.asArray(), //transition labels
 				p2name.asArray(), // place labels
 				t2eid.toArray(), //event numbers
+				t2type.toArray(), //types
 				t2mmCost.toArray());
 
 		short t = 0;
@@ -291,6 +299,7 @@ public class SyncProductFactory {
 		t2name.trunctate(transitions);
 		t2mmCost.remove(transitions, t2mmCost.size() - transitions);
 		t2eid.remove(transitions, t2eid.size() - transitions);
+		t2type.remove(transitions, t2type.size() - transitions);
 
 		return product;
 	}

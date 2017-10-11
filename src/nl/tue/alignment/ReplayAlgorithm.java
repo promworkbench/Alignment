@@ -69,12 +69,17 @@ import nl.tue.alignment.util.VisitedHashSet;
  */
 public abstract class ReplayAlgorithm {
 
+	protected enum CloseResult {
+		CLOSEDSUCCESSFUL, CLOSEDINFEASIBLE, FINALMARKINGFOUND, REQUEUED, RESTARTNEEDED;
+	}
+
 	public static enum Debug {
 		DOT {
 			@Override
 			public void writeMarkingReached(ReplayAlgorithm algorithm, int marking, String extra) {
 				int heur = algorithm.getHScore(marking);
 				StringBuilder b = new StringBuilder();
+				b.append("i" + algorithm.iteration);
 				b.append("m");
 				b.append(marking);
 				b.append(" [label=<");
@@ -107,9 +112,12 @@ public abstract class ReplayAlgorithm {
 			public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition, int toMarking,
 					String extra) {
 				StringBuilder b = new StringBuilder();
+				b.append("i" + algorithm.iteration);
 				b.append("m");
 				b.append(fromMarking);
-				b.append(" -> m");
+				b.append(" -> ");
+				b.append("i" + algorithm.iteration);
+				b.append("m");
 				b.append(toMarking);
 				b.append(" [");
 				b.append("label=<");
@@ -124,6 +132,16 @@ public abstract class ReplayAlgorithm {
 					b.append(",");
 					b.append(extra);
 				}
+				if (algorithm.net.getTypeOf(transition) == SyncProduct.SYNC_MOVE) {
+					b.append(",fontcolor=forestgreen");
+				} else if (algorithm.net.getTypeOf(transition) == SyncProduct.MODEL_MOVE) {
+					b.append(",fontcolor=darkorchid1");
+				} else if (algorithm.net.getTypeOf(transition) == SyncProduct.LOG_MOVE) {
+					b.append(",fontcolor=goldenrod2");
+				} else if (algorithm.net.getTypeOf(transition) == SyncProduct.TAU_MOVE) {
+					b.append(",fontcolor=honeydew4");
+				}
+
 				b.append("];");
 				System.out.println(b.toString());
 			}
@@ -264,6 +282,7 @@ public abstract class ReplayAlgorithm {
 	protected int alignmentResult;
 	protected int setupTime;
 	protected int runTime;
+	protected int iteration;
 
 	protected long startConstructor;
 	protected short numPlaces;
@@ -353,10 +372,11 @@ public abstract class ReplayAlgorithm {
 		heuristicsComputed = 0;
 		heuristicsEstimated = 0;
 		heuristicsDerived = 0;
+		iteration = -1;
 		return runReplayAlgorithm(System.nanoTime());
 	}
 
-	protected short[] runReplayAlgorithm(long startTime) {
+	protected short[] runReplayAlgorithm(long startTime) throws Exception {
 
 		//		short[] trans = new short[net.numTransitions()];
 		//		for (short t = net.numTransitions(); t-- > 0;) {
@@ -364,225 +384,261 @@ public abstract class ReplayAlgorithm {
 		//		}
 		//		Utils.shuffleArray(trans, new Random());
 
-		
 		debug.writeDebugInfo(Debug.DOT, "Digraph D {");
-		try {
-			block = -1;
-			indexInBlock = 0;
-			c_p = new int[0][];
-			e_g_h_pt = new long[0][];
-
-			this.visited = new VisitedHashSet(this, Utils.DEFAULTVISITEDSIZE);
-			if (queueSorting) {
-				if (preferExact) {
-					this.queue = new SortedHashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE,
-							true);
-				} else {
-					this.queue = new SortedHashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE,
-							false);
-				}
-			} else {
-				this.queue = new HashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE);
-			}
-
-			growArrays();
-
-			alignmentLength = 0;
-			alignmentCost = 0;
-			alignmentResult = 0;
-			runTime = 0;
-
-			// get the initial marking
-			byte[] initialMarking = net.getInitialMarking();
-			// add to the set of markings
-			int pos = addNewMarking(initialMarking);
-			markingsReached++;
-
-			int b = pos >>> blockBit;
-			int i = pos & blockMask;
-			// set predecessor to null
-			setPredecessor(b, i, NOPREDECESSOR);
-			setPredecessorTransition(b, i, (short) 0);
-			setGScore(b, i, 0);
-
-			int heuristic;
-			//			System.out.println("Main waiting for " + b + "," + i);
-			getLockForComputingEstimate(b, i);
-			//			System.out.println("Main locking " + b + "," + i);
-			try {
-				heuristic = getExactHeuristic(0, initialMarking, b, i);
-				setHScore(b, i, heuristic, true);
-			} finally {
-				releaseLockForComputingEstimate(b, i);
-				//				System.out.println("Main released " + b + "," + i);
-			}
-
-			queue.add(0);
-			queueActions++;
+		restartLoop: do {
 			int markingsReachedInRun = 1;
 			int closedActionsInRun = 0;
-			assert queue.size() == markingsReachedInRun - closedActionsInRun;
-
-			byte[] marking_m = new byte[numPlaces];
-
-			while (!queue.isEmpty()) {
+			boolean completed = false;
+			try {
+				initializeIteration();
+				debug.writeDebugInfo(Debug.DOT, "subgraph cluster_" + iteration);
+				debug.writeDebugInfo(Debug.DOT, "{");
+				debug.writeDebugInfo(Debug.DOT, "label=<Iteration " + iteration + ">;");
+				debug.writeDebugInfo(Debug.DOT, "color=black;");
 
 				assert queue.size() == markingsReachedInRun - closedActionsInRun;
 
-				int m = queue.peek();
-				int bm = m >>> blockBit;
-				int im = m & blockMask;
+				byte[] marking_m = new byte[numPlaces];
 
-				//				System.out.println("Main waiting for " + bm + "," + im);
-				getLockForComputingEstimate(bm, im);
-				//				System.out.println("Main locking " + bm + "," + im);
+				queueLoop: while (!queue.isEmpty()) {
+
+					assert queue.size() == markingsReachedInRun - closedActionsInRun;
+
+					int m = queue.peek();
+					int bm = m >>> blockBit;
+					int im = m & blockMask;
+
+					switch (closeOrUpdateMarking(m, marking_m, bm, im)) {
+						case FINALMARKINGFOUND :
+							completed = true;
+							return handleFinalMarkingReached(startTime, m);
+						case CLOSEDINFEASIBLE :
+						case REQUEUED :
+							continue queueLoop;
+						case RESTARTNEEDED :
+							continue restartLoop;
+							//							return runReplayAlgorithm(startTime);
+						case CLOSEDSUCCESSFUL :
+							closedActionsInRun++;
+					}
+					markingsReachedInRun += expandMarking(m, marking_m, bm, im);
+				} // end While
+				alignmentResult &= ~Utils.OPTIMALALIGNMENT;
+				alignmentResult |= Utils.FAILEDALIGNMENT;
+				runTime = (int) ((System.nanoTime() - startTime) / 1000);
+				completed = true;
+				return null;
+			} finally {
+				terminateRun(completed, markingsReachedInRun, closedActionsInRun);
+			}
+		} while ((alignmentResult & Utils.OPTIMALALIGNMENT) == 0 && //
+				(alignmentResult & Utils.FAILEDALIGNMENT) == 0);
+		return null;
+	}
+
+	protected int expandMarking(int m, byte[] marking_m, int bm, int im) {
+		int markingsReachedInExpand = 0;
+		// iterate over all transitions
+		for (short t = 0; t < net.numTransitions(); t++) {
+			//				for (short t = net.numTransitions(); t-- > 0;) {
+			//				for (short t : trans) {
+
+			// check for enabling
+			if (isEnabled(marking_m, t, bm, im)) {
+				edgesTraversed++;
+
+				// t is allowed to fire.
+				byte[] marking_n = fire(marking_m, t, bm, im);
+
+				// check if n already reached before
+				int newIndex = block * blockSize + indexInBlock;
+				int n = visited.add(marking_n, newIndex);
+				// adding the marking to the algorithm is handled by the VisitedSet.
+
+				int bn = n >>> blockBit;
+				int in = n & blockMask;
+				getLockForComputingEstimate(bn, in);
+
 				try {
-					if (m != queue.peek()) {
-						// a parallel thread may have demoted m because the heuristic
-						// changed from estimated to exact.
-						continue;
+					if (n == newIndex) {
+						markingsReached++;
+						markingsReachedInExpand++;
 					}
 
-					//					if (debug == Debug.NORMAL && pollActions % 10000 == 0) {
-					//						writeStatus();
-					//					}
-					m = queue.poll();
-					pollActions++;
+					//					System.out.println("   Fire " + t + ": " + Utils.print(getMarking(n), net.numPlaces()));
 
-					if (isFinal(m)) {
-						return handleFinalMarkingReached(startTime, m);
-					}
+					if (!isClosed(bn, in)) {
 
-					fillMarking(marking_m, bm, im);
-					if (!hasExactHeuristic(bm, im)) {
+						// n is a fresh marking, not in the closed set
+						// compute the F score on this path
+						int tmpG = getGScore(bm, im) + net.getCost(t);
 
-						// compute the exact heuristic
-						heuristic = getExactHeuristic(m, marking_m, bm, im);
-						if (heuristic == RESTART) {
-							
-							return runReplayAlgorithm(startTime);
-						} else if (heuristic == HEURISTICINFINITE) {
-							// marking from which final marking is unreachable
-							// ignore state and continue
+						if (tmpG < getGScore(bn, in)) {
+							debug.writeEdgeTraversed(this, m, t, n);
 
-							// set the score to exact score
-							setHScore(bm, im, heuristic, true);
-							setClosed(bm, im);
-							closedActions++;
-							continue;
-						} else if (heuristic > getHScore(bm, im)) {
-							// if the heuristic is higher push the head of the queue down
-							// set the score to exact score
-							setHScore(bm, im, heuristic, true);
-							addToQueue(m);
+							// found a shorter path to n.
+							setGScore(bn, in, tmpG);
 
-							continue;
+							// set predecessor
+							setPredecessor(bn, in, m);
+							setPredecessorTransition(bn, in, t);
+
+							if (!hasExactHeuristic(bn, in)) {
+								// estimate is not exact, so derive a new estimate (note that h cannot decrease here)
+								deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
+							}
+
+							// update position of n in the queue
+							addToQueue(n);
+
+						} else if (!hasExactHeuristic(bn, in)) {
+							//tmpG >= getGScore(n), i.e. we reached state n through a longer path.
+
+							// G shore might not be an improvement, but see if we can derive the 
+							// H score. 
+							deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
+
+							if (hasExactHeuristic(bn, in)) {
+								debug.writeEdgeTraversed(this, m, t, n, "color=blue");
+								// marking is now exact and was not before. 
+								assert queue.contains(n);
+								addToQueue(n);
+							}
 						} else {
-							// continue with this marking
-							// set the score to exact score
-							setHScore(bm, im, heuristic, true);
+							debug.writeEdgeTraversed(this, m, t, n, "color=purple");
 						}
+					} else {
+						debug.writeEdgeTraversed(this, m, t, n, "color=gray");
 					}
-					// add m to the closed set
+				} finally {
+					releaseLockForComputingEstimate(bn, in);
+				} // end Try processing n
+			} // end If enabled
+		} // end for transitions
+		processedMarking(m, bm, im);
+		return markingsReachedInExpand;
+	}
+
+	protected CloseResult closeOrUpdateMarking(int m, byte[] marking_m, int bm, int im) {
+		//				System.out.println("Main waiting for " + bm + "," + im);
+		int heuristic;
+		getLockForComputingEstimate(bm, im);
+		//				System.out.println("Main locking " + bm + "," + im);
+		try {
+			if (m != queue.peek()) {
+				// a parallel thread may have demoted m because the heuristic
+				// changed from estimated to exact.
+				return CloseResult.REQUEUED;
+			}
+
+			//					if (debug == Debug.NORMAL && pollActions % 10000 == 0) {
+			//						writeStatus();
+			//					}
+			m = queue.poll();
+			pollActions++;
+
+			if (isFinal(m)) {
+				return CloseResult.FINALMARKINGFOUND;
+			}
+
+			fillMarking(marking_m, bm, im);
+			if (!hasExactHeuristic(bm, im)) {
+
+				// compute the exact heuristic
+				heuristic = getExactHeuristic(m, marking_m, bm, im);
+				if (heuristic == RESTART) {
+					return CloseResult.RESTARTNEEDED;
+				} else if (heuristic == HEURISTICINFINITE) {
+					// marking from which final marking is unreachable
+					// ignore state and continue
+
+					// set the score to exact score
+					setHScore(bm, im, heuristic, true);
 					setClosed(bm, im);
 					closedActions++;
-					closedActionsInRun++;
-				} finally {
-					// release the lock after potentially closing the marking
-					releaseLockForComputingEstimate(bm, im);
-					//					System.out.println("Main released " + bm + "," + im);
+					return CloseResult.CLOSEDINFEASIBLE;
+				} else if (heuristic > getHScore(bm, im)) {
+					// if the heuristic is higher push the head of the queue down
+					// set the score to exact score
+					setHScore(bm, im, heuristic, true);
+					addToQueue(m);
+
+					return CloseResult.REQUEUED;
+				} else {
+					// continue with this marking
+					// set the score to exact score
+					setHScore(bm, im, heuristic, true);
 				}
-
-				//			System.out.println("m" + m + " [" + Utils.print(getMarking(m), net.numPlaces()) + "];");
-
-				// iterate over all transitions
-				for (short t = 0; t < net.numTransitions(); t++) {
-					//				for (short t = net.numTransitions(); t-- > 0;) {
-					//				for (short t : trans) {
-
-					// check for enabling
-					if (isEnabled(marking_m, t, bm, im)) {
-						edgesTraversed++;
-
-						// t is allowed to fire.
-						byte[] marking_n = fire(marking_m, t, bm, im);
-
-						// check if n already reached before
-						int newIndex = block * blockSize + indexInBlock;
-						int n = visited.add(marking_n, newIndex);
-						// adding the marking to the algorithm is handled by the VisitedSet.
-
-						int bn = n >>> blockBit;
-						int in = n & blockMask;
-						getLockForComputingEstimate(bn, in);
-
-						try {
-							if (n == newIndex) {
-								markingsReached++;
-								markingsReachedInRun++;
-							}
-
-							//					System.out.println("   Fire " + t + ": " + Utils.print(getMarking(n), net.numPlaces()));
-
-							if (!isClosed(bn, in)) {
-
-								// n is a fresh marking, not in the closed set
-								// compute the F score on this path
-								int tmpG = getGScore(bm, im) + net.getCost(t);
-
-								if (tmpG < getGScore(bn, in)) {
-									debug.writeEdgeTraversed(this, m, t, n);
-
-									// found a shorter path to n.
-									setGScore(bn, in, tmpG);
-
-									// set predecessor
-									setPredecessor(bn, in, m);
-									setPredecessorTransition(bn, in, t);
-
-									if (!hasExactHeuristic(bn, in)) {
-										// estimate is not exact, so derive a new estimate (note that h cannot decrease here)
-										deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
-									}
-
-									// update position of n in the queue
-									addToQueue(n);
-
-								} else if (!hasExactHeuristic(bn, in)) {
-									//tmpG >= getGScore(n), i.e. we reached state n through a longer path.
-
-									// G shore might not be an improvement, but see if we can derive the 
-									// H score. 
-									deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
-
-									if (hasExactHeuristic(bn, in)) {
-										debug.writeEdgeTraversed(this, m, t, n, "color=blue");
-										// marking is now exact and was not before. 
-										assert queue.contains(n);
-										addToQueue(n);
-									}
-								} else {
-									debug.writeEdgeTraversed(this, m, t, n, "color=purple");
-								}
-							} else {
-								debug.writeEdgeTraversed(this, m, t, n, "color=gray");
-							}
-						} finally {
-							releaseLockForComputingEstimate(bn, in);
-						} // end Try processing n
-					} // end If enabled
-				} // end for transitions
-				processedMarking(m, bm, im);
-			} // end While
-			alignmentResult &= ~Utils.OPTIMALALIGNMENT;
-			alignmentResult |= Utils.FAILEDALIGNMENT;
-			runTime = (int) ((System.nanoTime() - startTime) / 1000);
-			return null;
+			}
+			// add m to the closed set
+			setClosed(bm, im);
+			closedActions++;
+			return CloseResult.CLOSEDSUCCESSFUL;
 		} finally {
-			terminateRun();
-
+			// release the lock after potentially closing the marking
+			releaseLockForComputingEstimate(bm, im);
+			//					System.out.println("Main released " + bm + "," + im);
 		}
 
+	}
+
+	protected void initializeIteration() throws Exception {
+		initializeIterationInternal();
+	}
+
+	protected void initializeIterationInternal() {
+		iteration++;
+
+		block = -1;
+		indexInBlock = 0;
+		c_p = new int[0][];
+		e_g_h_pt = new long[0][];
+
+		this.visited = new VisitedHashSet(this, Utils.DEFAULTVISITEDSIZE);
+		if (queueSorting) {
+			if (preferExact) {
+				this.queue = new SortedHashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE, true);
+			} else {
+				this.queue = new SortedHashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE, false);
+			}
+		} else {
+			this.queue = new HashBackedPriorityQueue(this, Utils.DEFAULTQUEUESIZE, Integer.MAX_VALUE);
+		}
+
+		growArrays();
+
+		alignmentLength = 0;
+		alignmentCost = 0;
+		alignmentResult = 0;
+		runTime = 0;
+
+		// get the initial marking
+		byte[] initialMarking = net.getInitialMarking();
+		// add to the set of markings
+		int pos = addNewMarking(initialMarking);
+		markingsReached++;
+
+		int b = pos >>> blockBit;
+		int i = pos & blockMask;
+		// set predecessor to null
+		setPredecessor(b, i, NOPREDECESSOR);
+		setPredecessorTransition(b, i, (short) 0);
+		setGScore(b, i, 0);
+
+		int heuristic;
+		//			System.out.println("Main waiting for " + b + "," + i);
+		getLockForComputingEstimate(b, i);
+		//			System.out.println("Main locking " + b + "," + i);
+		try {
+			heuristic = getExactHeuristic(0, initialMarking, b, i);
+			setHScore(b, i, heuristic, true);
+		} finally {
+			releaseLockForComputingEstimate(b, i);
+			//				System.out.println("Main released " + b + "," + i);
+		}
+
+		queue.add(0);
+		queueActions++;
 	}
 
 	protected void addToQueue(int marking) {
@@ -625,38 +681,45 @@ public abstract class ReplayAlgorithm {
 		return alignment;
 	}
 
-	protected void writeEndOfAlignmentNormal() {
+	protected void writeEndOfAlignmentNormal(boolean done, int markingsReachedInRun, int closedActionsInRun) {
 		TObjectIntMap<Statistic> map = getStatistics();
 		for (Statistic s : Statistic.values()) {
 			debug.writeDebugInfo(Debug.NORMAL, s + ": " + map.get(s));
 		}
 	}
 
-	protected void writeEndOfAlignmentDot() {
+	protected void writeEndOfAlignmentDot(boolean done, int markingsReachedInRun, int closedActionsInRun) {
+		// close the graph
 		TObjectIntMap<Statistic> map = getStatistics();
-		for (int m = 0; m < markingsReached; m++) {
+		for (int m = 0; m < markingsReachedInRun; m++) {
 			debug.writeMarkingReached(this, m);
 		}
-		StringBuilder b = new StringBuilder();
-		b.append("info [shape=plaintext,label=<");
-		for (Statistic s : Statistic.values()) {
-			b.append(s);
-			b.append(": ");
-			b.append(map.get(s));
-			b.append("<br/>");
-		}
-		b.append(">];");
-
-		debug.writeDebugInfo(Debug.DOT, b.toString());
+		// close the subgraph
 		debug.writeDebugInfo(Debug.DOT, "}");
+
+		if (done) {
+			// close the graph
+			StringBuilder b = new StringBuilder();
+			b.append("info [shape=plaintext,label=<");
+			for (Statistic s : Statistic.values()) {
+				b.append(s);
+				b.append(": ");
+				b.append(map.get(s));
+				b.append("<br/>");
+			}
+			b.append(">];");
+
+			debug.writeDebugInfo(Debug.DOT, b.toString());
+			debug.writeDebugInfo(Debug.DOT, "}");
+		}
 	}
 
-	protected void terminateRun() {
+	protected void terminateRun(boolean done, int markingsReachedInRun, int closedActionsInRun) {
 		if (debug == Debug.DOT) {
-			writeEndOfAlignmentDot();
+			writeEndOfAlignmentDot(done, markingsReachedInRun, closedActionsInRun);
 		}
 		if (debug == Debug.NORMAL) {
-			writeEndOfAlignmentNormal();
+			writeEndOfAlignmentNormal(done, markingsReachedInRun, closedActionsInRun);
 		}
 	}
 

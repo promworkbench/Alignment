@@ -13,13 +13,17 @@ import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.AStar;
 import nl.tue.alignment.algorithms.AStarLargeLP;
-import nl.tue.alignment.algorithms.AStarWithMarkingSplit;
 import nl.tue.alignment.algorithms.Dijkstra;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
 public class SmallTests {
 
 	private static char SEP = '\t';
+
+	public static byte LM = SyncProduct.LOG_MOVE;
+	public static byte MM = SyncProduct.MODEL_MOVE;
+	public static byte SM = SyncProduct.SYNC_MOVE;
+	public static byte TM = SyncProduct.TAU_MOVE;
 
 	public static class SyncProductExampleBook extends SyncProductImpl {
 
@@ -31,6 +35,8 @@ public class SmallTests {
 							"p13", "p14", "p15", "p16", "p17", "p18" }, //
 					new short[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4,
 							5, 6 }, //
+					new byte[] { MM, MM, MM, MM, MM, MM, TM, MM, MM, MM, MM, MM, SM, SM, SM, SM, SM, SM, SM, LM, LM,
+							LM, LM, LM, LM, LM }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1 }//
 			);
 			setInput(0, 0);
@@ -113,6 +119,7 @@ public class SmallTests {
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
 							"p13", "p14" }, //
 					new short[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 0, 1 }, //
+					new byte[] { MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, SM, SM, LM, LM }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1 }//
 			);
 			setInput(0, 0);
@@ -168,50 +175,14 @@ public class SmallTests {
 		}
 	}
 
-	public static class SmallNastySyncProductExample extends SyncProductImpl {
-
-		public SmallNastySyncProductExample() {
-			super("Small Nasty Example", new String[] { "A", "D1", "C1", "B", "C2", "D2", "C3", "D3" }, //
-					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", }, //
-					new short[] { -1, -1, -1, 0, 1, 2, 1, 2 }, //
-					new int[] { 1, 1, 1, 1, 1, 1, 0, 0 }//
-			);
-			setInput(0, 0);
-			setOutput(0, 1);
-
-			setInput(1, 1);
-			setOutput(1, 2);
-
-			setInput(2, 2);
-			setOutput(2, 3);
-
-			setInput(3, 4);
-			setOutput(3, 5);
-
-			setInput(4, 5);
-			setOutput(4, 6);
-
-			setInput(5, 6);
-			setOutput(5, 7);
-
-			setInput(6, 2, 5);
-			setOutput(6, 3, 6);
-
-			setInput(7, 1, 6);
-			setOutput(7, 2, 7);
-
-			setInitialMarking(0, 4);
-			setFinalMarking(3, 7);
-		}
-	}
-
 	public static class TwoSwapsExample extends SyncProductImpl {
 
 		public TwoSwapsExample() {
-			super("Small Nasty Example", new String[] { "A,-", "D,-", "C,-", "-,B", "-,C", "-,D", "C,C", "D,D", "F,-",
+			super("Two Swaps Example", new String[] { "A,-", "D,-", "C,-", "-,B", "-,C", "-,D", "C,C", "D,D", "F,-",
 					"E,-", "-,E", "-,F", "E,E", "F,F" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11" }, //
 					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4 }, //
+					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0 }//
 			);
 			setInput(0, 0);
@@ -371,7 +342,7 @@ public class SmallTests {
 		boolean moveSort = true; // moveSort on total order
 		boolean queueSort = true; // queue sorted "depth-first"
 		boolean preferExact = true; // prefer Exact solution
-		boolean multiThread = false;
+		boolean multiThread = false; // do multithreading
 		boolean useInt = false; //  use Integer
 
 		if (dijkstra) {
@@ -381,17 +352,17 @@ public class SmallTests {
 					debug //
 			);
 		} else if (split) {
-
-			algorithm = new AStarWithMarkingSplit(net, //
-					moveSort, // moveSort on total order
-					//					queueSort, // queue sorted "depth-first"
-					//					preferExact, // prefer Exact solution
-					useInt, // use Integers
-					//					multiThread, // multithreading
+			algorithm = new AStarLargeLP(net, //
 					debug // debug mode
 			);
+
 		} else {
-			algorithm = new AStarLargeLP(net, //
+			algorithm = new AStar(net, //
+					moveSort, // moveSort on total order
+					queueSort, // queue sorted "depth-first"
+					preferExact, // prefer Exact solution
+					useInt, // use Integers
+					multiThread, // multithreading
 					debug // debug mode
 			);
 		}

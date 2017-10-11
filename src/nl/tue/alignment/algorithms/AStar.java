@@ -186,7 +186,8 @@ public class AStar extends ReplayAlgorithm {
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
 
-	private void init() throws LPMatrixException {
+	@Override
+	protected void initializeIteration() throws LPMatrixException {
 		int monitorThreads;
 		try {
 			solver = matrix.toSolver();
@@ -210,7 +211,7 @@ public class AStar extends ReplayAlgorithm {
 		//		numCols = net.numTransitions() + 1;
 		varsMainThread = new double[net.numTransitions()];
 		tempForSettingSolution = new int[net.numTransitions()];
-
+		super.initializeIterationInternal();
 	}
 
 	@Override
@@ -219,13 +220,6 @@ public class AStar extends ReplayAlgorithm {
 		if (doMultiThreading) {
 			threadpool.submit(new BlockMonitor(block, net.numTransitions()));
 		}
-	}
-
-	@Override
-	public short[] run() throws LPMatrixException {
-		long start = System.nanoTime();
-		init();
-		return super.runReplayAlgorithm(start);
 	}
 
 	protected double[] varsMainThread;
@@ -507,10 +501,10 @@ public class AStar extends ReplayAlgorithm {
 	}
 
 	@Override
-	protected void writeEndOfAlignmentDot() {
+	protected void writeEndOfAlignmentDot(boolean done, int markingsReachedInRun, int closedActionsInRun) {
 		TObjectIntMap<Statistic> map = getStatistics();
 		for (int m = 0; m < markingsReached; m++) {
-			if (isDerivedLpSolution(m)) {
+			if (!isClosed(m) && isDerivedLpSolution(m)) {
 				debug.writeMarkingReached(this, m, "color=blue");
 			} else {
 				debug.writeMarkingReached(this, m);
@@ -528,20 +522,26 @@ public class AStar extends ReplayAlgorithm {
 
 		debug.writeDebugInfo(Debug.DOT, b.toString());
 		debug.writeDebugInfo(Debug.DOT, "}");
+		debug.writeDebugInfo(Debug.DOT, "}");
 	}
 
 	@Override
 	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {
 		super.processedMarking(marking, blockMarking, indexInBlock);
 		synchronized (this) {
+			if (isDerivedLpSolution(marking)) {
+				debug.writeMarkingReached(this, marking, "color=blue");
+			} else {
+				debug.writeMarkingReached(this, marking);
+			}
 			lpSolutionsSize -= 12 + 4 + lpSolutions.remove(marking).length; // object size
 			lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer
 		}
 	}
 
-	protected void terminateRun() {
+	protected void terminateRun(boolean done, int markingsReachedInRun, int closedActionsInRun) {
 		try {
-			super.terminateRun();
+			super.terminateRun(done, markingsReachedInRun, closedActionsInRun);
 		} finally {
 			if (doMultiThreading && !threadpool.isShutdown()) {
 				threadpool.shutdown();

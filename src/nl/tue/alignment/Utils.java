@@ -115,4 +115,26 @@ public class Utils {
 			ar[i] = a;
 		}
 	}
+
+	private static int getCostForType(SyncProduct product, short[] alignment, byte type1, byte type2) {
+		int cost = 0;
+		for (int i = 0; i < alignment.length; i++) {
+			if (product.getTypeOf(alignment[i]) == type1 || product.getTypeOf(alignment[i]) == type2) {
+				cost += product.getCost(alignment[i]);
+			}
+		}
+		return cost;
+	}
+
+	public static int logMoveCost(SyncProduct product, short[] alignment) {
+		return getCostForType(product, alignment, SyncProduct.LOG_MOVE, SyncProduct.LOG_MOVE);
+	}
+
+	public static int modelMoveCost(SyncProduct product, short[] alignment) {
+		return getCostForType(product, alignment, SyncProduct.MODEL_MOVE, SyncProduct.TAU_MOVE);
+	}
+
+	public static int syncMoveCost(SyncProduct product, short[] alignment) {
+		return getCostForType(product, alignment, SyncProduct.SYNC_MOVE, SyncProduct.SYNC_MOVE);
+	}
 }

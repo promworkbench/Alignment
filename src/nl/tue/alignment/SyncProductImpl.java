@@ -26,6 +26,8 @@ public class SyncProductImpl implements SyncProduct {
 
 	protected final String label;
 
+	private final byte[] types;
+
 	public SyncProductImpl(String label, short numTrans, short numPlaces) {
 		if (numTrans > MAXTRANS) {
 			throw new RuntimeException("More than " + MAXTRANS + " transitions in a synchronous product is not allowed");
@@ -33,6 +35,7 @@ public class SyncProductImpl implements SyncProduct {
 		this.label = label;
 		this.transitions = new String[numTrans];
 		this.cost = new int[numTrans];
+		this.types = new byte[numTrans];
 
 		this.places = new String[numTrans];
 
@@ -46,11 +49,13 @@ public class SyncProductImpl implements SyncProduct {
 
 	}
 
-	public SyncProductImpl(String label, String[] transitions, String[] places, short[] eventNumbers, int[] cost) {
+	public SyncProductImpl(String label, String[] transitions, String[] places, short[] eventNumbers, byte[] types,
+			int[] cost) {
 		this.eventNumbers = eventNumbers;
 		this.label = label;
 		this.transitions = transitions;
 		this.places = places;
+		this.types = types;
 		this.cost = cost;
 
 		input = new short[numTransitions()][];
@@ -234,6 +239,10 @@ public class SyncProductImpl implements SyncProduct {
 
 	public void setEventOf(short transition, short event) {
 		eventNumbers[transition] = event;
+	}
+
+	public byte getTypeOf(short transition) {
+		return types[transition];
 	}
 
 }

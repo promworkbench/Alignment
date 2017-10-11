@@ -2,6 +2,11 @@ package nl.tue.alignment;
 
 public interface SyncProduct {
 
+	public static byte LOG_MOVE = 1;
+	public static byte MODEL_MOVE = 2;
+	public static byte SYNC_MOVE = 3;
+	public static byte TAU_MOVE = 4;
+
 	public static final int MAXTRANS = 0b0011111111;
 	public static final short NOEVENT = -1;
 
@@ -96,11 +101,20 @@ public interface SyncProduct {
 	/**
 	 * returns the event number associated with this transitions. Events are
 	 * assumed numbered 0..n and for model-move transitions, this method returns
-	 * -1
+	 * NOEVENT (getTypeOf should then return MODEL_MOVE or TAU_MOVE)
 	 * 
 	 * @param transition
 	 * @return
 	 */
 	public short getEventOf(short transition);
+
+	/**
+	 * returns the type of the transion as a byte equal to one of the constants
+	 * defined in this class: LOG_MOVE, SYNC_MOVE, MODEL_MOVE, TAU_MOVE
+	 * 
+	 * @param transition
+	 * @return
+	 */
+	public byte getTypeOf(short transition);
 
 }

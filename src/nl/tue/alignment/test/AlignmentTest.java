@@ -11,6 +11,7 @@ import java.util.concurrent.Executor;
 import nl.tue.alignment.ReplayAlgorithm.Debug;
 import nl.tue.alignment.SyncProduct;
 import nl.tue.alignment.SyncProductFactory;
+import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.AStarLargeLP;
 import nl.tue.astar.AStarException;
@@ -98,7 +99,7 @@ public class AlignmentTest {
 		Map<XEventClass, Integer> costMOT = null; // movements on trace
 		TransEvClassMapping mapping = null;
 
-		String name = "prGm6";
+		String name = "prAm6";
 		net = constructNet("d:/temp/alignment/" + name + "/" + name + ".pnml");
 		initialMarking = getInitialMarking(net);
 		finalMarkings = getFinalMarkings(net);
@@ -171,6 +172,12 @@ public class AlignmentTest {
 			System.out.print("A:time(us)");
 			System.out.print(",");
 			System.out.print("A:splits");
+			System.out.print(",");
+			System.out.print("A:LMCost");
+			System.out.print(",");
+			System.out.print("A:MMCost");
+			System.out.print(",");
+			System.out.print("A:SMCost");
 			System.out.println();
 
 			int t = 0;
@@ -187,7 +194,7 @@ public class AlignmentTest {
 				//							false, // use Integers
 				//							Debug.NORMAL // debug mode
 				//					);
-				algorithm.run();
+				short[] alignment = algorithm.run();
 				TObjectIntMap<Statistic> stats = algorithm.getStatistics();
 				splits = Math.max(splits, stats.get(Statistic.SPLITS));
 				cost += stats.get(Statistic.COST);
@@ -210,6 +217,12 @@ public class AlignmentTest {
 				System.out.print(stats.get(Statistic.TOTALTIME));
 				System.out.print(",");
 				System.out.print(stats.get(Statistic.SPLITS));
+				System.out.print(",");
+				System.out.print(Utils.logMoveCost(product, alignment));
+				System.out.print(",");
+				System.out.print(Utils.modelMoveCost(product, alignment));
+				System.out.print(",");
+				System.out.print(Utils.syncMoveCost(product, alignment));
 				System.out.println();
 
 			}
@@ -237,7 +250,7 @@ public class AlignmentTest {
 					//							false, // use Integers
 					//							Debug.NORMAL // debug mode
 					//					);
-					algorithm.run();
+					short[] alignment = algorithm.run();
 					TObjectIntMap<Statistic> stats = algorithm.getStatistics();
 					splits = Math.max(splits, stats.get(Statistic.SPLITS));
 					cost += stats.get(Statistic.COST);
@@ -260,6 +273,12 @@ public class AlignmentTest {
 					System.out.print(stats.get(Statistic.TOTALTIME));
 					System.out.print(",");
 					System.out.print(stats.get(Statistic.SPLITS));
+					System.out.print(",");
+					System.out.print(Utils.logMoveCost(product, alignment));
+					System.out.print(",");
+					System.out.print(Utils.modelMoveCost(product, alignment));
+					System.out.print(",");
+					System.out.print(Utils.syncMoveCost(product, alignment));
 					System.out.println();
 
 				}
