@@ -338,7 +338,7 @@ public class SmallTests {
 		algorithm = new AStarLargeLP(net, Debug.NONE);
 
 		boolean dijkstra = false;
-		boolean split = false;
+		boolean split = true;
 		boolean moveSort = true; // moveSort on total order
 		boolean queueSort = true; // queue sorted "depth-first"
 		boolean preferExact = true; // prefer Exact solution

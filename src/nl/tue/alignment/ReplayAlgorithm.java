@@ -127,7 +127,7 @@ public abstract class ReplayAlgorithm {
 				b.append(algorithm.net.getTransitionLabel(transition));
 				b.append("<br/>");
 				b.append(algorithm.net.getCost(transition));
-				b.append(">");
+				b.append(">,color=gray");
 				if (!extra.isEmpty()) {
 					b.append(",");
 					b.append(extra);
@@ -499,16 +499,16 @@ public abstract class ReplayAlgorithm {
 							deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
 
 							if (hasExactHeuristic(bn, in)) {
-								debug.writeEdgeTraversed(this, m, t, n, "color=blue");
+								debug.writeEdgeTraversed(this, m, t, n, "style=dashed");
 								// marking is now exact and was not before. 
 								assert queue.contains(n);
 								addToQueue(n);
 							}
 						} else {
-							debug.writeEdgeTraversed(this, m, t, n, "color=purple");
+							debug.writeEdgeTraversed(this, m, t, n, "style=dashed");
 						}
 					} else {
-						debug.writeEdgeTraversed(this, m, t, n, "color=gray");
+						debug.writeEdgeTraversed(this, m, t, n, "style=dashed");
 					}
 				} finally {
 					releaseLockForComputingEstimate(bn, in);
@@ -658,7 +658,7 @@ public abstract class ReplayAlgorithm {
 		while (n != NOPREDECESSOR) {
 			t = getPredecessorTransition(m2);
 
-			debug.writeEdgeTraversed(this, n, t, m2, "color=red,fontcolor=red");
+			debug.writeEdgeTraversed(this, n, t, m2, "color=red");
 			alignmentLength++;
 			alignmentCost += net.getCost(t);
 			m2 = n;
