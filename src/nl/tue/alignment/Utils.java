@@ -400,6 +400,8 @@ public class Utils {
 			XLog log, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping)
 			throws LPMatrixException {
 
+		//TODO: Detect previously computed cases as duplicates when the traces are equal as sequences of classifiers.
+
 		XEventClassifier eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
 		XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
 		XEventClasses classes = summary.getEventClasses();
