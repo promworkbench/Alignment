@@ -235,11 +235,12 @@ public class SmallTests {
 	}
 
 	public static void main(String[] args) throws LPMatrixException, IOException {
-		SyncProduct net = new TwoSwapsExample();
+		short[] alignment;
+		SyncProduct net = new SyncProductExampleBook();
 		//		testSingleGraph(new SyncProductExampleBook(), Debug.DOT);
 
-		testSingleGraph(net, Debug.DOT);
-		Utils.toDot(net, new OutputStreamWriter(System.out));
+		alignment = testSingleGraph(net, Debug.DOT);
+		Utils.toDot(net, alignment, new OutputStreamWriter(System.out));
 		//		testSingleGraph(new NastySyncProductExample(), Debug.DOT);
 	}
 
@@ -334,7 +335,7 @@ public class SmallTests {
 		}
 	}
 
-	public static int testSingleGraph(SyncProduct net, Debug debug) throws LPMatrixException {
+	public static short[] testSingleGraph(SyncProduct net, Debug debug) throws LPMatrixException {
 
 		ReplayAlgorithm algorithm;
 		//INITIALIZATION OF CLASSLOADER FOR PROPER RECORDING OF TIMES.
@@ -375,11 +376,11 @@ public class SmallTests {
 		}
 
 		try {
-			short[] alignment = algorithm.run();
+			return algorithm.run();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return algorithm.getStatistics().get(Utils.Statistic.COST);
+		return null;
 		//		for (short t : alignment) {
 		//			System.out.println(net.getTransitionLabel(t));
 		//		}

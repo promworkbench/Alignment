@@ -1,6 +1,8 @@
 package nl.tue.alignment;
 
 import gnu.trove.iterator.TShortIterator;
+import gnu.trove.list.TIntList;
+import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.set.TShortSet;
 import gnu.trove.set.hash.TShortHashSet;
 
@@ -177,16 +179,7 @@ public class Utils {
 		stream.write("Digraph P { \n rankdir=LR;\n");
 
 		for (short p = 0; p < product.numPlaces(); p++) {
-			stream.write("p" + p);
-			stream.write(" [label=<" + product.getPlaceLabel(p));
-			if (product.getInitialMarking()[p] > 0) {
-				stream.write("<br/>i:" + product.getInitialMarking()[p]);
-			}
-			if (product.getFinalMarking()[p] > 0) {
-				stream.write("<br/>f:" + product.getFinalMarking()[p]);
-			}
-			stream.write(">,shape=circle];");
-			stream.write("\n");
+			placeToDot(product, stream, p, p);
 		}
 		stream.write("{ rank=same;");
 		for (short p = 0; p < product.numPlaces(); p++) {
@@ -206,22 +199,8 @@ public class Utils {
 		TShortSet events = new TShortHashSet(product.numTransitions(), 0.5f, (short) -2);
 		for (short t = 0; t < product.numTransitions(); t++) {
 			events.add(product.getEventOf(t));
-			stream.write("t" + t);
-			stream.write(" [label=<" + product.getTransitionLabel(t));
-			stream.write("<br/>" + product.getCost(t));
-			stream.write(">");
+			transitionToDot(product, stream, t, t);
 
-			if (product.getTypeOf(t) == SyncProduct.LOG_MOVE) {
-				stream.write(",style=filled,fillcolor=goldenrod2,fontColor=black");
-			} else if (product.getTypeOf(t) == SyncProduct.MODEL_MOVE) {
-				stream.write(",style=filled,fillcolor=darkorchid1,fontColor=black");
-			} else if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
-				stream.write(",style=filled,fillcolor=forestgreen,fontColor=black");
-			} else if (product.getTypeOf(t) == SyncProduct.TAU_MOVE) {
-				stream.write(",style=filled,fillcolor=honeydew4,fontColor=white");
-			}
-
-			stream.write(",shape=box];");
 			stream.write("\n");
 			for (short p : product.getInput(t)) {
 				stream.write("p" + p + " -> t" + t);
@@ -261,5 +240,85 @@ public class Utils {
 		stream.write("}");
 		stream.flush();
 
+	}
+
+	public static void toDot(SyncProduct product, short[] alignment, OutputStreamWriter stream) throws IOException {
+		stream.write("Digraph A { \n rankdir=LR;\n");
+
+		TIntList[] place2index = new TIntList[product.numPlaces()];
+		for (short p = 0; p < product.numPlaces(); p++) {
+			place2index[p] = new TIntArrayList(3);
+			if (product.getInitialMarking()[p] > 0) {
+				place2index[p].add(0);
+			}
+		}
+
+		for (int i = 0; i < alignment.length; i++) {
+			short t = alignment[i];
+			transitionToDot(product, stream, i, t);
+
+			for (short p : product.getInput(t)) {
+				int j = place2index[p].removeAt(place2index[p].size() - 1);
+				if (j == 0) {
+					placeToDot(product, stream, (j * product.numPlaces() + p), p);
+				}
+				stream.write("p" + (j * product.numPlaces() + p) + " -> t" + i);
+				if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
+					stream.write(" [weight=2]");
+				} else {
+					stream.write(" [weight=10]");
+				}
+				stream.write(";\n");
+			}
+			for (short p : product.getOutput(t)) {
+				place2index[p].add(i);
+				placeToDot(product, stream, i * product.numPlaces() + p, p);
+				stream.write("t" + i + " -> p" + (i * product.numPlaces() + p));
+				if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
+					stream.write(" [weight=2]");
+				} else {
+					stream.write(" [weight=10]");
+				}
+				stream.write(";\n");
+			}
+		}
+
+		stream.write("}");
+		stream.flush();
+
+	}
+
+	protected static void placeToDot(SyncProduct product, OutputStreamWriter stream, int i, short p) throws IOException {
+		stream.write("p" + i);
+		stream.write(" [label=<" + product.getPlaceLabel(p));
+		if (product.getInitialMarking()[p] > 0) {
+			stream.write("<br/>i:" + product.getInitialMarking()[p]);
+		}
+		if (product.getFinalMarking()[p] > 0) {
+			stream.write("<br/>f:" + product.getFinalMarking()[p]);
+		}
+		stream.write(">,shape=circle];");
+		stream.write("\n");
+	}
+
+	protected static void transitionToDot(SyncProduct product, OutputStreamWriter stream, int i, short t)
+			throws IOException {
+		stream.write("t" + i);
+		stream.write(" [label=<" + product.getTransitionLabel(t));
+		stream.write("<br/>" + product.getCost(t));
+		stream.write(">");
+
+		if (product.getTypeOf(t) == SyncProduct.LOG_MOVE) {
+			stream.write(",style=filled,fillcolor=goldenrod2,fontcolor=black");
+		} else if (product.getTypeOf(t) == SyncProduct.MODEL_MOVE) {
+			stream.write(",style=filled,fillcolor=darkorchid1,fontcolor=white");
+		} else if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
+			stream.write(",style=filled,fillcolor=forestgreen,fontcolor=white");
+		} else if (product.getTypeOf(t) == SyncProduct.TAU_MOVE) {
+			stream.write(",style=filled,fillcolor=honeydew4,fontcolor=white");
+		}
+
+		stream.write(",shape=box];");
+		stream.write("\n");
 	}
 }
