@@ -201,7 +201,6 @@ public class Utils {
 			events.add(product.getEventOf(t));
 			transitionToDot(product, stream, t, t);
 
-			stream.write("\n");
 			for (short p : product.getInput(t)) {
 				stream.write("p" + p + " -> t" + t);
 				if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {

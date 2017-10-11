@@ -235,10 +235,17 @@ public class SmallTests {
 	}
 
 	public static void main(String[] args) throws LPMatrixException, IOException {
+		// INITIALIZE LpSolve for stdout
+		try {
+			LpSolve.makeLp(1, 1).deleteAndRemoveLp();
+		} catch (Exception e) {
+		}
+
 		short[] alignment;
 		SyncProduct net = new SyncProductExampleBook();
 		//		testSingleGraph(new SyncProductExampleBook(), Debug.DOT);
 
+		Utils.toDot(net, new OutputStreamWriter(System.out));
 		alignment = testSingleGraph(net, Debug.DOT);
 		Utils.toDot(net, alignment, new OutputStreamWriter(System.out));
 		//		testSingleGraph(new NastySyncProductExample(), Debug.DOT);
