@@ -317,7 +317,7 @@ public abstract class ReplayAlgorithm {
 		map.put(Utils.Statistic.HEURISTICSESTIMATED, heuristicsEstimated);
 		map.put(Utils.Statistic.ALIGNMENTLENGTH, alignmentLength);
 		map.put(Utils.Statistic.COST, alignmentCost);
-		map.put(Utils.Statistic.RELIABLE, alignmentResult);
+		map.put(Utils.Statistic.EXITCODE, alignmentResult);
 		map.put(Utils.Statistic.RUNTIME, runTime);
 		map.put(Utils.Statistic.SETUPTIME, setupTime);
 		map.put(Utils.Statistic.TOTALTIME, setupTime + runTime);

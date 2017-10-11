@@ -30,7 +30,7 @@ public class Utils {
 	public static int DEFAULTVISITEDSIZE = 16;
 
 	public enum Statistic {
-		RELIABLE("Exit code for alignment"), //
+		EXITCODE("Exit code for alignment"), //
 		ALIGNMENTLENGTH("Length of the alignment found"), //
 		COST("Cost of the alignment"), //
 		EDGESTRAVERSED("Transitions fired"), //

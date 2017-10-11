@@ -98,14 +98,14 @@ public class AlignmentTest {
 		Map<XEventClass, Integer> costMOT = null; // movements on trace
 		TransEvClassMapping mapping = null;
 
-		String name = "prDm6";
-		net = constructNet("d:/temp/alignment/" + name + ".pnml");
+		String name = "prGm6";
+		net = constructNet("d:/temp/alignment/" + name + "/" + name + ".pnml");
 		initialMarking = getInitialMarking(net);
 		finalMarkings = getFinalMarkings(net);
 		//		log = XParserRegistry.instance().currentDefault().parse(new File("d:/temp/alignment/prAm6.mxml"))
 		//				.get(0);
 		XMxmlParser parser = new XMxmlParser();
-		log = parser.parse(new File("d:/temp/alignment/" + name + ".mxml")).get(0);
+		log = parser.parse(new File("d:/temp/alignment/" + name + "/" + name + ".mxml")).get(0);
 
 		//		log.retainAll(Arrays.asList(new XTrace[] { log.get(201) }));
 
@@ -154,15 +154,17 @@ public class AlignmentTest {
 			//					e.printStackTrace();
 			//				}
 
-			System.out.print("TraceNum");
+			System.out.print("T:Num");
 			System.out.print(",");
-			System.out.print("TraceName");
+			System.out.print("T:Name");
+			System.out.print(",");
+			System.out.print("T:Length");
 			System.out.print(",");
 			System.out.print("SP:trans");
 			System.out.print(",");
 			System.out.print("SP:places");
 			System.out.print(",");
-			System.out.print("A:reliable");
+			System.out.print("A:exitCode");
 			System.out.print(",");
 			System.out.print("A:cost");
 			System.out.print(",");
@@ -195,11 +197,13 @@ public class AlignmentTest {
 				System.out.print(",");
 				System.out.print("Empty");
 				System.out.print(",");
+				System.out.print("0");
+				System.out.print(",");
 				System.out.print(product.numTransitions());
 				System.out.print(",");
 				System.out.print(product.numPlaces());
 				System.out.print(",");
-				System.out.print(stats.get(Statistic.RELIABLE) == 1);
+				System.out.print(stats.get(Statistic.EXITCODE));
 				System.out.print(",");
 				System.out.print(stats.get(Statistic.COST));
 				System.out.print(",");
@@ -243,11 +247,13 @@ public class AlignmentTest {
 					System.out.print(",");
 					System.out.print(XConceptExtension.instance().extractName(trace));
 					System.out.print(",");
+					System.out.print(trace.size());
+					System.out.print(",");
 					System.out.print(product.numTransitions());
 					System.out.print(",");
 					System.out.print(product.numPlaces());
 					System.out.print(",");
-					System.out.print(stats.get(Statistic.RELIABLE) == 1);
+					System.out.print(stats.get(Statistic.EXITCODE));
 					System.out.print(",");
 					System.out.print(stats.get(Statistic.COST));
 					System.out.print(",");
