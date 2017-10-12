@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 import nl.tue.alignment.algorithms.datastructures.SyncProduct;
 import nl.tue.alignment.algorithms.datastructures.SyncProductFactory;
@@ -22,8 +21,6 @@ import org.processmining.plugins.petrinet.replayresult.StepTypes;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
 public class Utils {
-
-	public static final int BYTEHIGHBIT = 1 << 7;
 
 	public static int OPTIMALALIGNMENT = 1;
 	public static int FAILEDALIGNMENT = 2;
@@ -83,7 +80,6 @@ public class Utils {
 	public static String asVector(byte[] marking, SyncProduct net) {
 		StringBuffer buf = new StringBuffer();
 		buf.append('[');
-		int len = marking.length / 2;
 		for (short i = 0; i < net.numPlaces();) {
 			buf.append(marking[i]);
 			if (++i < net.numPlaces()) {
@@ -111,50 +107,6 @@ public class Utils {
 		}
 		buf.append(']');
 		return buf.toString();
-	}
-
-	// Implementing Fisher Yates shuffle
-	public static void shuffleArray(int[] ar, Random rnd) {
-		for (int i = ar.length - 1; i > 0; i--) {
-			int index = rnd.nextInt(i + 1);
-			// Simple swap
-			int a = ar[index];
-			ar[index] = ar[i];
-			ar[i] = a;
-		}
-	}
-
-	// Implementing Fisher Yates shuffle
-	public static void shuffleArray(short[] ar, Random rnd) {
-		for (int i = ar.length - 1; i > 0; i--) {
-			int index = rnd.nextInt(i + 1);
-			// Simple swap
-			short a = ar[index];
-			ar[index] = ar[i];
-			ar[i] = a;
-		}
-	}
-
-	private static int getCostForType(SyncProduct product, short[] alignment, byte type1, byte type2) {
-		int cost = 0;
-		for (int i = 0; i < alignment.length; i++) {
-			if (product.getTypeOf(alignment[i]) == type1 || product.getTypeOf(alignment[i]) == type2) {
-				cost += product.getCost(alignment[i]);
-			}
-		}
-		return cost;
-	}
-
-	public static int logMoveCost(SyncProduct product, short[] alignment) {
-		return getCostForType(product, alignment, SyncProduct.LOG_MOVE, SyncProduct.LOG_MOVE);
-	}
-
-	public static int modelMoveCost(SyncProduct product, short[] alignment) {
-		return getCostForType(product, alignment, SyncProduct.MODEL_MOVE, SyncProduct.TAU_MOVE);
-	}
-
-	public static int syncMoveCost(SyncProduct product, short[] alignment) {
-		return getCostForType(product, alignment, SyncProduct.SYNC_MOVE, SyncProduct.SYNC_MOVE);
 	}
 
 	public static void toTpn(SyncProduct product, OutputStreamWriter stream) throws IOException {

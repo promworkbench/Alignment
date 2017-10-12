@@ -198,11 +198,11 @@ public class AlignmentTest {
 				System.out.print(",");
 				System.out.print(stats.get(Statistic.SPLITS));
 				System.out.print(",");
-				System.out.print(Utils.logMoveCost(product, alignment));
+				System.out.print(logMoveCost(product, alignment));
 				System.out.print(",");
-				System.out.print(Utils.modelMoveCost(product, alignment));
+				System.out.print(modelMoveCost(product, alignment));
 				System.out.print(",");
-				System.out.print(Utils.syncMoveCost(product, alignment));
+				System.out.print(syncMoveCost(product, alignment));
 				System.out.println();
 
 			}
@@ -250,11 +250,11 @@ public class AlignmentTest {
 					System.out.print(",");
 					System.out.print(stats.get(Statistic.SPLITS));
 					System.out.print(",");
-					System.out.print(Utils.logMoveCost(product, alignment));
+					System.out.print(logMoveCost(product, alignment));
 					System.out.print(",");
-					System.out.print(Utils.modelMoveCost(product, alignment));
+					System.out.print(modelMoveCost(product, alignment));
 					System.out.print(",");
-					System.out.print(Utils.syncMoveCost(product, alignment));
+					System.out.print(syncMoveCost(product, alignment));
 					System.out.println();
 
 				}
@@ -407,6 +407,28 @@ public class AlignmentTest {
 		}
 
 		return mapping;
+	}
+
+	public static int logMoveCost(SyncProduct product, short[] alignment) {
+		return getCostForType(product, alignment, SyncProduct.LOG_MOVE, SyncProduct.LOG_MOVE);
+	}
+
+	public static int modelMoveCost(SyncProduct product, short[] alignment) {
+		return getCostForType(product, alignment, SyncProduct.MODEL_MOVE, SyncProduct.TAU_MOVE);
+	}
+
+	public static int syncMoveCost(SyncProduct product, short[] alignment) {
+		return getCostForType(product, alignment, SyncProduct.SYNC_MOVE, SyncProduct.SYNC_MOVE);
+	}
+
+	private static int getCostForType(SyncProduct product, short[] alignment, byte type1, byte type2) {
+		int cost = 0;
+		for (int i = 0; i < alignment.length; i++) {
+			if (product.getTypeOf(alignment[i]) == type1 || product.getTypeOf(alignment[i]) == type2) {
+				cost += product.getCost(alignment[i]);
+			}
+		}
+		return cost;
 	}
 
 }
