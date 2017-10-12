@@ -294,10 +294,9 @@ public class SmallTests {
 										Debug.NONE // debug mode
 								);
 								try {
-									short[] alignment = algorithm.run();
+									algorithm.run();
 								} catch (Exception e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
+
 								}
 								TObjectIntMap<Statistic> map = algorithm.getStatistics();
 								for (Statistic s : Statistic.values()) {
@@ -324,10 +323,9 @@ public class SmallTests {
 								Debug.NONE // debug mode
 						);
 						try {
-							short[] alignment = algorithm.run();
+							algorithm.run();
 						} catch (Exception e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+
 						}
 						TObjectIntMap<Statistic> map = algorithm.getStatistics();
 						for (Statistic s : Statistic.values()) {

@@ -594,6 +594,10 @@ public abstract class ReplayAlgorithm {
 
 	}
 
+	/**
+	 * @throws LPMatrixException
+	 *             in subclasses using (I)LP
+	 */
 	protected void initializeIteration() throws LPMatrixException {
 		initializeIterationInternal();
 	}
@@ -1350,9 +1354,6 @@ public abstract class ReplayAlgorithm {
 	public int hashCode(int marking) {
 		fillMarking(hashCodeMarking, marking);
 		return hashCode(hashCodeMarking);
-		//		int b = marking >>> blockBit;
-		//		int i = marking & blockMask;
-		//		return hashCodeInternal(markingLo[b], bm * i, bm, markingHi[b], bm * i, bm);
 	}
 
 	/**
@@ -1366,24 +1367,6 @@ public abstract class ReplayAlgorithm {
 	 */
 	public int hashCode(byte[] marking) {
 		return Arrays.hashCode(marking);
-		//		return hashCodeInternal(marking, 0, bm, marking, bm, bm);
-	}
-
-	/**
-	 * Helper method to hash markings.
-	 * 
-	 * @return
-	 */
-	private int hashCodeInternal(byte[] l1, int s1, int n1, byte[] l2, int s2, int n2) {
-		int result = 1;
-		for (int j = s1 + n1; j-- > s1;) {
-			result = 31 * result + l1[j];
-		}
-		for (int j = s2 + n2; j-- > s2;) {
-			result = 31 * result + l2[j];
-		}
-
-		return result;
 	}
 
 	public boolean isComputing(int i) {
