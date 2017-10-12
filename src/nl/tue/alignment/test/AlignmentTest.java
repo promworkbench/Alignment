@@ -11,8 +11,11 @@ import nl.tue.alignment.algorithms.ReplayAlgorithm;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 
 import org.deckfour.xes.classification.XEventClass;
+import org.deckfour.xes.classification.XEventClasses;
 import org.deckfour.xes.classification.XEventClassifier;
+import org.deckfour.xes.classification.XEventNameClassifier;
 import org.deckfour.xes.in.XMxmlParser;
+import org.deckfour.xes.in.XesXmlParser;
 import org.deckfour.xes.info.XLogInfo;
 import org.deckfour.xes.info.XLogInfoFactory;
 import org.deckfour.xes.info.impl.XLogInfoImpl;
@@ -44,25 +47,39 @@ public class AlignmentTest {
 
 	public static void main(String[] args) throws Exception {
 
-		String[] names = new String[] { "prAm6", "prBm6", "prCm6", "prDm6", "prEm6", "prFm6", "prGm6" };
+		String[] names = new String[] { "sepsis" };//, "prAm6", "prBm6", "prCm6", "prDm6", "prEm6", "prFm6", "prGm6" };
 		for (String name : names) {
 
 			PetrinetGraph net = constructNet("d:/temp/alignment/" + name + "/" + name + ".pnml");
 			Marking initialMarking = getInitialMarking(net);
 			Marking finalMarking = getFinalMarking(net);
-			XMxmlParser parser = new XMxmlParser();
-			XLog log = parser.parse(new File("d:/temp/alignment/" + name + "/" + name + ".mxml")).get(0);
+			XLog log;
+			XEventClassifier eventClassifier;
+
+			if (new File("d:/temp/alignment/" + name + "/" + name + ".mxml").exists()) {
+				XMxmlParser parser = new XMxmlParser();
+				eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
+				log = parser.parse(new File("d:/temp/alignment/" + name + "/" + name + ".mxml")).get(0);
+			} else {
+				XesXmlParser parser = new XesXmlParser();
+				eventClassifier = new XEventNameClassifier();
+				log = parser.parse(new File("d:/temp/alignment/" + name + "/" + name + ".xes")).get(0);
+			}
 			XEventClass dummyEvClass = new XEventClass("DUMMY", 99999);
-			XEventClassifier eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
 			TransEvClassMapping mapping = constructMapping(net, log, dummyEvClass, eventClassifier);
+			XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
+			XEventClasses classes = summary.getEventClasses();
 
 			System.out.println("Started: " + name);
 
 			PrintStream stream = new PrintStream(new File("d:/temp/alignment/" + name + "/" + name + ".csv"));
-			//		doTestOldAlignments(net, initialMarking, finalMarkings, log, costMOS, costMOT, mapping);
 			ReplayAlgorithm.Debug.setOutputStream(stream);
-			ReplayerParameters parameters = new ReplayerParameters.AStarWithMarkingSplit(true, false, Debug.STATS);
-			Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, log, mapping);
+
+			ReplayerParameters parameters = new ReplayerParameters.AStarWithMarkingSplit(false, false, Debug.STATS);
+			//			ReplayerParameters parameters = new ReplayerParameters.AStar(true, true, true, true, false, Debug.STATS);
+
+			Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, log, classes,
+					mapping);
 			PNRepResult result = replayer.computePNRepResult();
 
 			System.out.println(result.getInfo().toString());
@@ -98,7 +115,10 @@ public class AlignmentTest {
 		Map<org.jbpt.petri.Transition, Transition> t2t = new HashMap<org.jbpt.petri.Transition, Transition>();
 		for (org.jbpt.petri.Transition t : sys.getTransitions()) {
 			Transition tt = net.addTransition(t.getLabel());
-			tt.setInvisible(t.isSilent());
+			if (t.isSilent() || t.getLabel().startsWith("tau") || t.getLabel().equals("t2")
+					|| t.getLabel().equals("t8") || t.getLabel().equals("complete")) {
+				tt.setInvisible(true);
+			}
 			t2t.put(t, tt);
 		}
 

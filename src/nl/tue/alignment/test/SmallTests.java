@@ -177,6 +177,139 @@ public class SmallTests {
 		}
 	}
 
+	public static class LoopExample extends SyncProductImpl {
+
+		public LoopExample() {
+			super("Loop Example", new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-",
+					"-,E", "-,F", "E,E", "F,F", "G,-", "G,G", "-,X" }, //
+					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
+					new short[] { -1, -1, -1, 1, 2, 3, 2, 3, -1, -1, 4, 5, 4, 5, -1, 1, 0 }, //
+					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, MM, SM, LM }, //
+					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1 }//
+			);
+
+			setInput(0, 0);
+			setOutput(0, 1);
+
+			setInput(1, 1);
+			setOutput(1, 2);
+
+			setInput(2, 2);
+			setOutput(2, 3);
+
+			setInput(3, 12);
+			setOutput(3, 5);
+
+			setInput(16, 4);
+			setOutput(16, 12);
+
+			setInput(4, 5);
+			setOutput(4, 6);
+
+			setInput(5, 6);
+			setOutput(5, 7);
+
+			setInput(6, 2, 5);
+			setOutput(6, 3, 6);
+
+			setInput(7, 1, 6);
+			setOutput(7, 2, 7);
+
+			setInput(8, 3);
+			setOutput(8, 8);
+
+			setInput(9, 8);
+			setOutput(9, 9);
+
+			setInput(10, 7);
+			setOutput(10, 10);
+
+			setInput(11, 10);
+			setOutput(11, 11);
+
+			setInput(12, 8, 7);
+			setOutput(12, 9, 10);
+
+			setInput(13, 3, 10);
+			setOutput(13, 8, 11);
+
+			setInput(14, 8);
+			setOutput(14, 8);
+
+			setInput(15, 12, 8);
+			setOutput(15, 5, 8);
+
+			setInitialMarking(0, 4);
+			setFinalMarking(9, 11);
+		}
+	}
+
+	public static class LoopExample2 extends SyncProductImpl {
+
+		public LoopExample2() {
+			super("Loop Example 2", new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-",
+					"E,-", "-,E", "-,F", "E,E", "F,F", "G,-", "G,G", "tau" }, //
+					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
+					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4, -1, 0, -1 }, //
+					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, MM, SM, TM }, //
+					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0 }//
+			);
+			setInput(0, 0);
+			setOutput(0, 1);
+
+			setInput(1, 1);
+			setOutput(1, 2);
+
+			setInput(2, 2);
+			setOutput(2, 3);
+
+			setInput(3, 4);
+			setOutput(3, 5);
+
+			setInput(4, 5);
+			setOutput(4, 6);
+
+			setInput(5, 6);
+			setOutput(5, 7);
+
+			setInput(6, 2, 5);
+			setOutput(6, 3, 6);
+
+			setInput(7, 1, 6);
+			setOutput(7, 2, 7);
+
+			setInput(8, 3);
+			setOutput(8, 8);
+
+			setInput(9, 8);
+			setOutput(9, 9);
+
+			setInput(10, 7);
+			setOutput(10, 10);
+
+			setInput(11, 10);
+			setOutput(11, 11);
+
+			setInput(12, 8, 7);
+			setOutput(12, 9, 10);
+
+			setInput(13, 3, 10);
+			setOutput(13, 8, 11);
+
+			setInput(14, 8);
+			setOutput(14, 12);
+
+			setInput(16, 12);
+			setOutput(16, 8);
+
+			setInput(15, 4, 8);
+			setOutput(15, 5, 12);
+
+			setInitialMarking(0, 4);
+			setFinalMarking(9, 11);
+		}
+	}
+
 	public static class TwoSwapsExample extends SyncProductImpl {
 
 		public TwoSwapsExample() {
@@ -243,7 +376,7 @@ public class SmallTests {
 
 		short[] alignment;
 		//		SyncProduct net = new SyncProductExampleBook();
-		SyncProduct net = new TwoSwapsExample();
+		SyncProduct net = new LoopExample();
 
 		Utils.toDot(net, new OutputStreamWriter(System.out));
 		alignment = testSingleGraph(net, Debug.DOT);

@@ -108,7 +108,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		lpSolutions.clear();
 		lpSolutionsSize = 0;
 
-		rows = (splitpoints.length - 1) * product.numPlaces();
+		rows = (splitpoints.length) * product.numPlaces();
 
 		indexMap = new short[(splitpoints.length - 2) * modelMoves + product.numTransitions()];
 
@@ -177,9 +177,18 @@ public class AStarLargeLP extends ReplayAlgorithm {
 							}
 							output = product.getOutput(t);
 							for (int i = 0; i < output.length; i++) {
-								for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
-									col[p] += 1;
-									coefficients++;
+								//								if (splitpoints[s] - splitpoints[s - 1] > 1) {
+								if (e < splitpoints[s] - 1) {
+									for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
+										col[p] += 1;
+										coefficients++;
+									}
+								} else {
+									for (int p = start + product.numPlaces() + output[i]; p < col.length; p += product
+											.numPlaces()) {
+										col[p] += 1;
+										coefficients++;
+									}
 								}
 							}
 							solver.addColumn(col);

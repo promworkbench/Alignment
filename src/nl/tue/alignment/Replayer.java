@@ -3,6 +3,7 @@ package nl.tue.alignment;
 import gnu.trove.map.TObjectIntMap;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,10 +19,6 @@ import nl.tue.astar.util.ilp.LPMatrixException;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
-import org.deckfour.xes.classification.XEventClassifier;
-import org.deckfour.xes.info.XLogInfo;
-import org.deckfour.xes.info.XLogInfoFactory;
-import org.deckfour.xes.info.impl.XLogInfoImpl;
 import org.deckfour.xes.model.XEvent;
 import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.XTrace;
@@ -45,25 +42,29 @@ public class Replayer {
 	private final Map<XEventClass, Integer> costLM;
 	private final SyncProductFactory factory;
 	private final XEventClasses classes;
+	private Map<Transition, Integer> costMM;
 
-	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
+	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log, XEventClasses classes,
 			Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
-		this(new ReplayerParameters.Default(), net, initialMarking, finalMarking, log, null, costMOS, costMOT, null,
+		this(new ReplayerParameters.Default(), net, initialMarking, finalMarking, log, classes, costMOS, costMOT, null,
 				mapping);
 	}
 
-	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log, TransEvClassMapping mapping) {
-		this(new ReplayerParameters.Default(), net, initialMarking, finalMarking, log, null, null, null, null, mapping);
+	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log, XEventClasses classes,
+			TransEvClassMapping mapping) {
+		this(new ReplayerParameters.Default(), net, initialMarking, finalMarking, log, classes, null, null, null,
+				mapping);
 	}
 
 	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
-			XLog log, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
-		this(parameters, net, initialMarking, finalMarking, log, null, costMOS, costMOT, null, mapping);
+			XLog log, XEventClasses classes, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT,
+			TransEvClassMapping mapping) {
+		this(parameters, net, initialMarking, finalMarking, log, classes, costMOS, costMOT, null, mapping);
 	}
 
 	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
-			XLog log, TransEvClassMapping mapping) {
-		this(parameters, net, initialMarking, finalMarking, log, null, null, null, null, mapping);
+			XLog log, XEventClasses classes, TransEvClassMapping mapping) {
+		this(parameters, net, initialMarking, finalMarking, log, classes, null, null, null, mapping);
 	}
 
 	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
@@ -71,12 +72,30 @@ public class Replayer {
 			Map<Transition, Integer> costSM, TransEvClassMapping mapping) {
 		this.parameters = parameters;
 		this.log = log;
-		if (classes == null) {
-			XEventClassifier eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
-			XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
-			classes = summary.getEventClasses();
-		}
 		this.classes = classes;
+		if (costMM == null) {
+			costMM = new HashMap<>();
+			for (Transition t : net.getTransitions()) {
+				if (t.isInvisible()) {
+					costMM.put(t, 0);
+				} else {
+					costMM.put(t, 1);
+				}
+			}
+		}
+		if (costSM == null) {
+			costSM = new HashMap<>();
+			for (Transition t : net.getTransitions()) {
+				costSM.put(t, 0);
+			}
+		}
+		if (costLM == null) {
+			costLM = new HashMap<>();
+			for (XEventClass clazz : classes.getClasses()) {
+				costLM.put(clazz, 1);
+			}
+		}
+		this.costMM = costMM;
 		this.costLM = costLM;
 		factory = new SyncProductFactory(net, classes, mapping, costMM, costLM, costSM, initialMarking, finalMarking);
 	}
@@ -96,6 +115,8 @@ public class Replayer {
 			parameters.debug.print(Debug.STATS, ",A:LMcost");
 			parameters.debug.print(Debug.STATS, ",A:MMcost");
 			parameters.debug.print(Debug.STATS, ",A:SMcost");
+			parameters.debug.print(Debug.STATS, ",F:LMfit");
+			parameters.debug.print(Debug.STATS, ",F:MMfit");
 			parameters.debug.println(Debug.STATS);
 
 		}
@@ -167,7 +188,7 @@ public class Replayer {
 			short[] alignment, XTrace trace, int traceIndex, List<Transition> transitionList) {
 		List<Object> nodeInstance = new ArrayList<>(alignment.length);
 		List<StepTypes> stepTypes = new ArrayList<>(alignment.length);
-		int mm = 0, lm = 0, sm = 0;
+		int mm = 0, lm = 0, smm = 0, slm = 0;
 		for (int i = 0; i < alignment.length; i++) {
 			short t = alignment[i];
 			if (product.getTypeOf(t) == SyncProduct.LOG_MOVE) {
@@ -181,7 +202,8 @@ public class Replayer {
 					mm += product.getCost(t);
 				} else if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
 					stepTypes.add(StepTypes.LMGOOD);
-					sm += product.getCost(t);
+					smm += getCostMM(transitionList.get(t));
+					slm += getCostLM(classes.getClassOf(trace.get(product.getEventOf(t))));
 				} else if (product.getTypeOf(t) == SyncProduct.TAU_MOVE) {
 					stepTypes.add(StepTypes.MINVI);
 					mm += product.getCost(t);
@@ -193,21 +215,29 @@ public class Replayer {
 		srr.addInfo(PNRepResult.RAWFITNESSCOST, 1.0 * statistics.get(Statistic.COST));
 		srr.addInfo(PNRepResult.TIME, statistics.get(Statistic.TOTALTIME) / 1000.0);
 		srr.addInfo(PNRepResult.QUEUEDSTATE, 1.0 * statistics.get(Statistic.QUEUEACTIONS));
-		if (lm + sm == 0) {
+		if (lm + slm == 0) {
 			srr.addInfo(PNRepResult.MOVELOGFITNESS, 1.0);
 		} else {
-			srr.addInfo(PNRepResult.MOVELOGFITNESS, 1.0 - (1.0 * lm) / (lm + sm));
+			srr.addInfo(PNRepResult.MOVELOGFITNESS, 1.0 - (1.0 * lm) / (lm + slm));
 		}
-		if (mm + sm == 0) {
+		if (mm + smm == 0) {
 			srr.addInfo(PNRepResult.MOVEMODELFITNESS, 1.0);
 		} else {
-			srr.addInfo(PNRepResult.MOVEMODELFITNESS, 1.0 - (1.0 * mm) / (mm + sm));
+			srr.addInfo(PNRepResult.MOVEMODELFITNESS, 1.0 - (1.0 * mm) / (mm + smm));
 		}
 		srr.addInfo(PNRepResult.NUMSTATEGENERATED, 1.0 * statistics.get(Statistic.MARKINGSREACHED));
 		srr.addInfo(PNRepResult.ORIGTRACELENGTH, 1.0 * trace.size());
 
 		srr.setReliable(statistics.get(Statistic.EXITCODE) == Utils.OPTIMALALIGNMENT);
 		return srr;
+	}
+
+	private int getCostLM(XEventClass classOf) {
+		return costLM != null && costLM.containsKey(classOf) ? costLM.get(classOf) : 1;
+	}
+
+	private int getCostMM(Transition transition) {
+		return costMM != null && costMM.containsKey(transition) ? costMM.get(transition) : 1;
 	}
 
 }
