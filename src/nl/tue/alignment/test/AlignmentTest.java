@@ -1,6 +1,7 @@
 package nl.tue.alignment.test;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -8,8 +9,6 @@ import nl.tue.alignment.Replayer;
 import nl.tue.alignment.ReplayerParameters;
 import nl.tue.alignment.algorithms.ReplayAlgorithm;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
-import nl.tue.alignment.algorithms.datastructures.SyncProduct;
-import nl.tue.astar.util.ilp.LPMatrixException;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClassifier;
@@ -27,7 +26,6 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetFactory;
 import org.processmining.models.semantics.petrinet.Marking;
-import org.processmining.plugins.astar.petrinet.impl.AbstractPILPDelegate;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 
@@ -45,60 +43,33 @@ public class AlignmentTest {
 	}
 
 	public static void main(String[] args) throws Exception {
-		test(args);
-	}
 
-	public static void test(String[] args) throws Exception {
-		//		DummyUIPluginContext context = new DummyUIPluginContext(new DummyGlobalContext(), "label");
-		//		AbstractPILPDelegate.setDebugMode(new File("D:\\temp\\alignmentDebugTest\\"));
+		String[] names = new String[] { "prAm6", "prBm6", "prCm6", "prDm6", "prEm6", "prFm6", "prGm6" };
+		for (String name : names) {
 
-		AbstractPILPDelegate.setDebugMode(null);
+			PetrinetGraph net = constructNet("d:/temp/alignment/" + name + "/" + name + ".pnml");
+			Marking initialMarking = getInitialMarking(net);
+			Marking finalMarking = getFinalMarking(net);
+			XMxmlParser parser = new XMxmlParser();
+			XLog log = parser.parse(new File("d:/temp/alignment/" + name + "/" + name + ".mxml")).get(0);
+			XEventClass dummyEvClass = new XEventClass("DUMMY", 99999);
+			XEventClassifier eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
+			TransEvClassMapping mapping = constructMapping(net, log, dummyEvClass, eventClassifier);
 
-		PetrinetGraph net = null;
-		Marking initialMarking = null;
-		Marking finalMarking = null; // only one marking is used so far
-		XLog log = null;
-		Map<Transition, Integer> costMOS = null; // movements on system
-		Map<XEventClass, Integer> costMOT = null; // movements on trace
-		TransEvClassMapping mapping = null;
+			System.out.println("Started: " + name);
 
-		String name = "prAm6";
-		net = constructNet("d:/temp/alignment/" + name + "/" + name + ".pnml");
-		initialMarking = getInitialMarking(net);
-		finalMarking = getFinalMarking(net);
-		//		log = XParserRegistry.instance().currentDefault().parse(new File("d:/temp/alignment/prAm6.mxml"))
-		//				.get(0);
-		XMxmlParser parser = new XMxmlParser();
-		log = parser.parse(new File("d:/temp/alignment/" + name + "/" + name + ".mxml")).get(0);
-
-		//		log.retainAll(Arrays.asList(new XTrace[] { log.get(201) }));
-
-		//		log.add(XFactoryRegistry.instance().currentDefault().createTrace());
-
-		//			log = XParserRegistry.instance().currentDefault().parse(new File("d:/temp/BPI 730858110.xes.gz")).get(0);
-		//			log = XFactoryRegistry.instance().currentDefault().openLog();
-		XEventClass dummyEvClass = new XEventClass("DUMMY", 99999);
-		XEventClassifier eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
-		mapping = constructMapping(net, log, dummyEvClass, eventClassifier);
-
-		//		doTestOldAlignments(net, initialMarking, finalMarkings, log, costMOS, costMOT, mapping);
-		doTestNewAlignments((Petrinet) net, initialMarking, finalMarking, log, mapping);
-	}
-
-	protected static void doTestNewAlignments(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
-			TransEvClassMapping mapping) {
-
-		ReplayAlgorithm.Debug.setOutputStream(System.out);
-		ReplayerParameters parameters = new ReplayerParameters.AStarWithMarkingSplit(true, false, Debug.STATS);
-		Replayer replayer = new Replayer(parameters, net, initialMarking, finalMarking, log, mapping);
-		try {
+			PrintStream stream = new PrintStream(new File("d:/temp/alignment/" + name + "/" + name + ".csv"));
+			//		doTestOldAlignments(net, initialMarking, finalMarkings, log, costMOS, costMOT, mapping);
+			ReplayAlgorithm.Debug.setOutputStream(stream);
+			ReplayerParameters parameters = new ReplayerParameters.AStarWithMarkingSplit(true, false, Debug.STATS);
+			Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, log, mapping);
 			PNRepResult result = replayer.computePNRepResult();
-			System.out.println(result.toString());
-		} catch (LPMatrixException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
 
+			System.out.println(result.getInfo().toString());
+			System.out.println("Completed: " + name);
+
+			stream.close();
+		}
 	}
 
 	private static PetrinetGraph constructNet(String netFile) {
@@ -201,28 +172,6 @@ public class AlignmentTest {
 		}
 
 		return mapping;
-	}
-
-	public static int logMoveCost(SyncProduct product, short[] alignment) {
-		return getCostForType(product, alignment, SyncProduct.LOG_MOVE, SyncProduct.LOG_MOVE);
-	}
-
-	public static int modelMoveCost(SyncProduct product, short[] alignment) {
-		return getCostForType(product, alignment, SyncProduct.MODEL_MOVE, SyncProduct.TAU_MOVE);
-	}
-
-	public static int syncMoveCost(SyncProduct product, short[] alignment) {
-		return getCostForType(product, alignment, SyncProduct.SYNC_MOVE, SyncProduct.SYNC_MOVE);
-	}
-
-	private static int getCostForType(SyncProduct product, short[] alignment, byte type1, byte type2) {
-		int cost = 0;
-		for (int i = 0; i < alignment.length; i++) {
-			if (product.getTypeOf(alignment[i]) == type1 || product.getTypeOf(alignment[i]) == type2) {
-				cost += product.getCost(alignment[i]);
-			}
-		}
-		return cost;
 	}
 
 }
