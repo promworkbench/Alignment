@@ -91,6 +91,7 @@ public class SyncProductFactory {
 
 		public void trunctate(int size) {
 			this.size = size;
+			Arrays.fill(list, size, list.length, null);
 		}
 
 		public String get(int index) {
@@ -282,13 +283,14 @@ public class SyncProductFactory {
 
 	}
 
-	public SyncProduct getSyncProduct() {
+	public SyncProduct getSyncProductForEmptyTrace(List<Transition> transitionList) {
 		XTrace et = XFactoryRegistry.instance().currentDefault().createTrace();
 		XConceptExtension.instance().assignName(et, "Empty");
-		return getSyncProduct(et);
+		return getSyncProduct(et, transitionList);
 	}
 
-	public SyncProduct getSyncProduct(XTrace trace) {
+	public SyncProduct getSyncProduct(XTrace trace, List<Transition> transitionList) {
+		transitionList.clear();
 		// for this trace, compute the log-moves
 		// compute the sync moves
 		for (short e = 0; e < trace.size(); e++) {
@@ -323,7 +325,7 @@ public class SyncProductFactory {
 		if (traceLabel == null) {
 			traceLabel = "XTrace@" + Integer.toHexString(trace.hashCode());
 		}
-		SyncProductImpl product = new SyncProductImpl(label + " x " + traceLabel, //label
+		SyncProductImpl product = new SyncProductImpl(traceLabel, //label
 				t2name.asArray(), //transition labels
 				p2name.asArray(), // place labels
 				t2eid.toArray(), //event numbers
@@ -335,13 +337,16 @@ public class SyncProductFactory {
 			// first the model moves
 			product.setInput(t, t2input.get(t));
 			product.setOutput(t, t2output.get(t));
+			transitionList.add(t2transition[t]);
 		}
 
 		for (short e = 0; e < trace.size(); e++) {
+			// then the log moves
 			XEventClass clazz = classes.getClassOf(trace.get(e));
 			short cid = c2id.get(clazz);
 			product.setInput(t, places + e);
 			product.setOutput(t, places + e + 1);
+			transitionList.add(null);
 			t++;
 
 			TShortSet set = c2t.get(cid);
@@ -355,6 +360,8 @@ public class SyncProductFactory {
 
 					product.addToInput(t, (short) (places + e));
 					product.addToOutput(t, (short) (places + e + 1));
+
+					transitionList.add(t2transition[t2]);
 					t++;
 				}
 			}
@@ -377,11 +384,4 @@ public class SyncProductFactory {
 		return product;
 	}
 
-	public XEventClass getClassOf(XTrace trace, short event) {
-		return classes.getClassOf(trace.get(event));
-	}
-
-	public Transition getTransition(short t) {
-		return t2transition[t];
-	}
 }

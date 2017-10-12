@@ -3,22 +3,13 @@ package nl.tue.alignment;
 import gnu.trove.iterator.TShortIterator;
 import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.TObjectIntMap;
 import gnu.trove.set.TShortSet;
 import gnu.trove.set.hash.TShortHashSet;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.List;
 
 import nl.tue.alignment.algorithms.datastructures.SyncProduct;
-import nl.tue.alignment.algorithms.datastructures.SyncProductFactory;
-
-import org.deckfour.xes.model.XTrace;
-import org.processmining.plugins.petrinet.replayresult.PNRepResult;
-import org.processmining.plugins.petrinet.replayresult.StepTypes;
-import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
 public class Utils {
 
@@ -297,52 +288,5 @@ public class Utils {
 		stream.write("\n");
 	}
 
-	public static SyncReplayResult toSyncReplayResult(SyncProductFactory factory, TObjectIntMap<Statistic> statistics,
-			short[] alignment, XTrace trace, int traceIndex) {
-		List<Object> nodeInstance = new ArrayList<>(alignment.length);
-		List<StepTypes> stepTypes = new ArrayList<>(alignment.length);
-		SyncProduct product = factory.getSyncProduct();
-		int mm = 0, lm = 0, sm = 0;
-		for (int i = 0; i < alignment.length; i++) {
-			short t = alignment[i];
-			if (product.getTypeOf(t) == SyncProduct.LOG_MOVE) {
-				nodeInstance.add(factory.getClassOf(trace, product.getEventOf(t)));
-				stepTypes.add(StepTypes.L);
-				lm += product.getCost(t);
-			} else {
-				nodeInstance.add(factory.getTransition(t));
-				if (product.getTypeOf(t) == SyncProduct.MODEL_MOVE) {
-					stepTypes.add(StepTypes.MREAL);
-					mm += product.getCost(t);
-				} else if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
-					stepTypes.add(StepTypes.LMGOOD);
-					sm += product.getCost(t);
-				} else if (product.getTypeOf(t) == SyncProduct.TAU_MOVE) {
-					stepTypes.add(StepTypes.MINVI);
-					mm += product.getCost(t);
-				}
-			}
-		}
-
-		SyncReplayResult srr = new SyncReplayResult(nodeInstance, stepTypes, traceIndex);
-		srr.addInfo(PNRepResult.RAWFITNESSCOST, 1.0 * statistics.get(Statistic.COST));
-		srr.addInfo(PNRepResult.TIME, statistics.get(Statistic.TOTALTIME) / 1000.0);
-		srr.addInfo(PNRepResult.QUEUEDSTATE, 1.0 * statistics.get(Statistic.QUEUEACTIONS));
-		if (lm + sm == 0) {
-			srr.addInfo(PNRepResult.MOVELOGFITNESS, 1.0);
-		} else {
-			srr.addInfo(PNRepResult.MOVELOGFITNESS, 1.0 - (1.0 * lm) / (lm + sm));
-		}
-		if (mm + sm == 0) {
-			srr.addInfo(PNRepResult.MOVEMODELFITNESS, 1.0);
-		} else {
-			srr.addInfo(PNRepResult.MOVEMODELFITNESS, 1.0 - (1.0 * mm) / (mm + sm));
-		}
-		srr.addInfo(PNRepResult.NUMSTATEGENERATED, 1.0 * statistics.get(Statistic.MARKINGSREACHED));
-		srr.addInfo(PNRepResult.ORIGTRACELENGTH, 1.0 * trace.size());
-
-		srr.setReliable(statistics.get(Statistic.EXITCODE) == Utils.OPTIMALALIGNMENT);
-		return srr;
-	}
 
 }

@@ -500,7 +500,7 @@ public class AStar extends ReplayAlgorithm {
 	}
 
 	@Override
-	protected void writeEndOfAlignmentDot(boolean done, int markingsReachedInRun, int closedActionsInRun) {
+	protected void writeEndOfAlignmentDot(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		TObjectIntMap<Statistic> map = getStatistics();
 		for (int m = 0; m < markingsReached; m++) {
 			if (!isClosed(m)) {
@@ -523,9 +523,9 @@ public class AStar extends ReplayAlgorithm {
 		}
 		b.append(">];");
 
-		debug.writeDebugInfo(Debug.DOT, b.toString());
-		debug.writeDebugInfo(Debug.DOT, "}");
-		debug.writeDebugInfo(Debug.DOT, "}");
+		debug.println(Debug.DOT, b.toString());
+		debug.println(Debug.DOT, "}");
+		debug.println(Debug.DOT, "}");
 	}
 
 	@Override
@@ -542,9 +542,9 @@ public class AStar extends ReplayAlgorithm {
 		}
 	}
 
-	protected void terminateIteration(boolean done, int markingsReachedInRun, int closedActionsInRun) {
+	protected void terminateIteration(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		try {
-			super.terminateIteration(done, markingsReachedInRun, closedActionsInRun);
+			super.terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
 		} finally {
 			if (doMultiThreading && !threadpool.isShutdown()) {
 				threadpool.shutdown();

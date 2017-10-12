@@ -3,6 +3,7 @@ package nl.tue.alignment.algorithms;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 
+import java.io.PrintStream;
 import java.util.Arrays;
 
 import nl.tue.alignment.Utils;
@@ -77,6 +78,7 @@ public abstract class ReplayAlgorithm {
 	}
 
 	public static enum Debug {
+
 		DOT {
 			@Override
 			public void writeMarkingReached(ReplayAlgorithm algorithm, int marking, String extra) {
@@ -108,7 +110,7 @@ public abstract class ReplayAlgorithm {
 					b.append(extra);
 				}
 				b.append("];");
-				System.out.println(b.toString());
+				output.println(b.toString());
 			}
 
 			@Override
@@ -151,15 +153,14 @@ public abstract class ReplayAlgorithm {
 
 				b.append("];");
 
-				System.out.println(b.toString());
+				output.println(b.toString());
 			}
 		}, //
-		NORMAL {
-
-		}, //
-		NONE;
+		NORMAL, //
+		NONE, STATS;
 
 		private static String EMPTY = "";
+		private static PrintStream output = System.out;
 
 		public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition, int toMarking,
 				String extra) {
@@ -176,10 +177,26 @@ public abstract class ReplayAlgorithm {
 			this.writeMarkingReached(algorithm, marking, EMPTY);
 		}
 
-		public void writeDebugInfo(Debug db, String s) {
+		public void println(Debug db, String s) {
 			if (this == db) {
-				System.out.println(s);
+				output.println(s);
 			}
+		}
+
+		public void println(Debug db) {
+			if (this == db) {
+				output.println();
+			}
+		}
+
+		public void print(Debug db, String s) {
+			if (this == db) {
+				output.print(s);
+			}
+		}
+
+		public static void setOutputStream(PrintStream out) {
+			output = out;
 		}
 	}
 
@@ -381,6 +398,7 @@ public abstract class ReplayAlgorithm {
 		heuristicsEstimated = 0;
 		heuristicsDerived = 0;
 		iteration = -1;
+
 		return runReplayAlgorithm(System.nanoTime());
 	}
 
@@ -392,17 +410,17 @@ public abstract class ReplayAlgorithm {
 		//		}
 		//		Utils.shuffleArray(trans, new Random());
 
-		debug.writeDebugInfo(Debug.DOT, "Digraph D {");
+		debug.println(Debug.DOT, "Digraph D {");
 		restartLoop: do {
 			int markingsReachedInRun = 1;
 			int closedActionsInRun = 0;
-			boolean completed = false;
+			short[] alignment = null;
 			try {
 				initializeIteration();
-				debug.writeDebugInfo(Debug.DOT, "subgraph cluster_" + iteration);
-				debug.writeDebugInfo(Debug.DOT, "{");
-				debug.writeDebugInfo(Debug.DOT, "label=<Iteration " + iteration + ">;");
-				debug.writeDebugInfo(Debug.DOT, "color=black;");
+				debug.println(Debug.DOT, "subgraph cluster_" + iteration);
+				debug.println(Debug.DOT, "{");
+				debug.println(Debug.DOT, "label=<Iteration " + iteration + ">;");
+				debug.println(Debug.DOT, "color=black;");
 
 				assert queue.size() == markingsReachedInRun - closedActionsInRun;
 
@@ -418,8 +436,8 @@ public abstract class ReplayAlgorithm {
 
 					switch (closeOrUpdateMarking(m, marking_m, bm, im)) {
 						case FINALMARKINGFOUND :
-							completed = true;
-							return handleFinalMarkingReached(startTime, m);
+							alignment = handleFinalMarkingReached(startTime, m);
+							return alignment;
 						case CLOSEDINFEASIBLE :
 						case REQUEUED :
 							continue queueLoop;
@@ -434,10 +452,10 @@ public abstract class ReplayAlgorithm {
 				alignmentResult &= ~Utils.OPTIMALALIGNMENT;
 				alignmentResult |= Utils.FAILEDALIGNMENT;
 				runTime = (int) ((System.nanoTime() - startTime) / 1000);
-				completed = true;
-				return null;
+				alignment = new short[0];
+				return alignment;
 			} finally {
-				terminateIteration(completed, markingsReachedInRun, closedActionsInRun);
+				terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
 			}
 		} while ((alignmentResult & Utils.OPTIMALALIGNMENT) == 0 && //
 				(alignmentResult & Utils.FAILEDALIGNMENT) == 0);
@@ -697,23 +715,41 @@ public abstract class ReplayAlgorithm {
 		return alignment;
 	}
 
-	protected void writeEndOfAlignmentNormal(boolean done, int markingsReachedInRun, int closedActionsInRun) {
-		TObjectIntMap<Statistic> map = getStatistics();
-		for (Statistic s : Statistic.values()) {
-			debug.writeDebugInfo(Debug.NORMAL, s + ": " + map.get(s));
+	protected void writeEndOfAlignmentStats(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+		if (alignment != null) {
+			debug.print(Debug.STATS, net.getLabel());
+			debug.print(Debug.STATS, "," + net.numTransitions());
+			debug.print(Debug.STATS, "," + net.numPlaces());
+			TObjectIntMap<Statistic> map = getStatistics();
+			for (Statistic s : Statistic.values()) {
+				debug.print(Debug.STATS, "," + map.get(s));
+			}
+			debug.print(Debug.STATS, "," + alignment.length);
+			debug.print(Debug.STATS, "," + getCostForType(alignment, SyncProduct.LOG_MOVE, SyncProduct.LOG_MOVE));
+			debug.print(Debug.STATS, "," + getCostForType(alignment, SyncProduct.MODEL_MOVE, SyncProduct.TAU_MOVE));
+			debug.print(Debug.STATS, "," + getCostForType(alignment, SyncProduct.SYNC_MOVE, SyncProduct.SYNC_MOVE));
+			debug.println(Debug.STATS);
+
 		}
 	}
 
-	protected void writeEndOfAlignmentDot(boolean done, int markingsReachedInRun, int closedActionsInRun) {
+	protected void writeEndOfAlignmentNormal(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+		TObjectIntMap<Statistic> map = getStatistics();
+		for (Statistic s : Statistic.values()) {
+			debug.println(Debug.NORMAL, s + ": " + map.get(s));
+		}
+	}
+
+	protected void writeEndOfAlignmentDot(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		// close the graph
 		TObjectIntMap<Statistic> map = getStatistics();
 		for (int m = 0; m < markingsReachedInRun; m++) {
 			debug.writeMarkingReached(this, m);
 		}
 		// close the subgraph
-		debug.writeDebugInfo(Debug.DOT, "}");
+		debug.println(Debug.DOT, "}");
 
-		if (done) {
+		if (alignment != null) {
 			// close the graph
 			StringBuilder b = new StringBuilder();
 			b.append("info [shape=plaintext,label=<");
@@ -725,17 +761,20 @@ public abstract class ReplayAlgorithm {
 			}
 			b.append(">];");
 
-			debug.writeDebugInfo(Debug.DOT, b.toString());
-			debug.writeDebugInfo(Debug.DOT, "}");
+			debug.println(Debug.DOT, b.toString());
+			debug.println(Debug.DOT, "}");
 		}
 	}
 
-	protected void terminateIteration(boolean done, int markingsReachedInRun, int closedActionsInRun) {
+	protected void terminateIteration(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		if (debug == Debug.DOT) {
-			writeEndOfAlignmentDot(done, markingsReachedInRun, closedActionsInRun);
+			writeEndOfAlignmentDot(alignment, markingsReachedInRun, closedActionsInRun);
 		}
 		if (debug == Debug.NORMAL) {
-			writeEndOfAlignmentNormal(done, markingsReachedInRun, closedActionsInRun);
+			writeEndOfAlignmentNormal(alignment, markingsReachedInRun, closedActionsInRun);
+		}
+		if (debug == Debug.STATS) {
+			writeEndOfAlignmentStats(alignment, markingsReachedInRun, closedActionsInRun);
 		}
 	}
 
@@ -900,22 +939,23 @@ public abstract class ReplayAlgorithm {
 	}
 
 	protected void writeStatus() {
-		debug.writeDebugInfo(Debug.NORMAL, "Markings polled:   " + String.format("%,d", pollActions));
-		debug.writeDebugInfo(Debug.NORMAL, "   Markings reached:" + String.format("%,d", markingsReached));
-		debug.writeDebugInfo(Debug.NORMAL, "   Markings closed: " + String.format("%,d", closedActions));
-		debug.writeDebugInfo(Debug.NORMAL, "   FScore head:     " + getFScore(queue.peek()) + " = G: "
-				+ getGScore(queue.peek()) + " + H: " + getHScore(queue.peek()));
-		debug.writeDebugInfo(Debug.NORMAL, "   Queue size:      " + String.format("%,d", queue.size()));
-		debug.writeDebugInfo(Debug.NORMAL, "   Queue actions:   " + String.format("%,d", queueActions));
-		debug.writeDebugInfo(Debug.NORMAL, "   Heuristics compu:" + String.format("%,d", heuristicsComputed));
-		debug.writeDebugInfo(Debug.NORMAL, "   Heuristics deriv:" + String.format("%,d", heuristicsDerived));
-		debug.writeDebugInfo(
+		debug.println(Debug.NORMAL, "Markings polled:   " + String.format("%,d", pollActions));
+		debug.println(Debug.NORMAL, "   Markings reached:" + String.format("%,d", markingsReached));
+		debug.println(Debug.NORMAL, "   Markings closed: " + String.format("%,d", closedActions));
+		debug.println(Debug.NORMAL,
+				"   FScore head:     " + getFScore(queue.peek()) + " = G: " + getGScore(queue.peek()) + " + H: "
+						+ getHScore(queue.peek()));
+		debug.println(Debug.NORMAL, "   Queue size:      " + String.format("%,d", queue.size()));
+		debug.println(Debug.NORMAL, "   Queue actions:   " + String.format("%,d", queueActions));
+		debug.println(Debug.NORMAL, "   Heuristics compu:" + String.format("%,d", heuristicsComputed));
+		debug.println(Debug.NORMAL, "   Heuristics deriv:" + String.format("%,d", heuristicsDerived));
+		debug.println(
 				Debug.NORMAL,
 				"   Heuristics est  :"
 						+ String.format("%,d", (markingsReached - heuristicsComputed - heuristicsDerived)));
-		debug.writeDebugInfo(Debug.NORMAL, "   Estimated memory:" + String.format("%,d", getEstimatedMemorySize()));
+		debug.println(Debug.NORMAL, "   Estimated memory:" + String.format("%,d", getEstimatedMemorySize()));
 		double time = (System.nanoTime() - startConstructor) / 1000000.0;
-		debug.writeDebugInfo(Debug.NORMAL, "   Time (ms):       " + String.format("%,f", time));
+		debug.println(Debug.NORMAL, "   Time (ms):       " + String.format("%,f", time));
 	}
 
 	/**
@@ -1375,6 +1415,16 @@ public abstract class ReplayAlgorithm {
 
 	public SyncProduct getNet() {
 		return net;
+	}
+
+	private int getCostForType(short[] alignment, byte type1, byte type2) {
+		int cost = 0;
+		for (int i = 0; i < alignment.length; i++) {
+			if (net.getTypeOf(alignment[i]) == type1 || net.getTypeOf(alignment[i]) == type2) {
+				cost += net.getCost(alignment[i]);
+			}
+		}
+		return cost;
 	}
 
 }

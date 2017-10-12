@@ -588,7 +588,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	@Override
-	protected void writeEndOfAlignmentDot(boolean done, int markingsReachedInRun, int closedActionsInRun) {
+	protected void writeEndOfAlignmentDot(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		TObjectIntMap<Statistic> map = getStatistics();
 		for (int m = 0; m < markingsReachedInRun; m++) {
 			if (!isClosed(m)) {
@@ -601,7 +601,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 				}
 			}
 		}
-		if (done) {
+		if (alignment != null) {
 			lastSplitpoints = splitpoints;
 		}
 		// close the subgraph
@@ -618,10 +618,10 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		b.append("Splitpoints: ");
 		b.append(Arrays.toString(lastSplitpoints));
 		b.append(">];");
-		debug.writeDebugInfo(Debug.DOT, b.toString());
+		debug.println(Debug.DOT, b.toString());
 		// close the subgraph
-		debug.writeDebugInfo(Debug.DOT, "}");
-		if (done) {
+		debug.println(Debug.DOT, "}");
+		if (alignment != null) {
 			b = new StringBuilder();
 			b.append("subgraph cluster_info {");
 			b.append("label=<Global results>;");
@@ -633,11 +633,11 @@ public class AStarLargeLP extends ReplayAlgorithm {
 				b.append("<br/>");
 			}
 			b.append(">];");
-			debug.writeDebugInfo(Debug.DOT, b.toString());
+			debug.println(Debug.DOT, b.toString());
 			// close the subgraph
-			debug.writeDebugInfo(Debug.DOT, "}");
+			debug.println(Debug.DOT, "}");
 			// close the graph
-			debug.writeDebugInfo(Debug.DOT, "}");
+			debug.println(Debug.DOT, "}");
 		}
 	}
 
@@ -656,9 +656,9 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	@Override
-	protected void terminateIteration(boolean done, int markingsReachedInRun, int closedActionsInRun) {
+	protected void terminateIteration(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		try {
-			super.terminateIteration(done, markingsReachedInRun, closedActionsInRun);
+			super.terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
 		} finally {
 			solver.deleteAndRemoveLp();
 		}
