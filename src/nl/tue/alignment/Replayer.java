@@ -12,7 +12,6 @@ import nl.tue.alignment.algorithms.AStar;
 import nl.tue.alignment.algorithms.AStarLargeLP;
 import nl.tue.alignment.algorithms.Dijkstra;
 import nl.tue.alignment.algorithms.ReplayAlgorithm;
-import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 import nl.tue.alignment.algorithms.datastructures.SyncProduct;
 import nl.tue.alignment.algorithms.datastructures.SyncProductFactory;
 import nl.tue.astar.util.ilp.LPMatrixException;
@@ -40,58 +39,37 @@ public class Replayer {
 		DIJKSTRA, ASTAR, ASTARWITHMARKINGSPLIT;
 	}
 
-	public static class Parameters {
-		final Algorithm algorithm; // which algorithm
-		final boolean moveSort; // moveSort on total order
-		final boolean queueSort; // queue sorted "depth-first"
-		final boolean preferExact; // prefer Exact solution
-		final boolean multiThread; // do multithreading
-		final boolean useInt; //  use Integer
-		final Debug debug;
+	private final ReplayerParameters parameters;
+	private final XLog log;
+	private final Map<XEventClass, Integer> costMOT;
+	private final SyncProductFactory factory;
+	private final XEventClasses classes;
 
-		public Parameters(Algorithm algorithm, boolean moveSort, boolean queueSort, boolean preferExact,
-				boolean multiThread, boolean useInt, Debug debug) {
-			this.algorithm = algorithm;
-			this.moveSort = moveSort;
-			this.queueSort = queueSort;
-			this.preferExact = preferExact;
-			this.multiThread = multiThread;
-			this.useInt = useInt;
-			this.debug = debug;
-		}
-
-		public Parameters() {
-			this(Algorithm.ASTARWITHMARKINGSPLIT, true, true, true, false, false, Debug.NONE);
-		}
+	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
+			Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
+		this(new ReplayerParameters(), net, initialMarking, finalMarking, log, null, costMOS, costMOT, mapping);
 	}
 
-	private final Petrinet net;
-	private final Marking initialMarking;
-	private final Marking finalMarking;
-	private final Parameters parameters;
-
-	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking) {
-		this(new Parameters(), net, initialMarking, finalMarking);
-	}
-
-	public Replayer(Parameters parameters, Petrinet net, Marking initialMarking, Marking finalMarkings) {
+	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
+			XEventClasses classes, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT,
+			TransEvClassMapping mapping) {
 		this.parameters = parameters;
-		this.net = net;
-		this.initialMarking = initialMarking;
-		this.finalMarking = finalMarkings;
+		this.log = log;
+		if (classes == null) {
+			XEventClassifier eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
+			XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
+			this.classes = summary.getEventClasses();
+		} else {
+			this.classes = classes;
+		}
+		this.costMOT = costMOT;
+		factory = new SyncProductFactory(net, classes, mapping, costMOS, costMOT, new HashMap<Transition, Integer>(1),
+				initialMarking, finalMarking);
 	}
 
-	public PNRepResult doAlignmentComputations(XLog log, Map<Transition, Integer> costMOS,
-			Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) throws LPMatrixException {
+	public PNRepResult computePNRepResult() throws LPMatrixException {
 
 		//TODO: Detect previously computed cases as duplicates when the traces are equal as sequences of classifiers.
-
-		XEventClassifier eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
-		XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
-		XEventClasses classes = summary.getEventClasses();
-
-		SyncProductFactory factory = new SyncProductFactory(net, classes, mapping, costMOS, costMOT,
-				new HashMap<Transition, Integer>(1), initialMarking, finalMarking);
 
 		List<SyncReplayResult> result = new ArrayList<>();
 		SyncProduct product = factory.getSyncProduct();
@@ -106,16 +84,10 @@ public class Replayer {
 
 		int t = 0;
 		for (XTrace trace : log) {
-			product = factory.getSyncProduct(trace);
+			SyncReplayResult srr = getSyncReplayResultForTrace(trace, t);
 
-			if (product != null) {
-
-				ReplayAlgorithm algorithm = getAlgorithm(product);
-
-				short[] alignment = algorithm.run();
-				TObjectIntMap<Statistic> stats = algorithm.getStatistics();
+			if (srr != null) {
 				int traceCost = getTraceCost(trace, classes, costMOT);
-				SyncReplayResult srr = Utils.toSyncReplayResult(factory, stats, alignment, trace, t);
 				srr.addInfo(PNRepResult.TRACEFITNESS,
 						1 - (srr.getInfo().get(PNRepResult.RAWFITNESSCOST) / (maxModelMoveCost + traceCost)));
 				result.add(srr);
@@ -124,6 +96,18 @@ public class Replayer {
 
 		}
 		return new PNRepResultImpl(result);
+	}
+
+	public SyncReplayResult getSyncReplayResultForTrace(XTrace trace, int traceIndex) throws LPMatrixException {
+		SyncProduct product = factory.getSyncProduct(trace);
+		if (product != null) {
+			ReplayAlgorithm algorithm = getAlgorithm(product);
+			short[] alignment = algorithm.run();
+			TObjectIntMap<Statistic> stats = algorithm.getStatistics();
+			SyncReplayResult srr = Utils.toSyncReplayResult(factory, stats, alignment, trace, traceIndex);
+			return srr;
+		}
+		return null;
 	}
 
 	private ReplayAlgorithm getAlgorithm(SyncProduct product) throws LPMatrixException {
