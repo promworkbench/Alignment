@@ -271,13 +271,16 @@ public class Utils {
 	public static void toDot(SyncProduct product, short[] alignment, OutputStreamWriter stream) throws IOException {
 		stream.write("Digraph A { \n rankdir=LR;\n");
 
+		stream.write("{ rank=same;");
 		TIntList[] place2index = new TIntList[product.numPlaces()];
 		for (short p = 0; p < product.numPlaces(); p++) {
 			place2index[p] = new TIntArrayList(3);
 			if (product.getInitialMarking()[p] > 0) {
-				place2index[p].add(0);
+				place2index[p].add(p);
+				stream.write("p" + p + "; ");
 			}
 		}
+		stream.write("}\n");
 
 		for (int i = 0; i < alignment.length; i++) {
 			short t = alignment[i];
@@ -285,10 +288,10 @@ public class Utils {
 
 			for (short p : product.getInput(t)) {
 				int j = place2index[p].removeAt(place2index[p].size() - 1);
-				if (j == 0) {
-					placeToDot(product, stream, (j * product.numPlaces() + p), p);
+				if (j == p) {
+					placeToDot(product, stream, j, p);
 				}
-				stream.write("p" + (j * product.numPlaces() + p) + " -> t" + i);
+				stream.write("p" + j + " -> t" + i);
 				if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
 					stream.write(" [weight=2]");
 				} else {
@@ -297,9 +300,10 @@ public class Utils {
 				stream.write(";\n");
 			}
 			for (short p : product.getOutput(t)) {
-				place2index[p].add(i);
-				placeToDot(product, stream, i * product.numPlaces() + p, p);
-				stream.write("t" + i + " -> p" + (i * product.numPlaces() + p));
+				int j = i * product.numPlaces() + p;
+				place2index[p].add(j);
+				placeToDot(product, stream, j, p);
+				stream.write("t" + i + " -> p" + j);
 				if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
 					stream.write(" [weight=2]");
 				} else {
@@ -308,6 +312,15 @@ public class Utils {
 				stream.write(";\n");
 			}
 		}
+
+		stream.write("{ rank=same;");
+		for (short p = 0; p < product.numPlaces(); p++) {
+			if (place2index[p].size() > 0) {
+				int i = place2index[p].get(0);
+				stream.write("p" + i + "; ");
+			}
+		}
+		stream.write("}\n");
 
 		stream.write("}");
 		stream.flush();

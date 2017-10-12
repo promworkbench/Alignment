@@ -504,10 +504,14 @@ public class AStar extends ReplayAlgorithm {
 	protected void writeEndOfAlignmentDot(boolean done, int markingsReachedInRun, int closedActionsInRun) {
 		TObjectIntMap<Statistic> map = getStatistics();
 		for (int m = 0; m < markingsReached; m++) {
-			if (!isClosed(m) && isDerivedLpSolution(m)) {
-				debug.writeMarkingReached(this, m, "color=blue");
-			} else {
-				debug.writeMarkingReached(this, m);
+			if (!isClosed(m)) {
+				if (isDerivedLpSolution(m)) {
+					debug.writeMarkingReached(this, m, "color=blue,style=bold");
+				} else if (hasExactHeuristic(m)) {
+					debug.writeMarkingReached(this, m, "style=bold");
+				} else {
+					debug.writeMarkingReached(this, m, "style=dashed");
+				}
 			}
 		}
 		StringBuilder b = new StringBuilder();
@@ -530,9 +534,9 @@ public class AStar extends ReplayAlgorithm {
 		super.processedMarking(marking, blockMarking, indexInBlock);
 		synchronized (this) {
 			if (isDerivedLpSolution(marking)) {
-				debug.writeMarkingReached(this, marking, "color=blue");
+				debug.writeMarkingReached(this, marking, "color=blue,style=bold");
 			} else {
-				debug.writeMarkingReached(this, marking);
+				debug.writeMarkingReached(this, marking, "style=bold");
 			}
 			lpSolutionsSize -= 12 + 4 + lpSolutions.remove(marking).length; // object size
 			lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer

@@ -290,7 +290,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		System.arraycopy(splitpoints, insert, splitpoints, insert + 1, splitpoints.length - insert - 1);
 		splitpoints[insert] = event;
 		splits++;
-		debug.writeMarkingReached(this, marking,"peripheries=2");
+		debug.writeMarkingReached(this, marking, "peripheries=2");
 
 		return RESTART;
 		// Handle this case now.
@@ -592,10 +592,14 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	protected void writeEndOfAlignmentDot(boolean done, int markingsReachedInRun, int closedActionsInRun) {
 		TObjectIntMap<Statistic> map = getStatistics();
 		for (int m = 0; m < markingsReachedInRun; m++) {
-			if (!isClosed(m) && isDerivedLpSolution(m)) {
-				debug.writeMarkingReached(this, m, "color=blue");
-			} else {
-				debug.writeMarkingReached(this, m);
+			if (!isClosed(m)) {
+				if (isDerivedLpSolution(m)) {
+					debug.writeMarkingReached(this, m, "color=blue,style=bold");
+				} else if (hasExactHeuristic(m)) {
+					debug.writeMarkingReached(this, m, "style=bold");
+				} else {
+					debug.writeMarkingReached(this, m, "style=dashed");
+				}
 			}
 		}
 		if (done) {
@@ -643,9 +647,9 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		super.processedMarking(marking, blockMarking, indexInBlock);
 		synchronized (this) {
 			if (isDerivedLpSolution(marking)) {
-				debug.writeMarkingReached(this, marking, "color=blue");
+				debug.writeMarkingReached(this, marking, "color=blue,style=bold");
 			} else {
-				debug.writeMarkingReached(this, marking);
+				debug.writeMarkingReached(this, marking, "style=bold");
 			}
 			lpSolutionsSize -= 12 + 4 + lpSolutions.remove(marking).length; // object size
 			lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer

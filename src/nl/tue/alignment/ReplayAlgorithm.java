@@ -121,29 +121,34 @@ public abstract class ReplayAlgorithm {
 				b.append("m");
 				b.append(toMarking);
 				b.append(" [");
-				b.append("label=<");
-				//				b.append("t");
-				//				b.append(transition);
-				//				b.append("<br/>");
-				b.append(algorithm.net.getTransitionLabel(transition));
-				b.append("<br/>");
-				b.append(algorithm.net.getCost(transition));
-				b.append(">,color=gray");
-				if (!extra.isEmpty()) {
-					b.append(",");
-					b.append(extra);
+				if (transition >= 0) {
+					b.append("label=<<b>");
+					//				b.append("t");
+					//				b.append(transition);
+					//				b.append("<br/>");
+					b.append(algorithm.net.getTransitionLabel(transition));
+					b.append("<br/>");
+					b.append(algorithm.net.getCost(transition));
+					b.append("</b>>");
+					if (algorithm.net.getTypeOf(transition) == SyncProduct.SYNC_MOVE) {
+						b.append(",fontcolor=forestgreen");
+					} else if (algorithm.net.getTypeOf(transition) == SyncProduct.MODEL_MOVE) {
+						b.append(",fontcolor=darkorchid1");
+					} else if (algorithm.net.getTypeOf(transition) == SyncProduct.LOG_MOVE) {
+						b.append(",fontcolor=goldenrod2");
+					} else if (algorithm.net.getTypeOf(transition) == SyncProduct.TAU_MOVE) {
+						b.append(",fontcolor=honeydew4");
+					}
 				}
-				if (algorithm.net.getTypeOf(transition) == SyncProduct.SYNC_MOVE) {
-					b.append(",fontcolor=forestgreen");
-				} else if (algorithm.net.getTypeOf(transition) == SyncProduct.MODEL_MOVE) {
-					b.append(",fontcolor=darkorchid1");
-				} else if (algorithm.net.getTypeOf(transition) == SyncProduct.LOG_MOVE) {
-					b.append(",fontcolor=goldenrod2");
-				} else if (algorithm.net.getTypeOf(transition) == SyncProduct.TAU_MOVE) {
-					b.append(",fontcolor=honeydew4");
+				if (!extra.isEmpty()) {
+					if (transition >= 0) {
+						b.append(",");
+					}
+					b.append(extra);
 				}
 
 				b.append("];");
+
 				System.out.println(b.toString());
 			}
 		}, //
@@ -500,16 +505,18 @@ public abstract class ReplayAlgorithm {
 							deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
 
 							if (hasExactHeuristic(bn, in)) {
-								debug.writeEdgeTraversed(this, m, t, n, "style=dashed");
+								debug.writeEdgeTraversed(this, m, t, n, "style=dashed,color=gray19");
 								// marking is now exact and was not before. 
 								assert queue.contains(n);
 								addToQueue(n);
 							}
 						} else {
-							debug.writeEdgeTraversed(this, m, t, n, "style=dashed");
+							// reached a marking of which F score is higher than current F score
+							debug.writeEdgeTraversed(this, m, t, n, "style=dashed,color=gray19,arrowtail=tee");
 						}
 					} else {
-						debug.writeEdgeTraversed(this, m, t, n, "style=dashed");
+						// reached an already closed marking
+						debug.writeEdgeTraversed(this, m, t, n, "style=dashed,color=gray19,arrowtail=box");
 					}
 				} finally {
 					releaseLockForComputingEstimate(bn, in);
@@ -661,7 +668,7 @@ public abstract class ReplayAlgorithm {
 		while (n != NOPREDECESSOR) {
 			t = getPredecessorTransition(m2);
 
-			debug.writeEdgeTraversed(this, n, t, m2, "color=red");
+			debug.writeEdgeTraversed(this, n, (short) -1, m2, "color=red");
 			alignmentLength++;
 			alignmentCost += net.getCost(t);
 			m2 = n;

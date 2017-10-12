@@ -242,8 +242,8 @@ public class SmallTests {
 		}
 
 		short[] alignment;
-		SyncProduct net = new SyncProductExampleBook();
-		//		testSingleGraph(new SyncProductExampleBook(), Debug.DOT);
+		//		SyncProduct net = new SyncProductExampleBook();
+		SyncProduct net = new TwoSwapsExample();
 
 		Utils.toDot(net, new OutputStreamWriter(System.out));
 		alignment = testSingleGraph(net, Debug.DOT);
