@@ -7,6 +7,7 @@ import gnu.trove.list.TShortList;
 import gnu.trove.list.array.TByteArrayList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.list.array.TShortArrayList;
+import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.TObjectShortMap;
 import gnu.trove.map.TShortObjectMap;
 import gnu.trove.map.hash.TObjectShortHashMap;
@@ -33,6 +34,40 @@ import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 
 public class SyncProductFactory {
+
+	private static class MapWrap<K> {
+		private final Map<K, Integer> map1;
+		private final TObjectIntMap<K> map2;
+		private final int defaultValue;
+
+		private MapWrap(Map<K, Integer> map1, TObjectIntMap<K> map2, int defaultValue) {
+			this.map1 = map1;
+			this.map2 = map2;
+			this.defaultValue = defaultValue;
+		}
+
+		public MapWrap(Map<K, Integer> map1, int defaultValue) {
+			this(map1, null, defaultValue);
+		}
+
+		public MapWrap(TObjectIntMap<K> map2, int defaultValue) {
+			this(null, map2, defaultValue);
+		}
+
+		public MapWrap(int defaultValue) {
+			this(null, null, defaultValue);
+		}
+
+		public int get(K key) {
+			if (map1 != null && map1.containsKey(key)) {
+				return map1.get(key);
+			} else if (map2 != null && map2.containsKey(key)) {
+				return map2.get(key);
+			} else {
+				return defaultValue;
+			}
+		}
+	}
 
 	private static class StringList {
 		private String[] list;
@@ -110,9 +145,44 @@ public class SyncProductFactory {
 	private final XEventClasses classes;
 	private final String label;
 
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map, Marking initialMarking,
+			Marking finalMarking) {
+		this(net, classes, map, new MapWrap<Transition>(1), new MapWrap<XEventClass>(1), //
+				new MapWrap<Transition>(0), initialMarking, finalMarking);
+	}
+
 	public SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map,
 			Map<Transition, Integer> mapTrans2Cost, Map<XEventClass, Integer> mapEvClass2Cost,
 			Map<Transition, Integer> mapSync2Cost, Marking initialMarking, Marking finalMarking) {
+		this(net, classes, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
+				new MapWrap<>(mapSync2Cost, 0), initialMarking, finalMarking);
+	}
+
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map,
+			TObjectIntMap<Transition> mapTrans2Cost, TObjectIntMap<XEventClass> mapEvClass2Cost,
+			TObjectIntMap<Transition> mapSync2Cost, Marking initialMarking, Marking finalMarking) {
+		this(net, classes, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
+				new MapWrap<>(mapSync2Cost, 0), initialMarking, finalMarking);
+	}
+
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map,
+			Map<Transition, Integer> mapTrans2Cost, Map<XEventClass, Integer> mapEvClass2Cost, Marking initialMarking,
+			Marking finalMarking) {
+		this(net, classes, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
+				new MapWrap<Transition>(0), initialMarking, finalMarking);
+	}
+
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map,
+			TObjectIntMap<Transition> mapTrans2Cost, TObjectIntMap<XEventClass> mapEvClass2Cost,
+			Marking initialMarking, Marking finalMarking) {
+		this(net, classes, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
+				new MapWrap<Transition>(0), initialMarking, finalMarking);
+	}
+
+	private SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map,
+			MapWrap<Transition> mapTrans2Cost, MapWrap<XEventClass> mapEvClass2Cost, MapWrap<Transition> mapSync2Cost,
+			Marking initialMarking, Marking finalMarking) {
+
 		label = net.getLabel();
 		this.classes = classes;
 		this.classCount = classes.size();
@@ -159,9 +229,9 @@ public class SyncProductFactory {
 			}
 
 			cost = mapTrans2Cost.get(t);
-			t2mmCost.add(cost == null ? 0 : cost);
+			t2mmCost.add(cost);
 			cost = mapSync2Cost.get(t);
-			t2smCost.add(cost == null ? 0 : cost);
+			t2smCost.add(cost);
 			t2name.add(t.getLabel());
 			t2eid.add(SyncProduct.NOEVENT);
 			t2type.add(t.isInvisible() ? SyncProduct.TAU_MOVE : SyncProduct.MODEL_MOVE);

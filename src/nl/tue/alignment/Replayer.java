@@ -3,7 +3,6 @@ package nl.tue.alignment;
 import gnu.trove.map.TObjectIntMap;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,18 +40,22 @@ public class Replayer {
 
 	private final ReplayerParameters parameters;
 	private final XLog log;
-	private final Map<XEventClass, Integer> costMOT;
+	private final Map<XEventClass, Integer> costLM;
 	private final SyncProductFactory factory;
 	private final XEventClasses classes;
 
 	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
 			Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
-		this(new ReplayerParameters(), net, initialMarking, finalMarking, log, null, costMOS, costMOT, mapping);
+		this(new ReplayerParameters(), net, initialMarking, finalMarking, log, null, costMOS, costMOT, null, mapping);
 	}
 
-	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
-			XEventClasses classes, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT,
-			TransEvClassMapping mapping) {
+	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log, TransEvClassMapping mapping) {
+		this(new ReplayerParameters(), net, initialMarking, finalMarking, log, null, null, null, null, mapping);
+	}
+
+	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
+			XLog log, XEventClasses classes, Map<Transition, Integer> costMM, Map<XEventClass, Integer> costLM,
+			Map<Transition, Integer> costSM, TransEvClassMapping mapping) {
 		this.parameters = parameters;
 		this.log = log;
 		if (classes == null) {
@@ -62,9 +65,8 @@ public class Replayer {
 		} else {
 			this.classes = classes;
 		}
-		this.costMOT = costMOT;
-		factory = new SyncProductFactory(net, classes, mapping, costMOS, costMOT, new HashMap<Transition, Integer>(1),
-				initialMarking, finalMarking);
+		this.costLM = costLM;
+		factory = new SyncProductFactory(net, classes, mapping, costMM, costLM, costSM, initialMarking, finalMarking);
 	}
 
 	public PNRepResult computePNRepResult() throws LPMatrixException {
@@ -87,7 +89,7 @@ public class Replayer {
 			SyncReplayResult srr = getSyncReplayResultForTrace(trace, t);
 
 			if (srr != null) {
-				int traceCost = getTraceCost(trace, classes, costMOT);
+				int traceCost = getTraceCost(trace);
 				srr.addInfo(PNRepResult.TRACEFITNESS,
 						1 - (srr.getInfo().get(PNRepResult.RAWFITNESSCOST) / (maxModelMoveCost + traceCost)));
 				result.add(srr);
@@ -124,10 +126,10 @@ public class Replayer {
 		return null;
 	}
 
-	private static int getTraceCost(XTrace trace, XEventClasses classes, Map<XEventClass, Integer> costMOT) {
+	private int getTraceCost(XTrace trace) {
 		int cost = 0;
 		for (XEvent e : trace) {
-			cost += costMOT.get(classes.getClassOf(e));
+			cost += costLM.containsKey(classes.getClassOf(e)) ? costLM.get(classes.getClassOf(e)) : 1;
 		}
 		return cost;
 	}
