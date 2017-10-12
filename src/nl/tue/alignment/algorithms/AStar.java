@@ -11,10 +11,9 @@ import java.util.concurrent.TimeUnit;
 
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
-import nl.tue.alignment.ReplayAlgorithm;
-import nl.tue.alignment.SyncProduct;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
+import nl.tue.alignment.algorithms.datastructures.SyncProduct;
 import nl.tue.astar.util.LPProblemProvider;
 import nl.tue.astar.util.ilp.LPMatrix;
 import nl.tue.astar.util.ilp.LPMatrix.SPARSE.LPSOLVE;

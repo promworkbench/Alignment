@@ -1,4 +1,4 @@
-package nl.tue.alignment;
+package nl.tue.alignment.algorithms.datastructures;
 
 import gnu.trove.iterator.TShortIterator;
 import gnu.trove.list.TByteList;

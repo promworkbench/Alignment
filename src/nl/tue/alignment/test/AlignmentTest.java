@@ -8,13 +8,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import nl.tue.alignment.ReplayAlgorithm;
-import nl.tue.alignment.ReplayAlgorithm.Debug;
-import nl.tue.alignment.SyncProduct;
-import nl.tue.alignment.SyncProductFactory;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.AStarLargeLP;
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
+import nl.tue.alignment.algorithms.datastructures.SyncProduct;
+import nl.tue.alignment.algorithms.datastructures.SyncProductFactory;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;

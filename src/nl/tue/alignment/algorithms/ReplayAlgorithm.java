@@ -1,14 +1,16 @@
-package nl.tue.alignment;
+package nl.tue.alignment.algorithms;
 
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 
 import java.util.Arrays;
 
+import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
-import nl.tue.alignment.util.HashBackedPriorityQueue;
-import nl.tue.alignment.util.SortedHashBackedPriorityQueue;
-import nl.tue.alignment.util.VisitedHashSet;
+import nl.tue.alignment.algorithms.datastructures.HashBackedPriorityQueue;
+import nl.tue.alignment.algorithms.datastructures.SortedHashBackedPriorityQueue;
+import nl.tue.alignment.algorithms.datastructures.SyncProduct;
+import nl.tue.alignment.algorithms.datastructures.VisitedHashSet;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
 /**

@@ -10,30 +10,14 @@ import gnu.trove.set.hash.TShortHashSet;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
-import nl.tue.alignment.ReplayAlgorithm.Debug;
-import nl.tue.alignment.algorithms.AStarLargeLP;
-import nl.tue.astar.util.ilp.LPMatrixException;
+import nl.tue.alignment.algorithms.datastructures.SyncProduct;
+import nl.tue.alignment.algorithms.datastructures.SyncProductFactory;
 
-import org.deckfour.xes.classification.XEventClass;
-import org.deckfour.xes.classification.XEventClasses;
-import org.deckfour.xes.classification.XEventClassifier;
-import org.deckfour.xes.info.XLogInfo;
-import org.deckfour.xes.info.XLogInfoFactory;
-import org.deckfour.xes.info.impl.XLogInfoImpl;
-import org.deckfour.xes.model.XEvent;
-import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.XTrace;
-import org.processmining.models.graphbased.directed.petrinet.Petrinet;
-import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
-import org.processmining.models.semantics.petrinet.Marking;
-import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
-import org.processmining.plugins.petrinet.replayresult.PNRepResultImpl;
 import org.processmining.plugins.petrinet.replayresult.StepTypes;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
@@ -407,60 +391,6 @@ public class Utils {
 
 		srr.setReliable(statistics.get(Statistic.EXITCODE) == Utils.OPTIMALALIGNMENT);
 		return srr;
-	}
-
-	public static PNRepResult doAlignmentComputations(Petrinet net, Marking initialMarking, Marking[] finalMarkings,
-			XLog log, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping)
-			throws LPMatrixException {
-
-		//TODO: Detect previously computed cases as duplicates when the traces are equal as sequences of classifiers.
-
-		XEventClassifier eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
-		XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
-		XEventClasses classes = summary.getEventClasses();
-
-		SyncProductFactory factory = new SyncProductFactory(net, classes, mapping, costMOS, costMOT,
-				new HashMap<Transition, Integer>(1), initialMarking, finalMarkings[0]);
-
-		List<SyncReplayResult> result = new ArrayList<>();
-		SyncProduct product = factory.getSyncProduct();
-
-		int maxModelMoveCost = 0;
-		if (product != null) {
-			ReplayAlgorithm algorithm = new AStarLargeLP(product, false, false, Debug.NONE);
-			algorithm.run();
-			TObjectIntMap<Statistic> stats = algorithm.getStatistics();
-			maxModelMoveCost = stats.get(Statistic.COST);
-		}
-
-		int t = 0;
-		for (XTrace trace : log) {
-			product = factory.getSyncProduct(trace);
-
-			if (product != null) {
-
-				ReplayAlgorithm algorithm = new AStarLargeLP(product, false, false, Debug.NONE);
-
-				short[] alignment = algorithm.run();
-				TObjectIntMap<Statistic> stats = algorithm.getStatistics();
-				int traceCost = getTraceCost(trace, classes, costMOT);
-				SyncReplayResult srr = Utils.toSyncReplayResult(factory, stats, alignment, trace, t);
-				srr.addInfo(PNRepResult.TRACEFITNESS,
-						1 - (srr.getInfo().get(PNRepResult.RAWFITNESSCOST) / (maxModelMoveCost + traceCost)));
-				result.add(srr);
-			}
-			t++;
-
-		}
-		return new PNRepResultImpl(result);
-	}
-
-	private static int getTraceCost(XTrace trace, XEventClasses classes, Map<XEventClass, Integer> costMOT) {
-		int cost = 0;
-		for (XEvent e : trace) {
-			cost += costMOT.get(classes.getClassOf(e));
-		}
-		return cost;
 	}
 
 }

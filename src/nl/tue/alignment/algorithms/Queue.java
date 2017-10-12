@@ -1,4 +1,4 @@
-package nl.tue.alignment;
+package nl.tue.alignment.algorithms;
 
 public interface Queue {
 

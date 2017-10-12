@@ -1,9 +1,9 @@
-package nl.tue.alignment.util;
+package nl.tue.alignment.algorithms.datastructures;
 
 import gnu.trove.impl.HashFunctions;
 import gnu.trove.impl.hash.THash;
-import nl.tue.alignment.ReplayAlgorithm;
-import nl.tue.alignment.VisitedSet;
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
+import nl.tue.alignment.algorithms.VisitedSet;
 
 public class VisitedHashSet implements VisitedSet {
 

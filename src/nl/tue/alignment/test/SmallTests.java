@@ -7,15 +7,15 @@ import java.io.OutputStreamWriter;
 import java.util.Arrays;
 
 import lpsolve.LpSolve;
-import nl.tue.alignment.ReplayAlgorithm;
-import nl.tue.alignment.ReplayAlgorithm.Debug;
-import nl.tue.alignment.SyncProduct;
-import nl.tue.alignment.SyncProductImpl;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.AStar;
 import nl.tue.alignment.algorithms.AStarLargeLP;
 import nl.tue.alignment.algorithms.Dijkstra;
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
+import nl.tue.alignment.algorithms.datastructures.SyncProduct;
+import nl.tue.alignment.algorithms.datastructures.SyncProductImpl;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
 public class SmallTests {
@@ -352,7 +352,7 @@ public class SmallTests {
 
 		boolean dijkstra = false;
 		boolean split = true;
-		boolean moveSort = false; // moveSort on total order
+		boolean moveSort = true; // moveSort on total order
 		boolean queueSort = true; // queue sorted "depth-first"
 		boolean preferExact = true; // prefer Exact solution
 		boolean multiThread = false; // do multithreading

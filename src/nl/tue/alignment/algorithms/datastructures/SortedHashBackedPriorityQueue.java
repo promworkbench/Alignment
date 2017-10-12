@@ -1,6 +1,6 @@
-package nl.tue.alignment.util;
+package nl.tue.alignment.algorithms.datastructures;
 
-import nl.tue.alignment.ReplayAlgorithm;
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
 
 public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 

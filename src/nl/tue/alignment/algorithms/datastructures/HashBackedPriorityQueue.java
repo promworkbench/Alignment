@@ -1,12 +1,12 @@
-package nl.tue.alignment.util;
+package nl.tue.alignment.algorithms.datastructures;
 
 import gnu.trove.map.hash.TIntIntHashMap;
 
 import java.util.Arrays;
 import java.util.Collection;
 
-import nl.tue.alignment.Queue;
-import nl.tue.alignment.ReplayAlgorithm;
+import nl.tue.alignment.algorithms.Queue;
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
 
 public class HashBackedPriorityQueue implements Queue {
 

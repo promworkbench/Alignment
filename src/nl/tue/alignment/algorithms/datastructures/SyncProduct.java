@@ -1,4 +1,4 @@
-package nl.tue.alignment;
+package nl.tue.alignment.algorithms.datastructures;
 
 public interface SyncProduct {
 
