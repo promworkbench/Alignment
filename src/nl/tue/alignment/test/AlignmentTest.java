@@ -47,6 +47,8 @@ public class AlignmentTest {
 
 	public static void main(String[] args) throws Exception {
 
+		Debug debug = Debug.STATS;
+
 		String[] names = new String[] { "sepsis" };//, "prAm6", "prBm6", "prCm6", "prDm6", "prEm6", "prFm6", "prGm6" };
 		for (String name : names) {
 
@@ -72,10 +74,17 @@ public class AlignmentTest {
 
 			System.out.println("Started: " + name);
 
-			PrintStream stream = new PrintStream(new File("d:/temp/alignment/" + name + "/" + name + ".csv"));
+			PrintStream stream;
+			if (debug == Debug.STATS) {
+				stream = new PrintStream(new File("d:/temp/alignment/" + name + "/" + name + ".csv"));
+			} else if (debug == Debug.DOT) {
+				stream = new PrintStream(new File("d:/temp/alignment/" + name + "/" + name + ".dot"));
+			} else {
+				stream = System.out;
+			}
 			ReplayAlgorithm.Debug.setOutputStream(stream);
 
-			ReplayerParameters parameters = new ReplayerParameters.AStarWithMarkingSplit(false, false, Debug.STATS);
+			ReplayerParameters parameters = new ReplayerParameters.AStarWithMarkingSplit(false, false, debug);
 			//			ReplayerParameters parameters = new ReplayerParameters.AStar(true, true, true, true, false, Debug.STATS);
 
 			Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, log, classes,

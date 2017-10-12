@@ -115,8 +115,7 @@ public class Replayer {
 			parameters.debug.print(Debug.STATS, ",A:LMcost");
 			parameters.debug.print(Debug.STATS, ",A:MMcost");
 			parameters.debug.print(Debug.STATS, ",A:SMcost");
-			parameters.debug.print(Debug.STATS, ",F:LMfit");
-			parameters.debug.print(Debug.STATS, ",F:MMfit");
+			parameters.debug.print(Debug.STATS, ",ALIGNMENT");
 			parameters.debug.println(Debug.STATS);
 
 		}
