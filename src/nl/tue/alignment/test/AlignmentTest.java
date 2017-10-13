@@ -49,7 +49,7 @@ public class AlignmentTest {
 
 		Debug debug = Debug.STATS;
 
-		String[] names = new String[] { "prCm6", "prDm6", "prEm6", "prFm6", "prGm6", "sepsis", "prAm6", "prBm6" };
+		String[] names = new String[] { "sepsis" };//, "prCm6", "prDm6", "prEm6", "prFm6", "prGm6",  "prAm6", "prBm6" };
 		for (String name : names) {
 
 			PetrinetGraph net = constructNet("d:/temp/alignment/" + name + "/" + name + ".pnml");

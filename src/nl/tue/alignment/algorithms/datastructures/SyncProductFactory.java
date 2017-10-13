@@ -144,7 +144,6 @@ public class SyncProductFactory {
 	private final byte[] initMarking;
 	private final byte[] finMarking;
 	private final XEventClasses classes;
-	private final String label;
 
 	public SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map, Marking initialMarking,
 			Marking finalMarking) {
@@ -184,7 +183,6 @@ public class SyncProductFactory {
 			MapWrap<Transition> mapTrans2Cost, MapWrap<XEventClass> mapEvClass2Cost, MapWrap<Transition> mapSync2Cost,
 			Marking initialMarking, Marking finalMarking) {
 
-		label = net.getLabel();
 		this.classes = classes;
 		this.classCount = classes.size();
 		c2id = new TObjectShortHashMap<>(this.classCount, 0.75f, (short) -1);

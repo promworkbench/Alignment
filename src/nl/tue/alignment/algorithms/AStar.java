@@ -498,7 +498,7 @@ public class AStar extends ReplayAlgorithm {
 	}
 
 	@Override
-	protected void writeEndOfAlignmentDot(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+	protected  void writeEndOfAlignmentDot(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		TObjectIntMap<Statistic> map = getStatistics(alignment);
 		for (int m = 0; m < markingsReached; m++) {
 			if (!isClosed(m)) {
@@ -540,7 +540,7 @@ public class AStar extends ReplayAlgorithm {
 		}
 	}
 
-	protected void terminateIteration(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+	protected  void terminateIteration(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		try {
 			super.terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
 		} finally {

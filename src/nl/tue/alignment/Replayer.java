@@ -25,6 +25,8 @@ import nl.tue.astar.util.ilp.LPMatrixException;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
+import org.deckfour.xes.extension.std.XConceptExtension;
+import org.deckfour.xes.factory.XFactoryRegistry;
 import org.deckfour.xes.model.XEvent;
 import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.XTrace;
@@ -45,6 +47,13 @@ public class Replayer {
 		private final int traceIndex;
 		private final int timeoutMilliseconds;
 
+		public TraceReplay(int timeoutMilliseconds) {
+			this.trace = XFactoryRegistry.instance().currentDefault().createTrace();
+			XConceptExtension.instance().assignName(trace, "Empty");
+			this.traceIndex = -1;
+			this.timeoutMilliseconds = timeoutMilliseconds;
+		}
+
 		public TraceReplay(XTrace trace, int traceIndex, int timeoutMilliseconds) {
 			this.trace = trace;
 			this.traceIndex = traceIndex;
@@ -53,7 +62,8 @@ public class Replayer {
 
 		public SyncReplayResult call() throws LPMatrixException {
 			List<Transition> transitionList = new ArrayList<Transition>();
-			SyncProduct product = factory.getSyncProduct(trace, transitionList);
+			SyncProduct product;
+			product = factory.getSyncProduct(trace, transitionList);
 			if (product != null) {
 				ReplayAlgorithm algorithm = getAlgorithm(product);
 				short[] alignment = algorithm.run(timeoutMilliseconds);
@@ -139,29 +149,20 @@ public class Replayer {
 		//TODO: Detect previously computed cases as duplicates when the traces are equal as sequences of classifiers.
 
 		if (parameters.debug == Debug.STATS) {
-			parameters.debug.print(Debug.STATS, "SP:name");
+			parameters.debug.print(Debug.STATS, "SP label");
 			for (Statistic s : Statistic.values()) {
-				parameters.debug.print(Debug.STATS, ",ST:" + s);
+				parameters.debug.print(Debug.STATS, ",");
+				parameters.debug.print(Debug.STATS, s.toString());
 			}
 			parameters.debug.println(Debug.STATS);
 
 		}
 
 		List<SyncReplayResult> result = new ArrayList<>();
-		List<Transition> transitionList = new ArrayList<>();
-		SyncProduct product = factory.getSyncProductForEmptyTrace(transitionList);
 
 		// compute timeout per trace
 		int timeoutMilliseconds = (int) ((10.0 * parameters.timeoutMilliseconds) / (log.size() + 1));
 		timeoutMilliseconds = Math.min(timeoutMilliseconds, parameters.timeoutMilliseconds);
-
-		int maxModelMoveCost = 0;
-		if (product != null) {
-			ReplayAlgorithm algorithm = getAlgorithm(product);
-			short[] alignment = algorithm.run(timeoutMilliseconds);
-			TObjectIntMap<Statistic> stats = algorithm.getStatistics(alignment);
-			maxModelMoveCost = stats.get(Statistic.COST);
-		}
 
 		ExecutorService service;
 		if (parameters.algorithm == Algorithm.ASTAR) {
@@ -172,19 +173,22 @@ public class Replayer {
 		}
 		List<Future<SyncReplayResult>> resultList = new ArrayList<>();
 
+		resultList.add(service.submit(new TraceReplay(timeoutMilliseconds)));
+
 		int t = 0;
 		for (XTrace trace : log) {
-			//			System.out.println(t + " time left "
-			//					+ (parameters.timeoutMilliseconds - (System.currentTimeMillis() - start)) + " ms for "
-			//					+ (log.size() - t) + " traces. Timout set to " + timeoutMilliseconds + " ms.");
-			TraceReplay c = new TraceReplay(trace, t, timeoutMilliseconds);
-
-			resultList.add(service.submit(c));
-
+			resultList.add(service.submit(new TraceReplay(trace, t, timeoutMilliseconds)));
 			t++;
 		}
 
+		service.shutdown();
+
 		Iterator<Future<SyncReplayResult>> itResult = resultList.iterator();
+		// get empty trace
+		int maxModelMoveCost = (int) Math.round(itResult.next().get().getInfo().get(PNRepResult.RAWFITNESSCOST));
+		itResult.remove();
+
+		// process further changes
 		Iterator<XTrace> itTrace = log.iterator();
 		while (itResult.hasNext()) {
 			SyncReplayResult srr = itResult.next().get();
@@ -198,7 +202,6 @@ public class Replayer {
 				itTrace.next();
 			}
 		}
-
 		return new PNRepResultImpl(result);
 	}
 

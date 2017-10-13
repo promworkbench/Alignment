@@ -731,13 +731,15 @@ public abstract class ReplayAlgorithm {
 	}
 
 	protected void writeEndOfAlignmentStats(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
-		if (alignment != null) {
-			debug.print(Debug.STATS, net.getLabel());
-			TObjectIntMap<Statistic> map = getStatistics(alignment);
-			for (Statistic s : Statistic.values()) {
-				debug.print(Debug.STATS, "," + map.get(s));
+		synchronized (debug) {
+			if (alignment != null) {
+				debug.print(Debug.STATS, net.getLabel());
+				TObjectIntMap<Statistic> map = getStatistics(alignment);
+				for (Statistic s : Statistic.values()) {
+					debug.print(Debug.STATS, "," + map.get(s));
+				}
+				debug.println(Debug.STATS);
 			}
-			debug.println(Debug.STATS);
 		}
 	}
 
