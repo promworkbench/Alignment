@@ -56,11 +56,13 @@ public abstract class ReplayerParameters {
 
 	public final static class AStarWithMarkingSplit extends ReplayerParameters {
 		public AStarWithMarkingSplit() {
-			super(Algorithm.ASTARWITHMARKINGSPLIT, false, true, true, 1, false, Debug.NONE, Integer.MAX_VALUE, 1);
+			super(Algorithm.ASTARWITHMARKINGSPLIT, false, true, true, Math.max(1, Runtime.getRuntime()
+					.availableProcessors() / 2), false, Debug.NONE, Integer.MAX_VALUE, 1);
 		}
 
 		public AStarWithMarkingSplit(Debug debug) {
-			super(Algorithm.ASTARWITHMARKINGSPLIT, false, true, true, 1, false, debug, Integer.MAX_VALUE, 1);
+			super(Algorithm.ASTARWITHMARKINGSPLIT, false, true, true, Math.max(1, Runtime.getRuntime()
+					.availableProcessors() / 2), false, debug, Integer.MAX_VALUE, 1);
 		}
 
 		public AStarWithMarkingSplit(boolean moveSort, int nThreads, boolean useInt, int initialBins, Debug debug,
