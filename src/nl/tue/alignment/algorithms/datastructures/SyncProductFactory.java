@@ -283,13 +283,13 @@ public class SyncProductFactory {
 
 	}
 
-	public SyncProduct getSyncProductForEmptyTrace(List<Transition> transitionList) {
+	public synchronized SyncProduct getSyncProductForEmptyTrace(List<Transition> transitionList) {
 		XTrace et = XFactoryRegistry.instance().currentDefault().createTrace();
 		XConceptExtension.instance().assignName(et, "Empty");
 		return getSyncProduct(et, transitionList);
 	}
 
-	public SyncProduct getSyncProduct(XTrace trace, List<Transition> transitionList) {
+	public synchronized SyncProduct getSyncProduct(XTrace trace, List<Transition> transitionList) {
 		transitionList.clear();
 		// for this trace, compute the log-moves
 		// compute the sync moves

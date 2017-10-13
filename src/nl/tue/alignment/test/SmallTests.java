@@ -394,7 +394,7 @@ public class SmallTests {
 		boolean moveSort = true; // moveSort on total order
 		boolean queueSort = true; // queue sorted "depth-first"
 		boolean preferExact = true; // prefer Exact solution
-		boolean multiThread = false; // do multithreading
+		int multiThread = 1; // do multithreading
 		boolean useInt = false; //  use Integer
 
 		if (dijkstra) {

@@ -4,8 +4,14 @@ import gnu.trove.map.TObjectIntMap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.AStar;
@@ -32,6 +38,33 @@ import org.processmining.plugins.petrinet.replayresult.StepTypes;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
 public class Replayer {
+
+	private class TraceReplay implements Callable<SyncReplayResult> {
+
+		private final XTrace trace;
+		private final int traceIndex;
+		private final int timeoutMilliseconds;
+
+		public TraceReplay(XTrace trace, int traceIndex, int timeoutMilliseconds) {
+			this.trace = trace;
+			this.traceIndex = traceIndex;
+			this.timeoutMilliseconds = timeoutMilliseconds;
+		}
+
+		public SyncReplayResult call() throws LPMatrixException {
+			List<Transition> transitionList = new ArrayList<Transition>();
+			SyncProduct product = factory.getSyncProduct(trace, transitionList);
+			if (product != null) {
+				ReplayAlgorithm algorithm = getAlgorithm(product);
+				short[] alignment = algorithm.run(timeoutMilliseconds);
+				TObjectIntMap<Statistic> stats = algorithm.getStatistics(alignment);
+				SyncReplayResult srr = toSyncReplayResult(product, stats, alignment, trace, traceIndex, transitionList);
+				return srr;
+			}
+			return null;
+		}
+
+	}
 
 	public static enum Algorithm {
 		DIJKSTRA, ASTAR, ASTARWITHMARKINGSPLIT;
@@ -101,7 +134,7 @@ public class Replayer {
 		factory = new SyncProductFactory(net, classes, mapping, costMM, costLM, costSM, initialMarking, finalMarking);
 	}
 
-	public PNRepResult computePNRepResult() throws LPMatrixException {
+	public PNRepResult computePNRepResult() throws LPMatrixException, InterruptedException, ExecutionException {
 
 		//TODO: Detect previously computed cases as duplicates when the traces are equal as sequences of classifiers.
 
@@ -121,7 +154,6 @@ public class Replayer {
 		// compute timeout per trace
 		int timeoutMilliseconds = (int) ((10.0 * parameters.timeoutMilliseconds) / (log.size() + 1));
 		timeoutMilliseconds = Math.min(timeoutMilliseconds, parameters.timeoutMilliseconds);
-		long start = System.currentTimeMillis();
 
 		int maxModelMoveCost = 0;
 		if (product != null) {
@@ -131,46 +163,50 @@ public class Replayer {
 			maxModelMoveCost = stats.get(Statistic.COST);
 		}
 
+		ExecutorService service;
+		if (parameters.algorithm == Algorithm.ASTAR) {
+			// multi-threading is handled inside ASTAR
+			service = Executors.newFixedThreadPool(1);
+		} else {
+			service = Executors.newFixedThreadPool(parameters.nThreads);
+		}
+		List<Future<SyncReplayResult>> resultList = new ArrayList<>();
+
 		int t = 0;
 		for (XTrace trace : log) {
-			timeoutMilliseconds = (int) ((10.0 * (parameters.timeoutMilliseconds - (System.currentTimeMillis() - start))) / (log
-					.size() - t));
-			timeoutMilliseconds = Math.min(timeoutMilliseconds, parameters.timeoutMilliseconds);
 			//			System.out.println(t + " time left "
 			//					+ (parameters.timeoutMilliseconds - (System.currentTimeMillis() - start)) + " ms for "
 			//					+ (log.size() - t) + " traces. Timout set to " + timeoutMilliseconds + " ms.");
-			SyncReplayResult srr = getSyncReplayResultForTrace(trace, t, transitionList, timeoutMilliseconds);
+			TraceReplay c = new TraceReplay(trace, t, timeoutMilliseconds);
 
+			resultList.add(service.submit(c));
+
+			t++;
+		}
+
+		Iterator<Future<SyncReplayResult>> itResult = resultList.iterator();
+		Iterator<XTrace> itTrace = log.iterator();
+		while (itResult.hasNext()) {
+			SyncReplayResult srr = itResult.next().get();
+			itResult.remove();
 			if (srr != null) {
-				int traceCost = getTraceCost(trace);
+				int traceCost = getTraceCost(itTrace.next());
 				srr.addInfo(PNRepResult.TRACEFITNESS,
 						1 - (srr.getInfo().get(PNRepResult.RAWFITNESSCOST) / (maxModelMoveCost + traceCost)));
 				result.add(srr);
+			} else {
+				itTrace.next();
 			}
-			t++;
-
 		}
+
 		return new PNRepResultImpl(result);
-	}
-
-	public SyncReplayResult getSyncReplayResultForTrace(XTrace trace, int traceIndex, List<Transition> transitionList,
-			int timeoutMilliseconds) throws LPMatrixException {
-		SyncProduct product = factory.getSyncProduct(trace, transitionList);
-		if (product != null) {
-			ReplayAlgorithm algorithm = getAlgorithm(product);
-			short[] alignment = algorithm.run(timeoutMilliseconds);
-			TObjectIntMap<Statistic> stats = algorithm.getStatistics(alignment);
-			SyncReplayResult srr = toSyncReplayResult(product, stats, alignment, trace, traceIndex, transitionList);
-			return srr;
-		}
-		return null;
 	}
 
 	private ReplayAlgorithm getAlgorithm(SyncProduct product) throws LPMatrixException {
 		switch (parameters.algorithm) {
 			case ASTAR :
 				return new AStar(product, parameters.moveSort, parameters.queueSort, parameters.preferExact,//
-						parameters.useInt, parameters.multiThread, parameters.debug);
+						parameters.useInt, parameters.nThreads, parameters.debug);
 			case ASTARWITHMARKINGSPLIT :
 				return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.intialBins,
 						parameters.debug);
@@ -189,7 +225,7 @@ public class Replayer {
 		return cost;
 	}
 
-	private SyncReplayResult toSyncReplayResult(SyncProduct product, TObjectIntMap<Statistic> statistics,
+	private synchronized SyncReplayResult toSyncReplayResult(SyncProduct product, TObjectIntMap<Statistic> statistics,
 			short[] alignment, XTrace trace, int traceIndex, List<Transition> transitionList) {
 		List<Object> nodeInstance = new ArrayList<>(alignment.length);
 		List<StepTypes> stepTypes = new ArrayList<>(alignment.length);

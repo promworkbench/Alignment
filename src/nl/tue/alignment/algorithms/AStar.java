@@ -125,18 +125,18 @@ public class AStar extends ReplayAlgorithm {
 	private LPProblemProvider provider;
 	private LpSolve solver;
 
-	private final boolean doMultiThreading;
+	private final int numberOfThreads;
 
 	private LPSOLVE matrix;
 
 	public AStar(SyncProduct product) throws LPMatrixException {
-		this(product, true, true, true, false, false, Debug.NONE);
+		this(product, true, true, true, false, 1, Debug.NONE);
 	}
 
 	public AStar(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact,
-			boolean isInteger, boolean doMultiThreading, Debug debug) throws LPMatrixException {
-		super(product, moveSorting, queueSorting, preferExact, doMultiThreading, debug);
-		this.doMultiThreading = doMultiThreading;
+			boolean isInteger, int numberOfThreads, Debug debug) throws LPMatrixException {
+		super(product, moveSorting, queueSorting, preferExact, numberOfThreads > 1, debug);
+		this.numberOfThreads = numberOfThreads;
 		//		this.numRows = net.numPlaces();
 		matrix = new LPMatrix.SPARSE.LPSOLVE(net.numPlaces(), net.numTransitions());
 
@@ -187,16 +187,13 @@ public class AStar extends ReplayAlgorithm {
 
 	@Override
 	protected void initializeIteration() throws LPMatrixException {
-		int monitorThreads;
 		try {
 			solver = matrix.toSolver();
-			if (doMultiThreading) {
-				monitorThreads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
-				provider = new LPProblemProvider(solver.copyLp(), monitorThreads);
-				threadpool = Executors.newFixedThreadPool(monitorThreads);
+			if (numberOfThreads > 1) {
+				provider = new LPProblemProvider(solver.copyLp(), numberOfThreads);
+				threadpool = Executors.newFixedThreadPool(numberOfThreads);
 
 			} else {
-				monitorThreads = 0;
 				provider = null;
 				threadpool = null;
 			}
@@ -206,7 +203,7 @@ public class AStar extends ReplayAlgorithm {
 		// bytes for solver
 		bytesUsed = matrix.bytesUsed();
 		// bytes for solvers inside monitorthreads
-		bytesUsed += matrix.bytesUsed() * monitorThreads;
+		bytesUsed += matrix.bytesUsed() * numberOfThreads;
 		//		numCols = net.numTransitions() + 1;
 		varsMainThread = new double[net.numTransitions()];
 		tempForSettingSolution = new int[net.numTransitions()];
@@ -216,7 +213,7 @@ public class AStar extends ReplayAlgorithm {
 	@Override
 	protected void growArrays() {
 		super.growArrays();
-		if (doMultiThreading) {
+		if (numberOfThreads > 1) {
 			threadpool.submit(new BlockMonitor(block, net.numTransitions()));
 		}
 	}
@@ -547,7 +544,7 @@ public class AStar extends ReplayAlgorithm {
 		try {
 			super.terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
 		} finally {
-			if (doMultiThreading && !threadpool.isShutdown()) {
+			if (numberOfThreads > 1 && !threadpool.isShutdown()) {
 				threadpool.shutdown();
 				//				System.out.println("Threadpool shutdown upon termination of run.");
 				do {

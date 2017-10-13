@@ -81,7 +81,7 @@ public abstract class ReplayAlgorithm {
 
 		DOT {
 			@Override
-			public void writeMarkingReached(ReplayAlgorithm algorithm, int marking, String extra) {
+			public synchronized void writeMarkingReached(ReplayAlgorithm algorithm, int marking, String extra) {
 				int heur = algorithm.getHScore(marking);
 				StringBuilder b = new StringBuilder();
 				b.append("i" + algorithm.iteration);
@@ -114,8 +114,8 @@ public abstract class ReplayAlgorithm {
 			}
 
 			@Override
-			public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition, int toMarking,
-					String extra) {
+			public synchronized void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition,
+					int toMarking, String extra) {
 				StringBuilder b = new StringBuilder();
 				b.append("i" + algorithm.iteration);
 				b.append("m");
@@ -162,40 +162,41 @@ public abstract class ReplayAlgorithm {
 		private static String EMPTY = "";
 		private static PrintStream output = System.out;
 
-		public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition, int toMarking,
-				String extra) {
+		public synchronized void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition,
+				int toMarking, String extra) {
 		}
 
-		public void writeMarkingReached(ReplayAlgorithm algorithm, int marking, String extra) {
+		public synchronized void writeMarkingReached(ReplayAlgorithm algorithm, int marking, String extra) {
 		}
 
-		public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition, int toMarking) {
+		public synchronized void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition,
+				int toMarking) {
 			this.writeEdgeTraversed(algorithm, fromMarking, transition, toMarking, EMPTY);
 		}
 
-		public void writeMarkingReached(ReplayAlgorithm algorithm, int marking) {
+		public synchronized void writeMarkingReached(ReplayAlgorithm algorithm, int marking) {
 			this.writeMarkingReached(algorithm, marking, EMPTY);
 		}
 
-		public void println(Debug db, String s) {
+		public synchronized void println(Debug db, String s) {
 			if (this == db) {
 				output.println(s);
 			}
 		}
 
-		public void println(Debug db) {
+		public synchronized void println(Debug db) {
 			if (this == db) {
 				output.println();
 			}
 		}
 
-		public void print(Debug db, String s) {
+		public synchronized void print(Debug db, String s) {
 			if (this == db) {
 				output.print(s);
 			}
 		}
 
-		public static void setOutputStream(PrintStream out) {
+		public synchronized static void setOutputStream(PrintStream out) {
 			output = out;
 		}
 	}
