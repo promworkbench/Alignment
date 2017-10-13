@@ -375,7 +375,6 @@ public abstract class ReplayAlgorithm {
 		map.put(Utils.Statistic.LMCOST, getCostForType(alignment, SyncProduct.LOG_MOVE, SyncProduct.LOG_MOVE));
 		map.put(Utils.Statistic.MMCOST, getCostForType(alignment, SyncProduct.MODEL_MOVE, SyncProduct.TAU_MOVE));
 		map.put(Utils.Statistic.SMCOST, getCostForType(alignment, SyncProduct.SYNC_MOVE, SyncProduct.SYNC_MOVE));
-
 		map.put(Utils.Statistic.MEMORYUSED, (int) (getEstimatedMemorySize() / 1024));
 		return map;
 	}
@@ -460,9 +459,16 @@ public abstract class ReplayAlgorithm {
 				alignmentResult &= ~Utils.OPTIMALALIGNMENT;
 				alignmentResult |= Utils.FAILEDALIGNMENT;
 				runTime = (int) ((System.nanoTime() - startTime) / 1000);
-				alignment = new short[0];
+				if (!queue.isEmpty()) {
+					alignment = handleFinalMarkingReached(startTime, queue.peek());
+				} else {
+					alignment = new short[0];
+				}
 				return alignment;
 			} finally {
+				if (System.currentTimeMillis() >= timeoutAtTimeInMillisecond) {
+					alignmentResult |= Utils.TIMEOUTREACHED;
+				}
 				terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
 			}
 		} while ((alignmentResult & Utils.OPTIMALALIGNMENT) == 0 && //

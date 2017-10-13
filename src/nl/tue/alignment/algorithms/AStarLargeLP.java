@@ -370,7 +370,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 			solver.defaultBasis();
 			// set timeout in seconds;
-			solver.setTimeout((timeoutAtTimeInMillisecond - System.currentTimeMillis()) / 1000);
+			long remainingTime = timeoutAtTimeInMillisecond - System.currentTimeMillis();
+			solver.setTimeout(Math.max(1, remainingTime) / 1000);
 			int solverResult = solver.solve();
 			synchronized (this) {
 				heuristicsComputed++;

@@ -18,6 +18,7 @@ public class Utils {
 	public static int ENABLINGBLOCKEDBYOUTPUT = 4;
 	public static int COSTFUNCTIONOVERFLOW = 8;
 	public static int HEURISTICFUNCTIONOVERFLOW = 16;
+	public static int TIMEOUTREACHED = 32;
 
 	/**
 	 * Default block size determines how many bytes are reserved top store

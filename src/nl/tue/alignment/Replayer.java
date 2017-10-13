@@ -119,7 +119,8 @@ public class Replayer {
 		SyncProduct product = factory.getSyncProductForEmptyTrace(transitionList);
 
 		// compute timeout per trace
-		int timeoutMilliseconds = (int) ((2.0 * parameters.timeoutMilliseconds) / (log.size() + 1));
+		int timeoutMilliseconds = (int) ((10.0 * parameters.timeoutMilliseconds) / (log.size() + 1));
+		timeoutMilliseconds = Math.min(timeoutMilliseconds, parameters.timeoutMilliseconds);
 		long start = System.currentTimeMillis();
 
 		int maxModelMoveCost = 0;
@@ -132,8 +133,12 @@ public class Replayer {
 
 		int t = 0;
 		for (XTrace trace : log) {
-			timeoutMilliseconds = (int) ((2.0 * (parameters.timeoutMilliseconds - (System.currentTimeMillis() - start))) / (log
-					.size() + 1));
+			timeoutMilliseconds = (int) ((10.0 * (parameters.timeoutMilliseconds - (System.currentTimeMillis() - start))) / (log
+					.size() - t));
+			timeoutMilliseconds = Math.min(timeoutMilliseconds, parameters.timeoutMilliseconds);
+			//			System.out.println(t + " time left "
+			//					+ (parameters.timeoutMilliseconds - (System.currentTimeMillis() - start)) + " ms for "
+			//					+ (log.size() - t) + " traces. Timout set to " + timeoutMilliseconds + " ms.");
 			SyncReplayResult srr = getSyncReplayResultForTrace(trace, t, transitionList, timeoutMilliseconds);
 
 			if (srr != null) {

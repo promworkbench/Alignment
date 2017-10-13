@@ -242,7 +242,7 @@ public class AStar extends ReplayAlgorithm {
 			}
 
 			solver.defaultBasis();
-			solver.setTimeout((timeoutAtTimeInMillisecond - System.currentTimeMillis()) / 1000);
+			solver.setTimeout(Math.max(1, timeoutAtTimeInMillisecond - System.currentTimeMillis()) / 1000);
 			int solverResult = solver.solve();
 			synchronized (this) {
 				heuristicsComputed++;
