@@ -49,7 +49,7 @@ public class AlignmentTest {
 
 		Debug debug = Debug.STATS;
 
-		String[] names = new String[] { "sepsis" };//, "prAm6", "prBm6", "prCm6", "prDm6", "prEm6", "prFm6", "prGm6" };
+		String[] names = new String[] { "prCm6", "prDm6", "prEm6", "prFm6", "prGm6", "sepsis", "prAm6", "prBm6" };
 		for (String name : names) {
 
 			PetrinetGraph net = constructNet("d:/temp/alignment/" + name + "/" + name + ".pnml");
@@ -84,7 +84,11 @@ public class AlignmentTest {
 			}
 			ReplayAlgorithm.Debug.setOutputStream(stream);
 
-			ReplayerParameters parameters = new ReplayerParameters.AStarWithMarkingSplit(false, false, debug);
+			// timeout 60 minutes
+			int timeout = 60 * 60 * 1000;
+			int initBins = 1;
+			ReplayerParameters parameters = new ReplayerParameters.AStarWithMarkingSplit(false, false, initBins, debug,
+					timeout);
 			//			ReplayerParameters parameters = new ReplayerParameters.AStar(true, true, true, true, false, Debug.STATS);
 
 			Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, log, classes,

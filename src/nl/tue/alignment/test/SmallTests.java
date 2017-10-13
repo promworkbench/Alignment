@@ -1,14 +1,11 @@
 package nl.tue.alignment.test;
 
-import gnu.trove.map.TObjectIntMap;
-
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.Arrays;
 
 import lpsolve.LpSolve;
 import nl.tue.alignment.Utils;
-import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.AStar;
 import nl.tue.alignment.algorithms.AStarLargeLP;
 import nl.tue.alignment.algorithms.Dijkstra;
@@ -384,95 +381,6 @@ public class SmallTests {
 		//		testSingleGraph(new NastySyncProductExample(), Debug.DOT);
 	}
 
-	public static void doExperiment(SyncProduct net) throws LPMatrixException {
-
-		ReplayAlgorithm algorithm;
-		// initialize LpSolve
-		LpSolve.lpSolveVersion();
-		// initialize relevant classloader
-		algorithm = new AStar(net, //
-				false, // moveSort on total order
-				false, // queue sorted "depth-first"
-				false, // prefer Exact solution
-				false, // use Integer
-				false, // do multithreading
-				Debug.NORMAL // debug mode
-		);
-
-		System.out.print("Type" + SEP + "Move Sorting" + SEP + "Queue Sorting" + SEP + "Prefer Exact" + SEP
-				+ "use Int for LP" + SEP);
-		System.out.println(toString(Statistic.values()));
-		for (boolean dijkstra : new boolean[] { false }) {
-			for (boolean moveSort : new boolean[] { false, true }) {
-				for (boolean queueSort : new boolean[] { true, false }) {
-					if (!dijkstra) {
-						for (boolean preferExact : new boolean[] { true }) {
-							for (boolean useInt : new boolean[] { false, true }) {
-								System.out.print((dijkstra ? "Dijkstra" : "A star  "));
-								System.out.print(SEP);
-								System.out.print(moveSort);
-								System.out.print(SEP);
-								System.out.print(queueSort);
-								System.out.print(SEP);
-								System.out.print(preferExact);
-								System.out.print(SEP);
-								System.out.print(useInt);
-								System.out.print(SEP);
-								algorithm = new AStar(net, //
-										moveSort, // moveSort on total order
-										queueSort, // queue sorted "depth-first"
-										preferExact, // prefer Exact solution
-										useInt, //  use Integer
-										true, // do multithreading
-										Debug.NONE // debug mode
-								);
-								try {
-									algorithm.run();
-								} catch (Exception e) {
-
-								}
-								TObjectIntMap<Statistic> map = algorithm.getStatistics();
-								for (Statistic s : Statistic.values()) {
-									System.out.print(map.get(s));
-									System.out.print(SEP);
-								}
-								System.out.println();
-							}
-						}
-					} else {
-						System.out.print((dijkstra ? "Dijkstra" : "A star"));
-						System.out.print(SEP);
-						System.out.print(moveSort);
-						System.out.print(SEP);
-						System.out.print(queueSort);
-						System.out.print(SEP);
-						System.out.print("-");
-						System.out.print(SEP);
-						System.out.print("-");
-						System.out.print(SEP);
-						algorithm = new Dijkstra(net, //
-								moveSort, // moveSort on total order
-								queueSort, // queue sorted "depth-first"
-								Debug.NONE // debug mode
-						);
-						try {
-							algorithm.run();
-						} catch (Exception e) {
-
-						}
-						TObjectIntMap<Statistic> map = algorithm.getStatistics();
-						for (Statistic s : Statistic.values()) {
-							System.out.print(map.get(s));
-							System.out.print(SEP);
-						}
-						System.out.println();
-
-					}
-				}
-			}
-		}
-	}
-
 	public static short[] testSingleGraph(SyncProduct net, Debug debug) throws LPMatrixException {
 
 		ReplayAlgorithm algorithm;
@@ -499,6 +407,7 @@ public class SmallTests {
 			algorithm = new AStarLargeLP(net, //
 					moveSort, // moveSort on total order
 					useInt, // use Integers
+					10, // number of bins
 					debug // debug mode
 			);
 
@@ -514,7 +423,7 @@ public class SmallTests {
 		}
 
 		try {
-			return algorithm.run();
+			return algorithm.run(Integer.MAX_VALUE);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -524,20 +433,4 @@ public class SmallTests {
 		//		}
 	}
 
-	private static String toString(Object[] a) {
-		if (a == null)
-			return "null";
-
-		int iMax = a.length - 1;
-		if (iMax == -1)
-			return "";
-
-		StringBuilder b = new StringBuilder();
-		for (int i = 0;; i++) {
-			b.append(String.valueOf(a[i]));
-			if (i == iMax)
-				return b.toString();
-			b.append(SEP);
-		}
-	}
 }

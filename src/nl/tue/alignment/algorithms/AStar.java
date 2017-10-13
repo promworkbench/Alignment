@@ -242,6 +242,7 @@ public class AStar extends ReplayAlgorithm {
 			}
 
 			solver.defaultBasis();
+			solver.setTimeout((timeoutAtTimeInMillisecond - System.currentTimeMillis()) / 1000);
 			int solverResult = solver.solve();
 			synchronized (this) {
 				heuristicsComputed++;
@@ -493,15 +494,15 @@ public class AStar extends ReplayAlgorithm {
 	}
 
 	@Override
-	public TObjectIntMap<Utils.Statistic> getStatistics() {
-		TObjectIntMap<Statistic> map = super.getStatistics();
+	public TObjectIntMap<Utils.Statistic> getStatistics(short[] alignment) {
+		TObjectIntMap<Statistic> map = super.getStatistics(alignment);
 		map.put(Statistic.HEURISTICTIME, (int) (solveTime / 1000));
 		return map;
 	}
 
 	@Override
 	protected void writeEndOfAlignmentDot(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
-		TObjectIntMap<Statistic> map = getStatistics();
+		TObjectIntMap<Statistic> map = getStatistics(alignment);
 		for (int m = 0; m < markingsReached; m++) {
 			if (!isClosed(m)) {
 				if (isDerivedLpSolution(m)) {

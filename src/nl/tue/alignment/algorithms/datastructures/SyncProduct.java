@@ -27,6 +27,13 @@ public interface SyncProduct {
 	public short numPlaces();
 
 	/**
+	 * The number of events in the trace
+	 * 
+	 * @return
+	 */
+	public short numEvents();
+
+	/**
 	 * Returns a sorted array of places serving as input to transition t
 	 * 
 	 * @param transition
@@ -100,8 +107,9 @@ public interface SyncProduct {
 
 	/**
 	 * returns the event number associated with this transitions. Events are
-	 * assumed numbered 0..n and for model-move transitions, this method returns
-	 * NOEVENT (getTypeOf should then return MODEL_MOVE or TAU_MOVE)
+	 * assumed numbered 0..(getNumEvents()-1) and for model-move transitions,
+	 * this method returns NOEVENT (getTypeOf should then return MODEL_MOVE or
+	 * TAU_MOVE)
 	 * 
 	 * @param transition
 	 * @return

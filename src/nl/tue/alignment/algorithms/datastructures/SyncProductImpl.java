@@ -26,26 +26,28 @@ public class SyncProductImpl implements SyncProduct {
 
 	private final byte[] types;
 
-	public SyncProductImpl(String label, short numTrans, short numPlaces) {
-		if (numTrans > MAXTRANS) {
-			throw new RuntimeException("More than " + MAXTRANS + " transitions in a synchronous product is not allowed");
-		}
-		this.label = label;
-		this.transitions = new String[numTrans];
-		this.cost = new int[numTrans];
-		this.types = new byte[numTrans];
+	private final short numEvents;
 
-		this.places = new String[numTrans];
-
-		input = new short[numTransitions()][];
-		output = new short[numTransitions()][];
-		eventNumbers = new short[numTrans];
-		Arrays.fill(eventNumbers, (short) -1);
-
-		initMarking = new byte[numPlaces()];
-		finalMarking = new byte[numPlaces()];
-
-	}
+	//	public SyncProductImpl(String label, short numTrans, short numPlaces) {
+	//		if (numTrans > MAXTRANS) {
+	//			throw new RuntimeException("More than " + MAXTRANS + " transitions in a synchronous product is not allowed");
+	//		}
+	//		this.label = label;
+	//		this.transitions = new String[numTrans];
+	//		this.cost = new int[numTrans];
+	//		this.types = new byte[numTrans];
+	//
+	//		this.places = new String[numTrans];
+	//
+	//		input = new short[numTransitions()][];
+	//		output = new short[numTransitions()][];
+	//		eventNumbers = new short[numTrans];
+	//		Arrays.fill(eventNumbers, (short) -1);
+	//
+	//		initMarking = new byte[numPlaces()];
+	//		finalMarking = new byte[numPlaces()];
+	//
+	//	}
 
 	public SyncProductImpl(String label, String[] transitions, String[] places, short[] eventNumbers, byte[] types,
 			int[] cost) {
@@ -55,6 +57,14 @@ public class SyncProductImpl implements SyncProduct {
 		this.places = places;
 		this.types = types;
 		this.cost = cost;
+
+		short mx = 0;
+		for (int e = 0; e < eventNumbers.length; e++) {
+			if (eventNumbers[e] > mx) {
+				mx = eventNumbers[e];
+			}
+		}
+		this.numEvents = mx;
 
 		input = new short[numTransitions()][];
 		output = new short[numTransitions()][];
@@ -203,7 +213,6 @@ public class SyncProductImpl implements SyncProduct {
 		return label;
 	}
 
-
 	public short getEventOf(short transition) {
 		return eventNumbers[transition];
 	}
@@ -214,6 +223,10 @@ public class SyncProductImpl implements SyncProduct {
 
 	public byte getTypeOf(short transition) {
 		return types[transition];
+	}
+
+	public short numEvents() {
+		return numEvents;
 	}
 
 }

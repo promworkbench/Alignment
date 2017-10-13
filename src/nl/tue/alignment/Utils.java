@@ -39,6 +39,9 @@ public class Utils {
 	public enum Statistic {
 		EXITCODE("Exit code for alignment"), //
 		ALIGNMENTLENGTH("Length of the alignment found"), //
+		TRACELENGTH("Length of the orignal trace"), //
+		PLACES("Places in the synchronous product"), //
+		TRANSITIONS("Transtions in the synchronous product"), //
 		COST("Cost of the alignment"), //
 		EDGESTRAVERSED("Transitions fired"), //
 		POLLACTIONS("Markings polled from queue"), //
@@ -56,7 +59,10 @@ public class Utils {
 		HEURISTICTIME("Time to compute heuristics (us)"), //
 		SETUPTIME("Time to setup algorithm (us)"), //
 		TOTALTIME("Total Time including setup (us)"), //
-		SPLITS("Number of splits when splitting marking");
+		SPLITS("Number of splits when splitting marking"), //
+		LMCOST("Log move cost of alignment"), //
+		MMCOST("Model move cost of alignment"), //
+		SMCOST("Synchronous move cost of alignment");
 		private final String label;
 
 		private Statistic(String label) {
@@ -287,6 +293,5 @@ public class Utils {
 		stream.write(",shape=box];");
 		stream.write("\n");
 	}
-
 
 }

@@ -63,10 +63,10 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	private boolean useInteger;
 
 	public AStarLargeLP(SyncProduct product) {
-		this(product, false, false, Debug.NONE);
+		this(product, false, false, 1, Debug.NONE);
 	}
 
-	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug) {
+	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, int initialBins, Debug debug) {
 		super(product, moveSorting, true, true, false, debug);
 		this.product = product;
 		this.useInteger = useInteger;
@@ -93,7 +93,18 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			numEvents = 1;
 		}
 		//		splitpoints = new short[] { 0, 2, 4, (short) numEvents };
-		splitpoints = new short[] { 0, (short) numEvents };
+		splitpoints = new short[initialBins + 2];
+
+		int inc = Math.max(1, (int) Math.floor((1.0 * numEvents) / initialBins));
+		int i = 1;
+		for (; i < splitpoints.length && splitpoints[i - 1] < numEvents; i++) {
+			splitpoints[i] = (short) (splitpoints[i - 1] + inc);
+		}
+		splitpoints[i - 1] = (short) numEvents;
+		if (i < splitpoints.length) {
+			// truncate to size
+			splitpoints = Arrays.copyOf(splitpoints, i);
+		}
 
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
@@ -121,126 +132,23 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			solver.setAddRowmode(false);
 
 			double[] col = new double[1 + rows];
-			short[] input, output;
 			int c = 0;
 
-			TShortIterator it;
 			int start = 1;
 			for (int s = 1; s < splitpoints.length; s++) {
 				// add model moves in this block (if any)
-				if (trans2LSMove.get(SyncProduct.NOEVENT) != null) {
-					it = trans2LSMove.get(SyncProduct.NOEVENT).iterator();
-					// first the model moves in this block
-					while (it.hasNext()) {
-						Arrays.fill(col, 0);
-						short t = it.next();
-						input = product.getInput(t);
-						for (int i = 0; i < input.length; i++) {
-							for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
-								col[p] -= 1;
-								coefficients++;
-							}
-						}
-						output = product.getOutput(t);
-						for (int i = 0; i < output.length; i++) {
-							for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
-								col[p] += 1;
-								coefficients++;
-							}
-						}
-						solver.addColumn(col);
-						indexMap[c] = t;
-						c++;
-						solver.setLowbo(c, 0);
-						coefficients++;
-						solver.setUpbo(c, 255);
-						coefficients++;
-						solver.setInt(c, useInteger);
-						solver.setObj(c, product.getCost(t));
-						coefficients++;
-					} // for all modelMoves
-				} // if modelMoves
+				c = addModelMovesToSolver(col, c, start);
 
 				//add log and sync moves in this block.
-				for (short e = splitpoints[s - 1]; e < splitpoints[s]; e++) {
-					if (trans2LSMove.get(e) != null) {
-						it = trans2LSMove.get(e).iterator();
-						while (it.hasNext()) {
-							Arrays.fill(col, 0);
-							short t = it.next();
-							input = product.getInput(t);
-							for (int i = 0; i < input.length; i++) {
-								for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
-									col[p] -= 1;
-									coefficients++;
-								}
-							}
-							output = product.getOutput(t);
-							for (int i = 0; i < output.length; i++) {
-								//								if (splitpoints[s] - splitpoints[s - 1] > 1) {
-								if (e < splitpoints[s] - 1) {
-									for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
-										col[p] += 1;
-										coefficients++;
-									}
-								} else {
-									for (int p = start + product.numPlaces() + output[i]; p < col.length; p += product
-											.numPlaces()) {
-										col[p] += 1;
-										coefficients++;
-									}
-								}
-							}
-							solver.addColumn(col);
-							indexMap[c] = t;
-							c++;
-							solver.setLowbo(c, 0);
-							coefficients++;
-							solver.setUpbo(c, 1);
-							coefficients++;
-							solver.setInt(c, useInteger);
-							solver.setObj(c, product.getCost(t));
-							coefficients++;
-						} // for all sync/log moves
-					} // if sync/logMoves
+				for (short e = splitpoints[s - 1]; e < splitpoints[s] - 1; e++) {
+					c = addLogAndSyncMovesToSolver(col, c, start, e, true);
 				}
+				c = addLogAndSyncMovesToSolver(col, c, start, (short) (splitpoints[s] - 1), false);
 				start += product.numPlaces();
 			}
 
-			if (trans2LSMove.get(SyncProduct.NOEVENT) != null) {
-				it = trans2LSMove.get(SyncProduct.NOEVENT).iterator();
-				// first the model moves in this block
-				while (it.hasNext()) {
-					Arrays.fill(col, 0);
-					short t = it.next();
-					input = product.getInput(t);
-					for (int i = 0; i < input.length; i++) {
-						for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
-							col[p] -= 1;
-							coefficients++;
-						}
-					}
-					output = product.getOutput(t);
-					for (int i = 0; i < output.length; i++) {
-						for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
-							col[p] += 1;
-							coefficients++;
-						}
-					}
-					solver.addColumn(col);
-					indexMap[c] = t;
-					c++;
-					solver.setLowbo(c, 0);
-					coefficients++;
-					solver.setUpbo(c, 255);
-					coefficients++;
-					solver.setInt(c, useInteger);
-					solver.setObj(c, product.getCost(t));
-					coefficients++;
-				} // for all modelMoves
-			} // if modelMoves
+			c = addModelMovesToSolver(col, c, start);
 
-			
 			int r;
 			for (r = 1; r <= rows - product.numPlaces(); r++) {
 				solver.setConstrType(r, LpSolve.GE);
@@ -284,6 +192,90 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		varsMainThread = new double[indexMap.length];
 		tempForSettingSolutionDouble = new double[net.numTransitions()];
 
+	}
+
+	protected int addLogAndSyncMovesToSolver(double[] col, int c, int start, short e, boolean full)
+			throws LpSolveException {
+		short[] input;
+		short[] output;
+		if (trans2LSMove.get(e) != null) {
+			TShortIterator it = trans2LSMove.get(e).iterator();
+			while (it.hasNext()) {
+				Arrays.fill(col, 0);
+				short t = it.next();
+				input = product.getInput(t);
+				for (int i = 0; i < input.length; i++) {
+					for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
+						col[p] -= 1;
+						coefficients++;
+					}
+				}
+				output = product.getOutput(t);
+				for (int i = 0; i < output.length; i++) {
+					//								if (splitpoints[s] - splitpoints[s - 1] > 1) {
+					if (full) {
+						for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
+							col[p] += 1;
+							coefficients++;
+						}
+					} else {
+						for (int p = start + product.numPlaces() + output[i]; p < col.length; p += product.numPlaces()) {
+							col[p] += 1;
+							coefficients++;
+						}
+					}
+				}
+				solver.addColumn(col);
+				indexMap[c] = t;
+				c++;
+				solver.setLowbo(c, 0);
+				coefficients++;
+				solver.setUpbo(c, 1);
+				coefficients++;
+				solver.setInt(c, useInteger);
+				solver.setObj(c, product.getCost(t));
+				coefficients++;
+			} // for all sync/log moves
+		} // if sync/logMoves
+		return c;
+	}
+
+	protected int addModelMovesToSolver(double[] col, int c, int start) throws LpSolveException {
+		short[] input;
+		short[] output;
+		if (trans2LSMove.get(SyncProduct.NOEVENT) != null) {
+			TShortIterator it = trans2LSMove.get(SyncProduct.NOEVENT).iterator();
+			// first the model moves in this block
+			while (it.hasNext()) {
+				Arrays.fill(col, 0);
+				short t = it.next();
+				input = product.getInput(t);
+				for (int i = 0; i < input.length; i++) {
+					for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
+						col[p] -= 1;
+						coefficients++;
+					}
+				}
+				output = product.getOutput(t);
+				for (int i = 0; i < output.length; i++) {
+					for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
+						col[p] += 1;
+						coefficients++;
+					}
+				}
+				solver.addColumn(col);
+				indexMap[c] = t;
+				c++;
+				solver.setLowbo(c, 0);
+				coefficients++;
+				solver.setUpbo(c, 255);
+				coefficients++;
+				solver.setInt(c, useInteger);
+				solver.setObj(c, product.getCost(t));
+				coefficients++;
+			} // for all modelMoves
+		} // if modelMoves
+		return c;
 	}
 
 	@Override
@@ -377,6 +369,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			}
 
 			solver.defaultBasis();
+			// set timeout in seconds;
+			solver.setTimeout((timeoutAtTimeInMillisecond - System.currentTimeMillis()) / 1000);
 			int solverResult = solver.solve();
 			synchronized (this) {
 				heuristicsComputed++;
@@ -623,8 +617,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	@Override
-	public TObjectIntMap<Utils.Statistic> getStatistics() {
-		TObjectIntMap<Statistic> map = super.getStatistics();
+	public TObjectIntMap<Utils.Statistic> getStatistics(short[] alignment) {
+		TObjectIntMap<Statistic> map = super.getStatistics(alignment);
 		map.put(Statistic.HEURISTICTIME, (int) (solveTime / 1000));
 		map.put(Statistic.SPLITS, splits);
 		return map;
@@ -632,7 +626,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 	@Override
 	protected void writeEndOfAlignmentDot(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
-		TObjectIntMap<Statistic> map = getStatistics();
+		TObjectIntMap<Statistic> map = getStatistics(alignment);
 		for (int m = 0; m < markingsReachedInRun; m++) {
 			if (!isClosed(m)) {
 				if (isDerivedLpSolution(m)) {

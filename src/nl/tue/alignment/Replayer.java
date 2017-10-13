@@ -43,6 +43,7 @@ public class Replayer {
 	private final SyncProductFactory factory;
 	private final XEventClasses classes;
 	private Map<Transition, Integer> costMM;
+	private int debug;
 
 	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log, XEventClasses classes,
 			Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
@@ -106,16 +107,9 @@ public class Replayer {
 
 		if (parameters.debug == Debug.STATS) {
 			parameters.debug.print(Debug.STATS, "SP:name");
-			parameters.debug.print(Debug.STATS, ",SP:transitions");
-			parameters.debug.print(Debug.STATS, ",SP:places");
 			for (Statistic s : Statistic.values()) {
 				parameters.debug.print(Debug.STATS, ",ST:" + s);
 			}
-			parameters.debug.print(Debug.STATS, ",A:length");
-			parameters.debug.print(Debug.STATS, ",A:LMcost");
-			parameters.debug.print(Debug.STATS, ",A:MMcost");
-			parameters.debug.print(Debug.STATS, ",A:SMcost");
-			parameters.debug.print(Debug.STATS, ",ALIGNMENT");
 			parameters.debug.println(Debug.STATS);
 
 		}
@@ -124,17 +118,23 @@ public class Replayer {
 		List<Transition> transitionList = new ArrayList<>();
 		SyncProduct product = factory.getSyncProductForEmptyTrace(transitionList);
 
+		// compute timeout per trace
+		int timeoutMilliseconds = (int) ((2.0 * parameters.timeoutMilliseconds) / (log.size() + 1));
+		long start = System.currentTimeMillis();
+
 		int maxModelMoveCost = 0;
 		if (product != null) {
 			ReplayAlgorithm algorithm = getAlgorithm(product);
-			algorithm.run();
-			TObjectIntMap<Statistic> stats = algorithm.getStatistics();
+			short[] alignment = algorithm.run(timeoutMilliseconds);
+			TObjectIntMap<Statistic> stats = algorithm.getStatistics(alignment);
 			maxModelMoveCost = stats.get(Statistic.COST);
 		}
 
 		int t = 0;
 		for (XTrace trace : log) {
-			SyncReplayResult srr = getSyncReplayResultForTrace(trace, t, transitionList);
+			timeoutMilliseconds = (int) ((2.0 * (parameters.timeoutMilliseconds - (System.currentTimeMillis() - start))) / (log
+					.size() + 1));
+			SyncReplayResult srr = getSyncReplayResultForTrace(trace, t, transitionList, timeoutMilliseconds);
 
 			if (srr != null) {
 				int traceCost = getTraceCost(trace);
@@ -148,13 +148,13 @@ public class Replayer {
 		return new PNRepResultImpl(result);
 	}
 
-	public SyncReplayResult getSyncReplayResultForTrace(XTrace trace, int traceIndex, List<Transition> transitionList)
-			throws LPMatrixException {
+	public SyncReplayResult getSyncReplayResultForTrace(XTrace trace, int traceIndex, List<Transition> transitionList,
+			int timeoutMilliseconds) throws LPMatrixException {
 		SyncProduct product = factory.getSyncProduct(trace, transitionList);
 		if (product != null) {
 			ReplayAlgorithm algorithm = getAlgorithm(product);
-			short[] alignment = algorithm.run();
-			TObjectIntMap<Statistic> stats = algorithm.getStatistics();
+			short[] alignment = algorithm.run(timeoutMilliseconds);
+			TObjectIntMap<Statistic> stats = algorithm.getStatistics(alignment);
 			SyncReplayResult srr = toSyncReplayResult(product, stats, alignment, trace, traceIndex, transitionList);
 			return srr;
 		}
@@ -167,7 +167,8 @@ public class Replayer {
 				return new AStar(product, parameters.moveSort, parameters.queueSort, parameters.preferExact,//
 						parameters.useInt, parameters.multiThread, parameters.debug);
 			case ASTARWITHMARKINGSPLIT :
-				return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.debug);
+				return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.intialBins,
+						parameters.debug);
 			case DIJKSTRA :
 				return new Dijkstra(product, parameters.moveSort, parameters.queueSort, parameters.debug);
 		}
