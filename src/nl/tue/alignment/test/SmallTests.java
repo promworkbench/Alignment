@@ -17,8 +17,6 @@ import nl.tue.astar.util.ilp.LPMatrixException;
 
 public class SmallTests {
 
-	private static char SEP = '\t';
-
 	public static byte LM = SyncProduct.LOG_MOVE;
 	public static byte MM = SyncProduct.MODEL_MOVE;
 	public static byte SM = SyncProduct.SYNC_MOVE;

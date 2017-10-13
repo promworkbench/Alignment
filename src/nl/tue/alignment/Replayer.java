@@ -86,7 +86,6 @@ public class Replayer {
 	private final SyncProductFactory factory;
 	private final XEventClasses classes;
 	private Map<Transition, Integer> costMM;
-	private int debug;
 
 	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log, XEventClasses classes,
 			Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
@@ -144,7 +143,7 @@ public class Replayer {
 		factory = new SyncProductFactory(net, classes, mapping, costMM, costLM, costSM, initialMarking, finalMarking);
 	}
 
-	public PNRepResult computePNRepResult() throws LPMatrixException, InterruptedException, ExecutionException {
+	public PNRepResult computePNRepResult() throws InterruptedException, ExecutionException {
 
 		//TODO: Detect previously computed cases as duplicates when the traces are equal as sequences of classifiers.
 
