@@ -51,11 +51,11 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	//	protected int numCols;
 	private short[] indexMap;
 
-	private final TShortObjectMap<TShortList> trans2LSMove = new TShortObjectHashMap<>();
+	private final TShortObjectMap<TShortList> rank2LSMove = new TShortObjectHashMap<>();
 
 	private LpSolve solver;
 
-	private int numEvents;
+	private int numRanks;
 
 	private int modelMoves;
 
@@ -71,36 +71,36 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		this.product = product;
 		this.useInteger = useInteger;
 
-		trans2LSMove.put(SyncProduct.NOEVENT, new TShortArrayList(10));
-		numEvents = -1;
+		rank2LSMove.put(SyncProduct.NORANK, new TShortArrayList(10));
+		numRanks = -1;
 		TShortList set;
 		for (short t = 0; t < product.numTransitions(); t++) {
-			short e = product.getEventOf(t);
-			set = trans2LSMove.get(e);
+			short r = product.getRankOf(t);
+			set = rank2LSMove.get(r);
 			if (set == null) {
 				set = new TShortArrayList(3);
-				trans2LSMove.put(e, set);
+				rank2LSMove.put(r, set);
 			}
 			set.add(t);
-			if (product.getEventOf(t) > numEvents) {
-				numEvents = product.getEventOf(t);
+			if (product.getRankOf(t) > numRanks) {
+				numRanks = product.getRankOf(t);
 			}
 		}
-		modelMoves = trans2LSMove.get(SyncProduct.NOEVENT).size();
-		numEvents++;
-		if (numEvents == 0) {
+		modelMoves = rank2LSMove.get(SyncProduct.NORANK).size();
+		numRanks++;
+		if (numRanks == 0) {
 			// ensure model is not empty for empty trace
-			numEvents = 1;
+			numRanks = 1;
 		}
 		//		splitpoints = new short[] { 0, 2, 4, (short) numEvents };
 		splitpoints = new short[initialBins + 2];
 
-		int inc = Math.max(1, (int) Math.floor((1.0 * numEvents) / initialBins));
+		int inc = Math.max(1, (int) Math.floor((1.0 * numRanks) / initialBins));
 		int i = 1;
-		for (; i < splitpoints.length && splitpoints[i - 1] < numEvents; i++) {
+		for (; i < splitpoints.length && splitpoints[i - 1] < numRanks; i++) {
 			splitpoints[i] = (short) (splitpoints[i - 1] + inc);
 		}
-		splitpoints[i - 1] = (short) numEvents;
+		splitpoints[i - 1] = (short) numRanks;
 		if (i < splitpoints.length) {
 			// truncate to size
 			splitpoints = Arrays.copyOf(splitpoints, i);
@@ -194,13 +194,13 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 	}
 
-	protected int addLogAndSyncMovesToSolver(double[] col, int c, int start, short e, boolean full)
+	protected int addLogAndSyncMovesToSolver(double[] col, int c, int start, short rank, boolean full)
 			throws LpSolveException {
 		short[] input;
 		short[] output;
 		TShortIterator it;
-		if (trans2LSMove.get(e) != null) {
-			it = trans2LSMove.get(e).iterator();
+		if (rank2LSMove.get(rank) != null) {
+			it = rank2LSMove.get(rank).iterator();
 			while (it.hasNext()) {
 				Arrays.fill(col, 0);
 				short t = it.next();
@@ -244,8 +244,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	protected int addModelMovesToSolver(double[] col, int c, int start) throws LpSolveException {
 		short[] input;
 		short[] output;
-		if (trans2LSMove.get(SyncProduct.NOEVENT) != null) {
-			TShortIterator it = trans2LSMove.get(SyncProduct.NOEVENT).iterator();
+		if (rank2LSMove.get(SyncProduct.NOEVENT) != null) {
+			TShortIterator it = rank2LSMove.get(SyncProduct.NOEVENT).iterator();
 			// first the model moves in this block
 			while (it.hasNext()) {
 				Arrays.fill(col, 0);
@@ -310,7 +310,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			// if event already a splitpoint, add the first larger event.
 		} while (insert >= 0);
 
-		if (marking == 0 || rank > numEvents || rank == SyncProduct.NORANK) {
+		if (marking == 0 || rank > numRanks || rank == SyncProduct.NORANK) {
 			// No event was explained yet, or the last explained event is already a splitpoint.
 			// There's little we can do but continue with the replayer.
 			//			debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
@@ -691,42 +691,4 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			solver.deleteAndRemoveLp();
 		}
 	}
-
-	//	@Override
-	//	protected short[] handleFinalMarkingReached(long startTime, int marking) {
-	//		// Final marking reached.
-	//		int s = splitpoints.length - 2;
-	//		int n = getPredecessor(marking);
-	//		int m2 = marking;
-	//		short t;
-	//		while (n != NOPREDECESSOR) {
-	//			t = getPredecessorTransition(m2);
-	//			if (s > 0 && product.getEventOf(t) == splitpoints[s]) {
-	//				debug.writeEdgeTraversed(this, n, t, m2, "color=red,fontcolor=red,style=dashed");
-	//				s--;
-	//			} else {
-	//				debug.writeEdgeTraversed(this, n, t, m2, "color=red,fontcolor=red");
-	//			}
-	//			alignmentLength++;
-	//			alignmentCost += net.getCost(t);
-	//			m2 = n;
-	//			n = getPredecessor(n);
-	//		}
-	//		short[] alignment = new short[alignmentLength];
-	//		n = getPredecessor(marking);
-	//		m2 = marking;
-	//		int l = alignmentLength;
-	//		while (n != NOPREDECESSOR) {
-	//			t = getPredecessorTransition(m2);
-	//			alignment[--l] = t;
-	//			m2 = n;
-	//			n = getPredecessor(n);
-	//		}
-	//
-	//		alignmentResult |= Utils.OPTIMALALIGNMENT;
-	//		runTime = (int) ((System.nanoTime() - startTime) / 1000);
-	//
-	//		return alignment;
-	//	}
-
 }

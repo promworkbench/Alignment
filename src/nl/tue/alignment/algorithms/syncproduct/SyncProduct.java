@@ -123,8 +123,8 @@ public interface SyncProduct {
 	 * rank should be the event number, i.e. getRankOf returns getEventOf.
 	 * 
 	 * For SyncProducts of partially ordered traces, the rank should be such
-	 * that the longest sequence in the trace have consequetive ranks. All other
-	 * events have the rank of their predecessor.
+	 * that the longest sequence in the trace have consecutive ranks. All other
+	 * events have a rank equal to the maximum rank of their predecessors.
 	 * 
 	 * @param transition
 	 * @return
