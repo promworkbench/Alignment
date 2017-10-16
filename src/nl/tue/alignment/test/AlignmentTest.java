@@ -87,9 +87,12 @@ public class AlignmentTest {
 			// timeout 60 minutes
 			int timeout = 60 * 60 * 1000;
 			int initBins = 1;
+
 			ReplayerParameters parameters = new ReplayerParameters.AStarWithMarkingSplit(false, Math.max(1, Runtime
 					.getRuntime().availableProcessors() / 2), false, initBins, debug, timeout);
-			//			ReplayerParameters parameters = new ReplayerParameters.AStar(true, true, true, true, false, Debug.STATS);
+
+			//			ReplayerParameters parameters = new ReplayerParameters.AStar(false, true, true, Math.max(1, Runtime
+			//					.getRuntime().availableProcessors() / 2), false, debug, timeout);
 
 			Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, log, classes,
 					mapping);

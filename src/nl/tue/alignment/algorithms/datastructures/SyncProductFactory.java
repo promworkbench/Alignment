@@ -286,6 +286,16 @@ public class SyncProductFactory {
 		XConceptExtension.instance().assignName(et, "Empty");
 		return getSyncProduct(et, transitionList);
 	}
+	
+	public TShortList getListEventClasses(XTrace trace) {
+		TShortList result = new TShortArrayList(trace.size());
+		for (short e = 0; e < trace.size(); e++) {
+			XEventClass clazz = classes.getClassOf(trace.get(e));
+			result.add(c2id.get(clazz));
+		}
+		return result;
+			
+	}
 
 	public synchronized SyncProduct getSyncProduct(XTrace trace, List<Transition> transitionList) {
 		transitionList.clear();

@@ -825,7 +825,7 @@ public abstract class ReplayAlgorithm {
 		return firingMarking;
 	}
 
-	protected void unfire(byte[] marking, short transition) {
+	protected void fire(byte[] marking, short transition) {
 		// fire transition t in marking stored at block, index
 		// First consumption:
 		short[] input = net.getInput(transition);
@@ -919,7 +919,7 @@ public abstract class ReplayAlgorithm {
 			t = getPredecessorTransition(block, index);
 			block = m >>> blockBit;
 			index = m & blockMask;
-			unfire(marking, t);
+			fire(marking, t);
 			m = getPredecessor(block, index);
 		}
 		return marking;
@@ -1365,9 +1365,6 @@ public abstract class ReplayAlgorithm {
 	/**
 	 * Checks equality of the stored marking1 to the given marking2.
 	 * 
-	 * marking2 is provided as an array of length 2*bm, where the first bm bytes
-	 * provide the low bits and the second bm bytes provide the high bits.
-	 * 
 	 * @see SyncProduct.getInitialMarking();
 	 * 
 	 * @param marking1
@@ -1375,6 +1372,7 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public boolean equalMarking(int marking1, byte[] marking2) {
+		//TODO: SMARTER!
 		fillMarking(equalMarking, marking1);
 		return Arrays.equals(equalMarking, marking2);
 		//		int b = marking1 >>> blockBit;
@@ -1402,6 +1400,7 @@ public abstract class ReplayAlgorithm {
 	 * @return
 	 */
 	public int hashCode(int marking) {
+		//TODO: SMARTER!
 		fillMarking(hashCodeMarking, marking);
 		return hashCode(hashCodeMarking);
 	}

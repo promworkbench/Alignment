@@ -1,6 +1,10 @@
 package nl.tue.alignment;
 
+import gnu.trove.list.TShortList;
+import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,11 +45,18 @@ import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
 public class Replayer {
 
-	private class TraceReplay implements Callable<SyncReplayResult> {
+	private enum TraceReplayResult {
+		FAILED, DUPLICATE, SUCCESS
+	};
+
+	private class TraceReplay implements Callable<TraceReplay> {
 
 		private final XTrace trace;
 		private final int traceIndex;
 		private final int timeoutMilliseconds;
+		private SyncReplayResult srr;
+		private int original;
+		private TraceReplayResult result;
 
 		public TraceReplay(int timeoutMilliseconds) {
 			this.trace = XFactoryRegistry.instance().currentDefault().createTrace();
@@ -60,18 +71,48 @@ public class Replayer {
 			this.timeoutMilliseconds = timeoutMilliseconds;
 		}
 
-		public SyncReplayResult call() throws LPMatrixException {
-			List<Transition> transitionList = new ArrayList<Transition>();
-			SyncProduct product;
-			product = factory.getSyncProduct(trace, transitionList);
-			if (product != null) {
-				ReplayAlgorithm algorithm = getAlgorithm(product);
-				short[] alignment = algorithm.run(timeoutMilliseconds);
-				TObjectIntMap<Statistic> stats = algorithm.getStatistics(alignment);
-				SyncReplayResult srr = toSyncReplayResult(product, stats, alignment, trace, traceIndex, transitionList);
-				return srr;
+		public TraceReplay call() throws LPMatrixException {
+			TShortList traceAsList = factory.getListEventClasses(trace);
+
+			synchronized (trace2FirstIdenticalTrace) {
+				original = trace2FirstIdenticalTrace.get(traceAsList);
+				if (original < 0) {
+					trace2FirstIdenticalTrace.put(traceAsList, traceIndex);
+				}
 			}
-			return null;
+			if (original < 0) {
+				SyncProduct product;
+				List<Transition> transitionList = new ArrayList<Transition>();
+				product = factory.getSyncProduct(trace, transitionList);
+				if (product != null) {
+					ReplayAlgorithm algorithm = getAlgorithm(product);
+					short[] alignment = algorithm.run(timeoutMilliseconds);
+					TObjectIntMap<Statistic> stats = algorithm.getStatistics(alignment);
+					srr = toSyncReplayResult(product, stats, alignment, trace, traceIndex, transitionList);
+					result = TraceReplayResult.SUCCESS;
+				} else {
+					result = TraceReplayResult.FAILED;
+				}
+			} else {
+				result = TraceReplayResult.DUPLICATE;
+			}
+			return this;
+		}
+
+		public TraceReplayResult getResult() {
+			return result;
+		}
+
+		public SyncReplayResult getSuccesfulResult() {
+			return srr;
+		}
+
+		public int getOriginalTraceIndex() {
+			return original;
+		}
+
+		public int getTraceIndex() {
+			return traceIndex;
 		}
 
 	}
@@ -79,6 +120,8 @@ public class Replayer {
 	public static enum Algorithm {
 		DIJKSTRA, ASTAR, ASTARWITHMARKINGSPLIT;
 	}
+
+	private final TObjectIntMap<TShortList> trace2FirstIdenticalTrace;
 
 	private final ReplayerParameters parameters;
 	private final XLog log;
@@ -141,6 +184,8 @@ public class Replayer {
 		this.costMM = costMM;
 		this.costLM = costLM;
 		factory = new SyncProductFactory(net, classes, mapping, costMM, costLM, costSM, initialMarking, finalMarking);
+
+		trace2FirstIdenticalTrace = new TObjectIntHashMap<>(log.size() / 2, 0.7f, -1);
 	}
 
 	public PNRepResult computePNRepResult() throws InterruptedException, ExecutionException {
@@ -157,8 +202,6 @@ public class Replayer {
 
 		}
 
-		List<SyncReplayResult> result = new ArrayList<>();
-
 		// compute timeout per trace
 		int timeoutMilliseconds = (int) ((10.0 * parameters.timeoutMilliseconds) / (log.size() + 1));
 		timeoutMilliseconds = Math.min(timeoutMilliseconds, parameters.timeoutMilliseconds);
@@ -170,38 +213,58 @@ public class Replayer {
 		} else {
 			service = Executors.newFixedThreadPool(parameters.nThreads);
 		}
-		List<Future<SyncReplayResult>> resultList = new ArrayList<>();
+		List<Future<TraceReplay>> resultList = new ArrayList<>();
 
-		resultList.add(service.submit(new TraceReplay(timeoutMilliseconds)));
+		TraceReplay tr = new TraceReplay(timeoutMilliseconds);
+		resultList.add(service.submit(tr));
 
 		int t = 0;
 		for (XTrace trace : log) {
-			resultList.add(service.submit(new TraceReplay(trace, t, timeoutMilliseconds)));
+			tr = new TraceReplay(trace, t, timeoutMilliseconds);
+			resultList.add(service.submit(tr));
 			t++;
 		}
 
 		service.shutdown();
 
-		Iterator<Future<SyncReplayResult>> itResult = resultList.iterator();
-		// get empty trace
-		int maxModelMoveCost = (int) Math.round(itResult.next().get().getInfo().get(PNRepResult.RAWFITNESSCOST));
-		itResult.remove();
+		Iterator<Future<TraceReplay>> itResult = resultList.iterator();
 
+		// get the alignment of the empty trace
+		int maxModelMoveCost;
+		TraceReplay traceReplay = itResult.next().get();
+		if (traceReplay.getResult() == TraceReplayResult.SUCCESS) {
+			maxModelMoveCost = (int) Math.round(traceReplay.getSuccesfulResult().getInfo()
+					.get(PNRepResult.RAWFITNESSCOST));
+			itResult.remove();
+		} else if (traceReplay.getResult() == TraceReplayResult.DUPLICATE) {
+			assert false;
+			maxModelMoveCost = 0;
+		} else {
+			maxModelMoveCost = 0;
+		}
+
+		TIntObjectMap<SyncReplayResult> result = new TIntObjectHashMap<>();
 		// process further changes
 		Iterator<XTrace> itTrace = log.iterator();
 		while (itResult.hasNext()) {
-			SyncReplayResult srr = itResult.next().get();
+			tr = itResult.next().get();
 			itResult.remove();
-			if (srr != null) {
-				int traceCost = getTraceCost(itTrace.next());
+			int traceCost = getTraceCost(itTrace.next());
+
+			if (tr.getResult() == TraceReplayResult.SUCCESS) {
+				SyncReplayResult srr = tr.getSuccesfulResult();
 				srr.addInfo(PNRepResult.TRACEFITNESS,
 						1 - (srr.getInfo().get(PNRepResult.RAWFITNESSCOST) / (maxModelMoveCost + traceCost)));
-				result.add(srr);
+				result.put(tr.getTraceIndex(), srr);
+			} else if (tr.getResult() == TraceReplayResult.DUPLICATE) {
+				SyncReplayResult srr = result.get(tr.getOriginalTraceIndex());
+				srr.addNewCase(tr.getTraceIndex());
 			} else {
-				itTrace.next();
+				// FAILURE TO COMPUTE ALIGNMENT
 			}
+
 		}
-		return new PNRepResultImpl(result);
+		return new PNRepResultImpl(result.valueCollection());
 	}
 
 	private ReplayAlgorithm getAlgorithm(SyncProduct product) throws LPMatrixException {

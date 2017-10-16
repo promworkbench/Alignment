@@ -198,8 +198,9 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			throws LpSolveException {
 		short[] input;
 		short[] output;
+		TShortIterator it;
 		if (trans2LSMove.get(e) != null) {
-			TShortIterator it = trans2LSMove.get(e).iterator();
+			it = trans2LSMove.get(e).iterator();
 			while (it.hasNext()) {
 				Arrays.fill(col, 0);
 				short t = it.next();
