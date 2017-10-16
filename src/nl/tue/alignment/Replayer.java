@@ -1,11 +1,5 @@
 package nl.tue.alignment;
 
-import gnu.trove.list.TShortList;
-import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -15,12 +9,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import nl.tue.alignment.ReplayerParameters.Algorithm;
-import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
-import nl.tue.alignment.Utils.Statistic;
-import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
-import nl.tue.alignment.algorithms.datastructures.SyncProductFactory;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
@@ -35,6 +23,17 @@ import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 import org.processmining.plugins.petrinet.replayresult.PNRepResultImpl;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
+import gnu.trove.list.TShortList;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
+import nl.tue.alignment.ReplayerParameters.Algorithm;
+import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
+import nl.tue.alignment.Utils.Statistic;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
+import nl.tue.alignment.algorithms.datastructures.SyncProductFactory;
+
 public class Replayer {
 
 	public static final String MAXMODELMOVECOST = "Model move cost empty trace";
@@ -47,6 +46,8 @@ public class Replayer {
 	final SyncProductFactory factory;
 	final XEventClasses classes;
 	private Map<Transition, Integer> costMM;
+	Progress progress;
+	Canceller canceller;
 
 	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log, XEventClasses classes,
 			Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
@@ -60,19 +61,19 @@ public class Replayer {
 				mapping);
 	}
 
-	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
-			XLog log, XEventClasses classes, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT,
+	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
+			XEventClasses classes, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT,
 			TransEvClassMapping mapping) {
 		this(parameters, net, initialMarking, finalMarking, log, classes, costMOS, costMOT, null, mapping);
 	}
 
-	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
-			XLog log, XEventClasses classes, TransEvClassMapping mapping) {
+	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
+			XEventClasses classes, TransEvClassMapping mapping) {
 		this(parameters, net, initialMarking, finalMarking, log, classes, null, null, null, mapping);
 	}
 
-	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
-			XLog log, XEventClasses classes, Map<Transition, Integer> costMM, Map<XEventClass, Integer> costLM,
+	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
+			XEventClasses classes, Map<Transition, Integer> costMM, Map<XEventClass, Integer> costLM,
 			Map<Transition, Integer> costSM, TransEvClassMapping mapping) {
 		this.parameters = parameters;
 		this.log = log;
@@ -106,8 +107,10 @@ public class Replayer {
 		trace2FirstIdenticalTrace = new TObjectIntHashMap<>(log.size() / 2, 0.7f, -1);
 	}
 
-	public PNRepResult computePNRepResult() throws InterruptedException, ExecutionException {
-
+	public PNRepResult computePNRepResult(Progress progress, Canceller canceller)
+			throws InterruptedException, ExecutionException {
+		this.progress = progress;
+		this.canceller = canceller;
 		//TODO: Detect previously computed cases as duplicates when the traces are equal as sequences of classifiers.
 
 		if (parameters.debug == Debug.STATS) {
@@ -131,6 +134,8 @@ public class Replayer {
 		} else {
 			service = Executors.newFixedThreadPool(parameters.nThreads);
 		}
+		progress.setMaximum(log.size() + 1);
+
 		List<Future<TraceReplayTask>> resultList = new ArrayList<>();
 
 		TraceReplayTask tr = new TraceReplayTask(this, parameters, timeoutMilliseconds);
@@ -151,8 +156,8 @@ public class Replayer {
 		int maxModelMoveCost;
 		TraceReplayTask traceReplay = itResult.next().get();
 		if (traceReplay.getResult() == TraceReplayResult.SUCCESS) {
-			maxModelMoveCost = (int) Math.round(traceReplay.getSuccesfulResult().getInfo()
-					.get(PNRepResult.RAWFITNESSCOST));
+			maxModelMoveCost = (int) Math
+					.round(traceReplay.getSuccesfulResult().getInfo().get(PNRepResult.RAWFITNESSCOST));
 			itResult.remove();
 		} else if (traceReplay.getResult() == TraceReplayResult.DUPLICATE) {
 			assert false;
@@ -164,7 +169,7 @@ public class Replayer {
 		TIntObjectMap<SyncReplayResult> result = new TIntObjectHashMap<>();
 		// process further changes
 		Iterator<XTrace> itTrace = log.iterator();
-		while (itResult.hasNext()) {
+		while (itResult.hasNext() && !canceller.isCancelled()) {
 			tr = itResult.next().get();
 			int traceCost = getTraceCost(itTrace.next());
 

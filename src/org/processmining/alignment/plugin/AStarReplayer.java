@@ -4,10 +4,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-import nl.tue.alignment.Replayer;
-import nl.tue.alignment.ReplayerParameters;
-import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
-
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
 import org.deckfour.xes.classification.XEventClassifier;
@@ -22,6 +18,7 @@ import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
+import org.processmining.plugins.petrinet.replayer.algorithms.IPNReplayAlgorithm;
 import org.processmining.plugins.petrinet.replayer.algorithms.IPNReplayParamProvider;
 import org.processmining.plugins.petrinet.replayer.algorithms.IPNReplayParameter;
 import org.processmining.plugins.petrinet.replayer.algorithms.costbasedcomplete.CostBasedCompleteParam;
@@ -29,9 +26,16 @@ import org.processmining.plugins.petrinet.replayer.algorithms.costbasedcomplete.
 import org.processmining.plugins.petrinet.replayer.annotations.PNReplayAlgorithm;
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 
+import nl.tue.alignment.Canceller;
+import nl.tue.alignment.Progress;
+import nl.tue.alignment.Replayer;
+import nl.tue.alignment.ReplayerParameters;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
+import nl.tue.astar.AStarException;
+
 @KeepInProMCache
 @PNReplayAlgorithm
-public class AStarReplayer {
+public class AStarReplayer implements IPNReplayAlgorithm {
 
 	private Map<Transition, Integer> mapTrans2Cost;
 	private Map<XEventClass, Integer> mapEvClass2Cost;
@@ -39,24 +43,44 @@ public class AStarReplayer {
 	private Marking initMarking;
 	private Marking[] finalMarkings;
 
-	public PNRepResult replayLog(PluginContext context, PetrinetGraph net, XLog xLog, TransEvClassMapping mapping,
-			IPNReplayParameter parameters) throws InterruptedException, ExecutionException {
+	public PNRepResult replayLog(final PluginContext context, PetrinetGraph net, XLog xLog, TransEvClassMapping mapping,
+			IPNReplayParameter parameters) throws AStarException {
 
 		importParameters((CostBasedCompleteParam) parameters);
 
 		context.getProgress().setMaximum(xLog.size() + 1);
 
-		ReplayerParameters replayParameters = new ReplayerParameters.AStarWithMarkingSplit(false, Math.max(1, Runtime
-				.getRuntime().availableProcessors() / 2), false, 1, Debug.NONE, 60 * 1000 * 1000);
+		ReplayerParameters replayParameters = new ReplayerParameters.AStarWithMarkingSplit(false,
+				Math.max(1, Runtime.getRuntime().availableProcessors() / 2), false, 1, Debug.NONE, 60 * 1000 * 1000);
 
 		XLogInfo summary = XLogInfoFactory.createLogInfo(xLog, mapping.getEventClassifier());
 		Replayer replayer = new Replayer(replayParameters, (Petrinet) net, initMarking, finalMarkings[0], xLog,
 				summary.getEventClasses(), mapTrans2Cost, mapEvClass2Cost, mapSync2Cost, mapping);
 
-		PNRepResult result = replayer.computePNRepResult();
+		PNRepResult result;
+		try {
+			result = replayer.computePNRepResult(new Progress() {
 
-		result.addInfo(PNRepResult.VISTITLE, "Alignments of " + XConceptExtension.instance().extractName(xLog) + " on "
-				+ net.getLabel());
+				public void setMaximum(int maximum) {
+					context.getProgress().setMinimum(0);
+					context.getProgress().setMaximum(maximum);
+					}
+
+				public void inc() {
+					context.getProgress().inc();
+				}
+			}, new Canceller() {
+
+				public boolean isCancelled() {
+					return context.getProgress().isCancelled();
+				}
+			});
+		} catch (InterruptedException | ExecutionException e) {
+			throw new AStarException(e);
+		}
+
+		result.addInfo(PNRepResult.VISTITLE,
+				"Alignments of " + XConceptExtension.instance().extractName(xLog) + " on " + net.getLabel());
 
 		return result;
 
@@ -113,12 +137,12 @@ public class AStarReplayer {
 	}
 
 	/**
-	 * Return true if all replay inputs are correct: parameter type is correct
-	 * and non empty (no null); all transitions are mapped to cost; all event
-	 * classes (including dummy event class, i.e. an event class that does not
-	 * exist in log, any transitions that are NOT silent and not mapped to any
-	 * event class in the log is mapped to it) are mapped to cost; all costs
-	 * should be non negative; numStates is non negative
+	 * Return true if all replay inputs are correct: parameter type is correct and
+	 * non empty (no null); all transitions are mapped to cost; all event classes
+	 * (including dummy event class, i.e. an event class that does not exist in log,
+	 * any transitions that are NOT silent and not mapped to any event class in the
+	 * log is mapped to it) are mapped to cost; all costs should be non negative;
+	 * numStates is non negative
 	 */
 	public boolean isParameterReqCorrect(PetrinetGraph net, XLog log, TransEvClassMapping mapping,
 			IPNReplayParameter parameter) {

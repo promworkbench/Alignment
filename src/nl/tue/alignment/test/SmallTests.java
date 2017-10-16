@@ -5,6 +5,7 @@ import java.io.OutputStreamWriter;
 import java.util.Arrays;
 
 import lpsolve.LpSolve;
+import nl.tue.alignment.Canceller;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.algorithms.AStar;
 import nl.tue.alignment.algorithms.AStarLargeLP;
@@ -25,15 +26,16 @@ public class SmallTests {
 	public static class SyncProductExampleBook extends SyncProductImpl {
 
 		public SyncProductExampleBook() {
-			super("Book Example", new String[] { "As,-", "Aa,-", "Fa,-", "Sso,-", "Ro,-", "Co,-", "t,-", "Da1,-",
-					"Do,-", "Da2,-", "Ao,-", "Aaa,-", "As,As", "Aa,Aa", "Sso,Sso", "Ro,Ro", "Ao,Ao", "Aaa,Aaa1",
-					"Aaa,Aaa2", "-,As", "-,Aa", "-,Sso", "-,Ro", "-,Ao", "-,Aaa1", "-,Aaa2" }, //
+			super("Book Example",
+					new String[] { "As,-", "Aa,-", "Fa,-", "Sso,-", "Ro,-", "Co,-", "t,-", "Da1,-", "Do,-", "Da2,-",
+							"Ao,-", "Aaa,-", "As,As", "Aa,Aa", "Sso,Sso", "Ro,Ro", "Ao,Ao", "Aaa,Aaa1", "Aaa,Aaa2",
+							"-,As", "-,Aa", "-,Sso", "-,Ro", "-,Ao", "-,Aaa1", "-,Aaa2" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
 							"p13", "p14", "p15", "p16", "p17", "p18" }, //
-					new short[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4,
-							5, 6 }, //
-					new byte[] { MM, MM, MM, MM, MM, MM, TM, MM, MM, MM, MM, MM, SM, SM, SM, SM, SM, SM, SM, LM, LM,
-							LM, LM, LM, LM, LM }, //
+					new short[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5,
+							6 }, //
+					new byte[] { MM, MM, MM, MM, MM, MM, TM, MM, MM, MM, MM, MM, SM, SM, SM, SM, SM, SM, SM, LM, LM, LM,
+							LM, LM, LM, LM }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1 }//
 			);
 			setInput(0, 0);
@@ -111,8 +113,9 @@ public class SmallTests {
 	public static class NastySyncProductExample extends SyncProductImpl {
 
 		public NastySyncProductExample() {
-			super("Nasty Example", new String[] { "A,-", "B,-", "C,-", "D,-", "E,-", "F,-", "G,-", "H,-", "I,-", "J,-",
-					"K,-", "L,-", "K,K", "L,L", "-,L", "-,K" }, //
+			super("Nasty Example",
+					new String[] { "A,-", "B,-", "C,-", "D,-", "E,-", "F,-", "G,-", "H,-", "I,-", "J,-", "K,-", "L,-",
+							"K,K", "L,L", "-,L", "-,K" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
 							"p13", "p14" }, //
 					new short[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 0, 1 }, //
@@ -175,8 +178,9 @@ public class SmallTests {
 	public static class LoopExample extends SyncProductImpl {
 
 		public LoopExample() {
-			super("Loop Example", new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-",
-					"-,E", "-,F", "E,E", "F,F", "G,-", "G,G", "-,X" }, //
+			super("Loop Example",
+					new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
+							"E,E", "F,F", "G,-", "G,G", "-,X" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
 					new short[] { -1, -1, -1, 1, 2, 3, 2, 3, -1, -1, 4, 5, 4, 5, -1, 1, 0 }, //
 					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, MM, SM, LM }, //
@@ -242,8 +246,9 @@ public class SmallTests {
 	public static class LoopExample2 extends SyncProductImpl {
 
 		public LoopExample2() {
-			super("Loop Example 2", new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-",
-					"E,-", "-,E", "-,F", "E,E", "F,F", "G,-", "G,G", "tau" }, //
+			super("Loop Example 2",
+					new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
+							"E,E", "F,F", "G,-", "G,G", "tau" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
 					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4, -1, 0, -1 }, //
 					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, MM, SM, TM }, //
@@ -308,8 +313,9 @@ public class SmallTests {
 	public static class TwoSwapsExample extends SyncProductImpl {
 
 		public TwoSwapsExample() {
-			super("Two Swaps Example", new String[] { "A,-", "D,-", "C,-", "-,B", "-,C", "-,D", "C,C", "D,D", "F,-",
-					"E,-", "-,E", "-,F", "E,E", "F,F" }, //
+			super("Two Swaps Example",
+					new String[] { "A,-", "D,-", "C,-", "-,B", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
+							"E,E", "F,F" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11" }, //
 					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4 }, //
 					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM }, //
@@ -421,7 +427,7 @@ public class SmallTests {
 		}
 
 		try {
-			return algorithm.run(Integer.MAX_VALUE);
+			return algorithm.run(Canceller.DEFAULT, Integer.MAX_VALUE);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
