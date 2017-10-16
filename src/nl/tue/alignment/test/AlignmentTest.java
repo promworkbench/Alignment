@@ -5,6 +5,12 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 
+import nl.tue.alignment.Progress;
+import nl.tue.alignment.Replayer;
+import nl.tue.alignment.ReplayerParameters;
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
+
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
 import org.deckfour.xes.classification.XEventClassifier;
@@ -26,13 +32,6 @@ import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetFactor
 import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
-
-import nl.tue.alignment.Canceller;
-import nl.tue.alignment.Progress;
-import nl.tue.alignment.Replayer;
-import nl.tue.alignment.ReplayerParameters;
-import nl.tue.alignment.algorithms.ReplayAlgorithm;
-import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 
 public class AlignmentTest {
 
@@ -98,7 +97,7 @@ public class AlignmentTest {
 
 			Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, log, classes,
 					mapping);
-			PNRepResult result = replayer.computePNRepResult(Progress.INVISIBLE, Canceller.DEFAULT);
+			PNRepResult result = replayer.computePNRepResult(Progress.INVISIBLE);
 
 			System.out.println(result.getInfo().toString());
 			System.out.println("Completed: " + name);

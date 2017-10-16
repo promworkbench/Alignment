@@ -1,8 +1,19 @@
 package nl.tue.alignment;
 
+import gnu.trove.list.TShortList;
+import gnu.trove.map.TObjectIntMap;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+
+import nl.tue.alignment.Utils.Statistic;
+import nl.tue.alignment.algorithms.AStar;
+import nl.tue.alignment.algorithms.AStarLargeLP;
+import nl.tue.alignment.algorithms.Dijkstra;
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
+import nl.tue.alignment.algorithms.datastructures.SyncProduct;
+import nl.tue.astar.util.ilp.LPMatrixException;
 
 import org.deckfour.xes.extension.std.XConceptExtension;
 import org.deckfour.xes.factory.XFactoryRegistry;
@@ -11,16 +22,6 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Transition
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 import org.processmining.plugins.petrinet.replayresult.StepTypes;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
-
-import gnu.trove.list.TShortList;
-import gnu.trove.map.TObjectIntMap;
-import nl.tue.alignment.Utils.Statistic;
-import nl.tue.alignment.algorithms.AStar;
-import nl.tue.alignment.algorithms.AStarLargeLP;
-import nl.tue.alignment.algorithms.Dijkstra;
-import nl.tue.alignment.algorithms.ReplayAlgorithm;
-import nl.tue.alignment.algorithms.datastructures.SyncProduct;
-import nl.tue.astar.util.ilp.LPMatrixException;
 
 class TraceReplayTask implements Callable<TraceReplayTask> {
 
@@ -71,7 +72,7 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 			product = this.replayer.factory.getSyncProduct(trace, transitionList);
 			if (product != null) {
 				algorithm = getAlgorithm(product);
-				short[] alignment = algorithm.run(this.replayer.canceller, timeoutMilliseconds);
+				short[] alignment = algorithm.run(this.replayer.progress, timeoutMilliseconds);
 				TObjectIntMap<Statistic> stats = algorithm.getStatistics(alignment);
 				srr = toSyncReplayResult(product, stats, alignment, trace, traceIndex, transitionList);
 				this.replayer.progress.inc();

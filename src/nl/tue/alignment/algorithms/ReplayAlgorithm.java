@@ -1,11 +1,12 @@
 package nl.tue.alignment.algorithms;
 
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
+
 import java.io.PrintStream;
 import java.util.Arrays;
 
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
-import nl.tue.alignment.Canceller;
+import nl.tue.alignment.Progress;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.datastructures.HashBackedPriorityQueue;
@@ -394,7 +395,7 @@ public abstract class ReplayAlgorithm {
 		return val;
 	}
 
-	public short[] run(Canceller canceller, int timeoutMilliseconds) throws LPMatrixException {
+	public short[] run(Progress progress, int timeoutMilliseconds) throws LPMatrixException {
 		pollActions = 0;
 		closedActions = 0;
 		queueActions = 0;
@@ -405,10 +406,10 @@ public abstract class ReplayAlgorithm {
 		heuristicsDerived = 0;
 		iteration = -1;
 
-		return runReplayAlgorithm(canceller, System.nanoTime(), timeoutMilliseconds);
+		return runReplayAlgorithm(progress, System.nanoTime(), timeoutMilliseconds);
 	}
 
-	protected short[] runReplayAlgorithm(Canceller canceller, long startTime, int timeoutMilliseconds)
+	protected short[] runReplayAlgorithm(Progress progress, long startTime, int timeoutMilliseconds)
 			throws LPMatrixException {
 
 		//		short[] trans = new short[net.numTransitions()];
