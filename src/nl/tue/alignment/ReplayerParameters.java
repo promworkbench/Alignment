@@ -1,9 +1,13 @@
 package nl.tue.alignment;
 
-import nl.tue.alignment.Replayer.Algorithm;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 
 public abstract class ReplayerParameters {
+
+	public static enum Algorithm {
+		DIJKSTRA, ASTAR, ASTARWITHMARKINGSPLIT;
+	}
+
 	final Algorithm algorithm; // which algorithm
 	final boolean moveSort; // moveSort on total order
 	final boolean queueSort; // queue sorted "depth-first"

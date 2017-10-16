@@ -11,26 +11,19 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import nl.tue.alignment.ReplayerParameters.Algorithm;
+import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
 import nl.tue.alignment.Utils.Statistic;
-import nl.tue.alignment.algorithms.AStar;
-import nl.tue.alignment.algorithms.AStarLargeLP;
-import nl.tue.alignment.algorithms.Dijkstra;
-import nl.tue.alignment.algorithms.ReplayAlgorithm;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
-import nl.tue.alignment.algorithms.datastructures.SyncProduct;
 import nl.tue.alignment.algorithms.datastructures.SyncProductFactory;
-import nl.tue.astar.util.ilp.LPMatrixException;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
-import org.deckfour.xes.extension.std.XConceptExtension;
-import org.deckfour.xes.factory.XFactoryRegistry;
 import org.deckfour.xes.model.XEvent;
 import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.XTrace;
@@ -40,94 +33,17 @@ import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 import org.processmining.plugins.petrinet.replayresult.PNRepResultImpl;
-import org.processmining.plugins.petrinet.replayresult.StepTypes;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
 public class Replayer {
 
-	private enum TraceReplayResult {
-		FAILED, DUPLICATE, SUCCESS
-	};
-
-	private class TraceReplay implements Callable<TraceReplay> {
-
-		private final XTrace trace;
-		private final int traceIndex;
-		private final int timeoutMilliseconds;
-		private SyncReplayResult srr;
-		private int original;
-		private TraceReplayResult result;
-
-		public TraceReplay(int timeoutMilliseconds) {
-			this.trace = XFactoryRegistry.instance().currentDefault().createTrace();
-			XConceptExtension.instance().assignName(trace, "Empty");
-			this.traceIndex = -1;
-			this.timeoutMilliseconds = timeoutMilliseconds;
-		}
-
-		public TraceReplay(XTrace trace, int traceIndex, int timeoutMilliseconds) {
-			this.trace = trace;
-			this.traceIndex = traceIndex;
-			this.timeoutMilliseconds = timeoutMilliseconds;
-		}
-
-		public TraceReplay call() throws LPMatrixException {
-			TShortList traceAsList = factory.getListEventClasses(trace);
-
-			synchronized (trace2FirstIdenticalTrace) {
-				original = trace2FirstIdenticalTrace.get(traceAsList);
-				if (original < 0) {
-					trace2FirstIdenticalTrace.put(traceAsList, traceIndex);
-				}
-			}
-			if (original < 0) {
-				SyncProduct product;
-				List<Transition> transitionList = new ArrayList<Transition>();
-				product = factory.getSyncProduct(trace, transitionList);
-				if (product != null) {
-					ReplayAlgorithm algorithm = getAlgorithm(product);
-					short[] alignment = algorithm.run(timeoutMilliseconds);
-					TObjectIntMap<Statistic> stats = algorithm.getStatistics(alignment);
-					srr = toSyncReplayResult(product, stats, alignment, trace, traceIndex, transitionList);
-					result = TraceReplayResult.SUCCESS;
-				} else {
-					result = TraceReplayResult.FAILED;
-				}
-			} else {
-				result = TraceReplayResult.DUPLICATE;
-			}
-			return this;
-		}
-
-		public TraceReplayResult getResult() {
-			return result;
-		}
-
-		public SyncReplayResult getSuccesfulResult() {
-			return srr;
-		}
-
-		public int getOriginalTraceIndex() {
-			return original;
-		}
-
-		public int getTraceIndex() {
-			return traceIndex;
-		}
-
-	}
-
-	public static enum Algorithm {
-		DIJKSTRA, ASTAR, ASTARWITHMARKINGSPLIT;
-	}
-
-	private final TObjectIntMap<TShortList> trace2FirstIdenticalTrace;
+	final TObjectIntMap<TShortList> trace2FirstIdenticalTrace;
 
 	private final ReplayerParameters parameters;
 	private final XLog log;
 	private final Map<XEventClass, Integer> costLM;
-	private final SyncProductFactory factory;
-	private final XEventClasses classes;
+	final SyncProductFactory factory;
+	final XEventClasses classes;
 	private Map<Transition, Integer> costMM;
 
 	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log, XEventClasses classes,
@@ -213,25 +129,25 @@ public class Replayer {
 		} else {
 			service = Executors.newFixedThreadPool(parameters.nThreads);
 		}
-		List<Future<TraceReplay>> resultList = new ArrayList<>();
+		List<Future<TraceReplayTask>> resultList = new ArrayList<>();
 
-		TraceReplay tr = new TraceReplay(timeoutMilliseconds);
+		TraceReplayTask tr = new TraceReplayTask(this, parameters, timeoutMilliseconds);
 		resultList.add(service.submit(tr));
 
 		int t = 0;
 		for (XTrace trace : log) {
-			tr = new TraceReplay(trace, t, timeoutMilliseconds);
+			tr = new TraceReplayTask(this, parameters, trace, t, timeoutMilliseconds);
 			resultList.add(service.submit(tr));
 			t++;
 		}
 
 		service.shutdown();
 
-		Iterator<Future<TraceReplay>> itResult = resultList.iterator();
+		Iterator<Future<TraceReplayTask>> itResult = resultList.iterator();
 
 		// get the alignment of the empty trace
 		int maxModelMoveCost;
-		TraceReplay traceReplay = itResult.next().get();
+		TraceReplayTask traceReplay = itResult.next().get();
 		if (traceReplay.getResult() == TraceReplayResult.SUCCESS) {
 			maxModelMoveCost = (int) Math.round(traceReplay.getSuccesfulResult().getInfo()
 					.get(PNRepResult.RAWFITNESSCOST));
@@ -248,7 +164,6 @@ public class Replayer {
 		Iterator<XTrace> itTrace = log.iterator();
 		while (itResult.hasNext()) {
 			tr = itResult.next().get();
-			itResult.remove();
 			int traceCost = getTraceCost(itTrace.next());
 
 			if (tr.getResult() == TraceReplayResult.SUCCESS) {
@@ -256,6 +171,7 @@ public class Replayer {
 				srr.addInfo(PNRepResult.TRACEFITNESS,
 						1 - (srr.getInfo().get(PNRepResult.RAWFITNESSCOST) / (maxModelMoveCost + traceCost)));
 				result.put(tr.getTraceIndex(), srr);
+
 			} else if (tr.getResult() == TraceReplayResult.DUPLICATE) {
 				SyncReplayResult srr = result.get(tr.getOriginalTraceIndex());
 				srr.addNewCase(tr.getTraceIndex());
@@ -267,21 +183,6 @@ public class Replayer {
 		return new PNRepResultImpl(result.valueCollection());
 	}
 
-	private ReplayAlgorithm getAlgorithm(SyncProduct product) throws LPMatrixException {
-		switch (parameters.algorithm) {
-			case ASTAR :
-				return new AStar(product, parameters.moveSort, parameters.queueSort, parameters.preferExact,//
-						parameters.useInt, parameters.nThreads, parameters.debug);
-			case ASTARWITHMARKINGSPLIT :
-				return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.intialBins,
-						parameters.debug);
-			case DIJKSTRA :
-				return new Dijkstra(product, parameters.moveSort, parameters.queueSort, parameters.debug);
-		}
-		assert false;
-		return null;
-	}
-
 	private int getTraceCost(XTrace trace) {
 		int cost = 0;
 		for (XEvent e : trace) {
@@ -290,59 +191,11 @@ public class Replayer {
 		return cost;
 	}
 
-	private synchronized SyncReplayResult toSyncReplayResult(SyncProduct product, TObjectIntMap<Statistic> statistics,
-			short[] alignment, XTrace trace, int traceIndex, List<Transition> transitionList) {
-		List<Object> nodeInstance = new ArrayList<>(alignment.length);
-		List<StepTypes> stepTypes = new ArrayList<>(alignment.length);
-		int mm = 0, lm = 0, smm = 0, slm = 0;
-		for (int i = 0; i < alignment.length; i++) {
-			short t = alignment[i];
-			if (product.getTypeOf(t) == SyncProduct.LOG_MOVE) {
-				nodeInstance.add(classes.getClassOf(trace.get(product.getEventOf(t))));
-				stepTypes.add(StepTypes.L);
-				lm += product.getCost(t);
-			} else {
-				nodeInstance.add(transitionList.get(t));
-				if (product.getTypeOf(t) == SyncProduct.MODEL_MOVE) {
-					stepTypes.add(StepTypes.MREAL);
-					mm += product.getCost(t);
-				} else if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
-					stepTypes.add(StepTypes.LMGOOD);
-					smm += getCostMM(transitionList.get(t));
-					slm += getCostLM(classes.getClassOf(trace.get(product.getEventOf(t))));
-				} else if (product.getTypeOf(t) == SyncProduct.TAU_MOVE) {
-					stepTypes.add(StepTypes.MINVI);
-					mm += product.getCost(t);
-				}
-			}
-		}
-
-		SyncReplayResult srr = new SyncReplayResult(nodeInstance, stepTypes, traceIndex);
-		srr.addInfo(PNRepResult.RAWFITNESSCOST, 1.0 * statistics.get(Statistic.COST));
-		srr.addInfo(PNRepResult.TIME, statistics.get(Statistic.TOTALTIME) / 1000.0);
-		srr.addInfo(PNRepResult.QUEUEDSTATE, 1.0 * statistics.get(Statistic.QUEUEACTIONS));
-		if (lm + slm == 0) {
-			srr.addInfo(PNRepResult.MOVELOGFITNESS, 1.0);
-		} else {
-			srr.addInfo(PNRepResult.MOVELOGFITNESS, 1.0 - (1.0 * lm) / (lm + slm));
-		}
-		if (mm + smm == 0) {
-			srr.addInfo(PNRepResult.MOVEMODELFITNESS, 1.0);
-		} else {
-			srr.addInfo(PNRepResult.MOVEMODELFITNESS, 1.0 - (1.0 * mm) / (mm + smm));
-		}
-		srr.addInfo(PNRepResult.NUMSTATEGENERATED, 1.0 * statistics.get(Statistic.MARKINGSREACHED));
-		srr.addInfo(PNRepResult.ORIGTRACELENGTH, 1.0 * trace.size());
-
-		srr.setReliable(statistics.get(Statistic.EXITCODE) == Utils.OPTIMALALIGNMENT);
-		return srr;
-	}
-
-	private int getCostLM(XEventClass classOf) {
+	int getCostLM(XEventClass classOf) {
 		return costLM != null && costLM.containsKey(classOf) ? costLM.get(classOf) : 1;
 	}
 
-	private int getCostMM(Transition transition) {
+	int getCostMM(Transition transition) {
 		return costMM != null && costMM.containsKey(transition) ? costMM.get(transition) : 1;
 	}
 
