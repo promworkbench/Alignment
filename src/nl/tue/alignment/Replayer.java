@@ -37,6 +37,8 @@ import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
 public class Replayer {
 
+	public static final String MAXMODELMOVECOST = "Model move cost empty trace";
+
 	final TObjectIntMap<TShortList> trace2FirstIdenticalTrace;
 
 	private final ReplayerParameters parameters;
@@ -180,7 +182,12 @@ public class Replayer {
 			}
 
 		}
-		return new PNRepResultImpl(result.valueCollection());
+
+		PNRepResultImpl pnRepResult = new PNRepResultImpl(result.valueCollection());
+		pnRepResult.addInfo(MAXMODELMOVECOST, Double.toString(maxModelMoveCost));
+
+		return pnRepResult;
+
 	}
 
 	private int getTraceCost(XTrace trace) {
