@@ -1,4 +1,4 @@
-package nl.tue.alignment.algorithms.datastructures;
+package nl.tue.alignment.algorithms.syncproduct;
 
 import java.util.Arrays;
 
@@ -9,6 +9,8 @@ public class SyncProductImpl implements SyncProduct {
 	protected final String[] transitions;
 
 	protected final short[] eventNumbers;
+
+	protected final short[] ranks;
 
 	protected final String[] places;
 
@@ -28,35 +30,20 @@ public class SyncProductImpl implements SyncProduct {
 
 	private final short numEvents;
 
-	//	public SyncProductImpl(String label, short numTrans, short numPlaces) {
-	//		if (numTrans > MAXTRANS) {
-	//			throw new RuntimeException("More than " + MAXTRANS + " transitions in a synchronous product is not allowed");
-	//		}
-	//		this.label = label;
-	//		this.transitions = new String[numTrans];
-	//		this.cost = new int[numTrans];
-	//		this.types = new byte[numTrans];
-	//
-	//		this.places = new String[numTrans];
-	//
-	//		input = new short[numTransitions()][];
-	//		output = new short[numTransitions()][];
-	//		eventNumbers = new short[numTrans];
-	//		Arrays.fill(eventNumbers, (short) -1);
-	//
-	//		initMarking = new byte[numPlaces()];
-	//		finalMarking = new byte[numPlaces()];
-	//
-	//	}
-
 	public SyncProductImpl(String label, String[] transitions, String[] places, short[] eventNumbers, byte[] types,
 			int[] cost) {
+		this(label, transitions, places, eventNumbers, eventNumbers, types, cost);
+	}
+
+	public SyncProductImpl(String label, String[] transitions, String[] places, short[] eventNumbers, short[] ranks,
+			byte[] types, int[] cost) {
 		this.eventNumbers = eventNumbers;
 		this.label = label;
 		this.transitions = transitions;
 		this.places = places;
 		this.types = types;
 		this.cost = cost;
+		this.ranks = ranks;
 
 		short mx = 0;
 		for (int e = 0; e < eventNumbers.length; e++) {
@@ -227,6 +214,10 @@ public class SyncProductImpl implements SyncProduct {
 
 	public short numEvents() {
 		return numEvents;
+	}
+
+	public short getRankOf(short transition) {
+		return ranks[transition];
 	}
 
 }

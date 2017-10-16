@@ -34,7 +34,7 @@ import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 
 @KeepInProMCache
 @PNReplayAlgorithm
-public class AStarReplayer implements IPNReplayAlgorithm {
+public class IterativeDeepeningAStarPlugin implements IPNReplayAlgorithm {
 
 	private Map<Transition, Integer> mapTrans2Cost;
 	private Map<XEventClass, Integer> mapEvClass2Cost;
@@ -50,7 +50,8 @@ public class AStarReplayer implements IPNReplayAlgorithm {
 		context.getProgress().setMaximum(xLog.size() + 1);
 
 		ReplayerParameters replayParameters = new ReplayerParameters.AStarWithMarkingSplit(false, Math.max(1, Runtime
-				.getRuntime().availableProcessors() / 2), false, 1, Debug.NONE, 60 * 1000 * 1000);
+				.getRuntime().availableProcessors() / 2), false, 1, Debug.NONE, 60 * 1000 * 1000,
+				((CostBasedCompleteParam) parameters).isPartiallyOrderedEvents());
 
 		XLogInfo summary = XLogInfoFactory.createLogInfo(xLog, mapping.getEventClassifier());
 		Replayer replayer = new Replayer(replayParameters, (Petrinet) net, initMarking, finalMarkings[0], xLog,

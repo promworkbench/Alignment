@@ -1,4 +1,4 @@
-package nl.tue.alignment.algorithms.datastructures;
+package nl.tue.alignment.algorithms.syncproduct;
 
 import gnu.trove.iterator.TShortIterator;
 import gnu.trove.list.TByteList;
@@ -17,14 +17,20 @@ import gnu.trove.set.hash.TShortHashSet;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import nl.tue.astar.Trace;
+import nl.tue.astar.util.LinearTrace;
+import nl.tue.astar.util.PartiallyOrderedTrace;
+
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
 import org.deckfour.xes.extension.std.XConceptExtension;
-import org.deckfour.xes.factory.XFactoryRegistry;
+import org.deckfour.xes.extension.std.XTimeExtension;
+import org.deckfour.xes.model.XEvent;
 import org.deckfour.xes.model.XTrace;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
@@ -282,32 +288,50 @@ public class SyncProductFactory {
 	}
 
 	public synchronized SyncProduct getSyncProductForEmptyTrace(List<Transition> transitionList) {
-		XTrace et = XFactoryRegistry.instance().currentDefault().createTrace();
-		XConceptExtension.instance().assignName(et, "Empty");
-		return getSyncProduct(et, transitionList);
-	}
-	
-	public TShortList getListEventClasses(XTrace trace) {
-		TShortList result = new TShortArrayList(trace.size());
-		for (short e = 0; e < trace.size(); e++) {
-			XEventClass clazz = classes.getClassOf(trace.get(e));
-			result.add(c2id.get(clazz));
-		}
-		return result;
-			
+		return getLinearSyncProduct(new LinearTrace("Empty", 0), transitionList);
 	}
 
-	public synchronized SyncProduct getSyncProduct(XTrace trace, List<Transition> transitionList) {
+	public Trace getTrace(XTrace xTrace, boolean partiallyOrderSameTimestamp) {
+		String traceLabel = XConceptExtension.instance().extractName(xTrace);
+		if (traceLabel == null) {
+			traceLabel = "XTrace@" + Integer.toHexString(xTrace.hashCode());
+		}
+
+		if (partiallyOrderSameTimestamp) {
+			return getPartiallyOrderedTrace(xTrace, traceLabel);
+		} else {
+			return getLinearTrace(xTrace, traceLabel);
+		}
+	}
+
+	public synchronized SyncProduct getSyncProduct(XTrace xTrace, List<Transition> transitionList,
+			boolean partiallyOrderSameTimestamp) {
+		String traceLabel = XConceptExtension.instance().extractName(xTrace);
+		if (traceLabel == null) {
+			traceLabel = "XTrace@" + Integer.toHexString(xTrace.hashCode());
+		}
+		if (partiallyOrderSameTimestamp) {
+			return getLinearSyncProduct(getLinearTrace(xTrace, traceLabel), transitionList);
+		} else {
+			PartiallyOrderedTrace trace = getPartiallyOrderedTrace(xTrace, traceLabel);
+			// Do the ranking on this trace.
+			// TODO: Handle the sync product ranking properly.
+			return null;
+		}
+
+	}
+
+	private SyncProduct getLinearSyncProduct(LinearTrace trace, List<Transition> transitionList) {
 		transitionList.clear();
 		// for this trace, compute the log-moves
 		// compute the sync moves
-		for (short e = 0; e < trace.size(); e++) {
-			XEventClass clazz = classes.getClassOf(trace.get(e));
-			short cid = c2id.get(clazz);
+		for (short e = 0; e < trace.getSize(); e++) {
+			//			XEventClass clazz = classes.getClassOf(trace.get(e));
+			short cid = (short) trace.get(e); // c2id.get(clazz);
 			// add a place
 			p2name.add("pe_" + e);
 			// add log move
-			t2name.add(clazz.toString());
+			t2name.add("e" + cid);//clazz.toString());
 			t2mmCost.add(c2lmCost.get(cid));
 			t2eid.add(e);
 			t2type.add(SyncProduct.LOG_MOVE);
@@ -318,22 +342,18 @@ public class SyncProductFactory {
 				while (it.hasNext()) {
 					// add sync move
 					short t = it.next();
-					t2name.add(t2name.get(t) + "," + clazz);
+					t2name.add(t2name.get(t) + ",e" + cid);
 					t2mmCost.add(t2smCost.get(t));
 					t2eid.add(e);
 					t2type.add(SyncProduct.SYNC_MOVE);
 				}
 			}
 		}
-		if (trace.size() > 0) {
-			p2name.add("pe_" + trace.size());
+		if (trace.getSize() > 0) {
+			p2name.add("pe_" + trace.getSize());
 		}
 
-		String traceLabel = XConceptExtension.instance().extractName(trace);
-		if (traceLabel == null) {
-			traceLabel = "XTrace@" + Integer.toHexString(trace.hashCode());
-		}
-		SyncProductImpl product = new SyncProductImpl(traceLabel, //label
+		SyncProductImpl product = new SyncProductImpl(trace.getLabel(), //label
 				t2name.asArray(), //transition labels
 				p2name.asArray(), // place labels
 				t2eid.toArray(), //event numbers
@@ -348,10 +368,10 @@ public class SyncProductFactory {
 			transitionList.add(t2transition[t]);
 		}
 
-		for (short e = 0; e < trace.size(); e++) {
+		for (short e = 0; e < trace.getSize(); e++) {
 			// then the log moves
-			XEventClass clazz = classes.getClassOf(trace.get(e));
-			short cid = c2id.get(clazz);
+			//			XEventClass clazz = classes.getClassOf(trace.get(e));
+			short cid = (short) trace.get(e);// c2id.get(clazz);
 			product.setInput(t, places + e);
 			product.setOutput(t, places + e + 1);
 			transitionList.add(null);
@@ -377,9 +397,9 @@ public class SyncProductFactory {
 
 		product.setInitialMarking(Arrays.copyOf(initMarking, p2name.size()));
 		product.setFinalMarking(Arrays.copyOf(finMarking, p2name.size()));
-		if (trace.size() > 0) {
+		if (trace.getSize() > 0) {
 			product.addToInitialMarking(places);
-			product.addToFinalMarking(places + trace.size());
+			product.addToFinalMarking(places + trace.getSize());
 		}
 
 		// trim to size;
@@ -392,4 +412,62 @@ public class SyncProductFactory {
 		return product;
 	}
 
+	private LinearTrace getLinearTrace(XTrace xTrace, String label) {
+		LinearTrace trace = new LinearTrace(label, xTrace.size());
+		for (short e = 0; e < xTrace.size(); e++) {
+			XEventClass clazz = classes.getClassOf(xTrace.get(e));
+			trace.set(e, c2id.get(clazz));
+		}
+
+		return trace;
+
+	}
+
+	private PartiallyOrderedTrace getPartiallyOrderedTrace(XTrace xTrace, String label) {
+		int s = xTrace.size();
+		int[] idx = new int[s];
+
+		TIntList activities = new TIntArrayList(s);
+		List<int[]> predecessors = new ArrayList<int[]>();
+		Date lastTime = null;
+		TIntList pre = new TIntArrayList();
+		int previousIndex = -1;
+		int currentIdx = 0;
+		for (int i = 0; i < s; i++) {
+			XEvent event = xTrace.get(i);
+			short act = c2id.get(classes.getClassOf(event));
+			//			int act = delegate.getActivityOf(trace, i);
+			idx[i] = currentIdx;
+			Date timestamp = XTimeExtension.instance().extractTimestamp(event);
+
+			activities.add(act);
+
+			if (lastTime == null) {
+				// first event
+				predecessors.add(null);
+			} else if (timestamp.equals(lastTime)) {
+				// timestamp is the same as the last event.
+				if (previousIndex >= 0) {
+					predecessors.add(new int[] { previousIndex });
+				} else {
+					predecessors.add(null);
+				}
+			} else {
+				// timestamp is different from the last event.
+				predecessors.add(pre.toArray());
+				previousIndex = idx[i - 1];
+				pre = new TIntArrayList();
+			}
+			pre.add(currentIdx);
+			lastTime = timestamp;
+			currentIdx++;
+
+		}
+
+		PartiallyOrderedTrace result;
+		// predecessors[i] holds all predecessors of event at index i
+		result = new PartiallyOrderedTrace(label, activities.toArray(), predecessors.toArray(new int[0][]));
+		return result;
+
+	}
 }

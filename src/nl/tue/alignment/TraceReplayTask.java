@@ -1,6 +1,5 @@
 package nl.tue.alignment;
 
-import gnu.trove.list.TShortList;
 import gnu.trove.map.TObjectIntMap;
 
 import java.util.ArrayList;
@@ -12,7 +11,8 @@ import nl.tue.alignment.algorithms.AStar;
 import nl.tue.alignment.algorithms.AStarLargeLP;
 import nl.tue.alignment.algorithms.Dijkstra;
 import nl.tue.alignment.algorithms.ReplayAlgorithm;
-import nl.tue.alignment.algorithms.datastructures.SyncProduct;
+import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
+import nl.tue.astar.Trace;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
 import org.deckfour.xes.extension.std.XConceptExtension;
@@ -58,7 +58,7 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 	}
 
 	public TraceReplayTask call() throws LPMatrixException {
-		TShortList traceAsList = this.replayer.factory.getListEventClasses(trace);
+		Trace traceAsList = this.replayer.factory.getTrace(trace, parameters.partiallyOrderEvents);
 
 		synchronized (this.replayer.trace2FirstIdenticalTrace) {
 			original = this.replayer.trace2FirstIdenticalTrace.get(traceAsList);
@@ -69,7 +69,7 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 		if (original < 0) {
 			SyncProduct product;
 			List<Transition> transitionList = new ArrayList<Transition>();
-			product = this.replayer.factory.getSyncProduct(trace, transitionList);
+			product = this.replayer.factory.getSyncProduct(trace, transitionList, parameters.partiallyOrderEvents);
 			if (product != null) {
 				algorithm = getAlgorithm(product);
 				short[] alignment = algorithm.run(this.replayer.progress, timeoutMilliseconds);

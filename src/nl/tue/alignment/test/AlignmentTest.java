@@ -90,7 +90,7 @@ public class AlignmentTest {
 			int initBins = 1;
 
 			ReplayerParameters parameters = new ReplayerParameters.AStarWithMarkingSplit(false, Math.max(1, Runtime
-					.getRuntime().availableProcessors() / 2), false, initBins, debug, timeout);
+					.getRuntime().availableProcessors() / 2), false, initBins, debug, timeout, true);
 
 			//			ReplayerParameters parameters = new ReplayerParameters.AStar(false, true, true, Math.max(1, Runtime
 			//					.getRuntime().availableProcessors() / 2), false, debug, timeout);

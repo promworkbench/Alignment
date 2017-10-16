@@ -12,8 +12,8 @@ import nl.tue.alignment.algorithms.AStarLargeLP;
 import nl.tue.alignment.algorithms.Dijkstra;
 import nl.tue.alignment.algorithms.ReplayAlgorithm;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
-import nl.tue.alignment.algorithms.datastructures.SyncProduct;
-import nl.tue.alignment.algorithms.datastructures.SyncProductImpl;
+import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
+import nl.tue.alignment.algorithms.syncproduct.SyncProductImpl;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
 public class SmallTests {

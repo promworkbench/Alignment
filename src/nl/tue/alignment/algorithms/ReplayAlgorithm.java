@@ -11,8 +11,8 @@ import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.datastructures.HashBackedPriorityQueue;
 import nl.tue.alignment.algorithms.datastructures.SortedHashBackedPriorityQueue;
-import nl.tue.alignment.algorithms.datastructures.SyncProduct;
 import nl.tue.alignment.algorithms.datastructures.VisitedHashSet;
+import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
 /**
@@ -249,8 +249,8 @@ public abstract class ReplayAlgorithm {
 	private int indexInBlock;
 
 	/**
-	 * For each marking stores: 1 bit: whether it is estimated 24 bit: Value of g
-	 * function 24 bit: Value of h function 15 bit: Predecessor transition
+	 * For each marking stores: 1 bit: whether it is estimated 24 bit: Value of
+	 * g function 24 bit: Value of h function 15 bit: Predecessor transition
 	 */
 	protected long[][] e_g_h_pt;
 
@@ -261,7 +261,8 @@ public abstract class ReplayAlgorithm {
 	 * 
 	 * For marking m, marking p[m] is the predecessor
 	 * 
-	 * For marking m, it is in the closed set if (p[m] & CLOSEDMASK) == CLOSEDMASK
+	 * For marking m, it is in the closed set if (p[m] & CLOSEDMASK) ==
+	 * CLOSEDMASK
 	 */
 	protected int[][] c_p;
 
@@ -452,7 +453,7 @@ public abstract class ReplayAlgorithm {
 							continue queueLoop;
 						case RESTARTNEEDED :
 							continue restartLoop;
-						//							return runReplayAlgorithm(startTime);
+							//							return runReplayAlgorithm(startTime);
 						case CLOSEDSUCCESSFUL :
 							closedActionsInRun++;
 					}
@@ -885,8 +886,8 @@ public abstract class ReplayAlgorithm {
 	}
 
 	/**
-	 * returns true if there is a place common in the output set of transitionFrom
-	 * and the input set of transitionTo
+	 * returns true if there is a place common in the output set of
+	 * transitionFrom and the input set of transitionTo
 	 * 
 	 * @param transitionFrom
 	 * @param transitionTo
@@ -953,22 +954,25 @@ public abstract class ReplayAlgorithm {
 		debug.println(Debug.NORMAL, "Markings polled:   " + String.format("%,d", pollActions));
 		debug.println(Debug.NORMAL, "   Markings reached:" + String.format("%,d", markingsReached));
 		debug.println(Debug.NORMAL, "   Markings closed: " + String.format("%,d", closedActions));
-		debug.println(Debug.NORMAL, "   FScore head:     " + getFScore(queue.peek()) + " = G: "
-				+ getGScore(queue.peek()) + " + H: " + getHScore(queue.peek()));
+		debug.println(Debug.NORMAL,
+				"   FScore head:     " + getFScore(queue.peek()) + " = G: " + getGScore(queue.peek()) + " + H: "
+						+ getHScore(queue.peek()));
 		debug.println(Debug.NORMAL, "   Queue size:      " + String.format("%,d", queue.size()));
 		debug.println(Debug.NORMAL, "   Queue actions:   " + String.format("%,d", queueActions));
 		debug.println(Debug.NORMAL, "   Heuristics compu:" + String.format("%,d", heuristicsComputed));
 		debug.println(Debug.NORMAL, "   Heuristics deriv:" + String.format("%,d", heuristicsDerived));
-		debug.println(Debug.NORMAL, "   Heuristics est  :"
-				+ String.format("%,d", (markingsReached - heuristicsComputed - heuristicsDerived)));
+		debug.println(
+				Debug.NORMAL,
+				"   Heuristics est  :"
+						+ String.format("%,d", (markingsReached - heuristicsComputed - heuristicsDerived)));
 		debug.println(Debug.NORMAL, "   Estimated memory:" + String.format("%,d", getEstimatedMemorySize()));
 		double time = (System.nanoTime() - startConstructor) / 1000000.0;
 		debug.println(Debug.NORMAL, "   Time (ms):       " + String.format("%,f", time));
 	}
 
 	/**
-	 * Grow the internal array structure. Method should be considered synchronized
-	 * as it should not be executed in parallel.
+	 * Grow the internal array structure. Method should be considered
+	 * synchronized as it should not be executed in parallel.
 	 */
 	protected void growArrays() {
 		if (block + 1 >= c_p.length) {
@@ -1301,17 +1305,18 @@ public abstract class ReplayAlgorithm {
 	}
 
 	/**
-	 * Signal that we intent to start computing an estimate for a specific marking
+	 * Signal that we intent to start computing an estimate for a specific
+	 * marking
 	 * 
 	 * If the marking already has an exact estimate or is already closed, this
 	 * method returns without changing anything.
 	 * 
-	 * If the marking is not exact and currently not computing, this method flags
-	 * the marking to the computing state and returns
+	 * If the marking is not exact and currently not computing, this method
+	 * flags the marking to the computing state and returns
 	 * 
-	 * If the marking is not exact and the computing flag is set, this method blocks
-	 * until the computing flag is released. After this, the marking may have an
-	 * exact heuristic, but it may also be an estimated one.
+	 * If the marking is not exact and the computing flag is set, this method
+	 * blocks until the computing flag is released. After this, the marking may
+	 * have an exact heuristic, but it may also be an estimated one.
 	 * 
 	 * A lock that is acquired should be released after setting the new exact
 	 * heuristic value
@@ -1338,7 +1343,8 @@ public abstract class ReplayAlgorithm {
 	}
 
 	/**
-	 * Signal that we completed computing an exact estimate for a specific marking.
+	 * Signal that we completed computing an exact estimate for a specific
+	 * marking.
 	 * 
 	 * @param b
 	 * @param i
@@ -1403,8 +1409,8 @@ public abstract class ReplayAlgorithm {
 
 	/**
 	 * Returns the hashCode of a stored marking which is provided as an array of
-	 * length 2*bm, where the first bm bytes provide the low bits and the second bm
-	 * bytes provide the high bits.
+	 * length 2*bm, where the first bm bytes provide the low bits and the second
+	 * bm bytes provide the high bits.
 	 * 
 	 * @see SyncProduct.getInitialMarking();
 	 * @param marking
@@ -1430,6 +1436,17 @@ public abstract class ReplayAlgorithm {
 			}
 		}
 		return cost;
+	}
+
+	public short getLastRankOf(int marking) {
+		int m = marking;
+		short trans = getPredecessorTransition(m);
+		while (net.getRankOf(trans) < 0 && m > 0) {
+			m = getPredecessor(m);
+			trans = getPredecessorTransition(m);
+		}
+		short evt = net.getRankOf(trans);
+		return evt;
 	}
 
 }

@@ -55,8 +55,8 @@ public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 				} else if (b2 == b1) {
 					// when both markings have exact or inexact heuristics, schedule the largest event number
 					
-					c1 = getLastEventNumber(marking1);
-					c2 = getLastEventNumber(marking2);
+					c1 = algorithm.getLastRankOf(marking1);
+					c2 = algorithm.getLastRankOf(marking2);
 					if (c1 > c2) {
 						// more events explained;
 						return true;
@@ -77,12 +77,12 @@ public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 		return false;
 	}
 
-	private int getLastEventNumber(int marking) {
-		int eventNumber = -1;
-		while (marking > 0 && eventNumber == -1) {
-			eventNumber = algorithm.getNet().getEventOf(algorithm.getPredecessorTransition(marking));
-			marking = algorithm.getPredecessor(marking);
-		}
-		return eventNumber;
-	}
+	//	private int getLastEventNumber(int marking) {
+	//		int eventNumber = -1;
+	//		while (marking > 0 && eventNumber == -1) {
+	//			eventNumber = algorithm.getNet().getEventOf(algorithm.getPredecessorTransition(marking));
+	//			marking = algorithm.getPredecessor(marking);
+	//		}
+	//		return eventNumber;
+	//	}
 }

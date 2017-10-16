@@ -1,6 +1,6 @@
 package nl.tue.alignment.algorithms;
 
-import nl.tue.alignment.algorithms.datastructures.SyncProduct;
+import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
 /**
  * Implements a variant of Dijkstra's shortest path algorithm for alignments,

@@ -1,4 +1,4 @@
-package nl.tue.alignment.algorithms.datastructures;
+package nl.tue.alignment.algorithms.syncproduct;
 
 public interface SyncProduct {
 
@@ -9,6 +9,7 @@ public interface SyncProduct {
 
 	public static final int MAXTRANS = 0b0011111111;
 	public static final short NOEVENT = -1;
+	public static final short NORANK = -1;
 
 	/**
 	 * Returns the number of transitions. At most MAXTRANS transitions are
@@ -115,6 +116,20 @@ public interface SyncProduct {
 	 * @return
 	 */
 	public short getEventOf(short transition);
+
+	/**
+	 * returns the rank of the transition. If a transition is a Model Move, the
+	 * rank should return NORANK. For sync products made from linear traces, the
+	 * rank should be the event number, i.e. getRankOf returns getEventOf.
+	 * 
+	 * For SyncProducts of partially ordered traces, the rank should be such
+	 * that the longest sequence in the trace have consequetive ranks. All other
+	 * events have the rank of their predecessor.
+	 * 
+	 * @param transition
+	 * @return
+	 */
+	public short getRankOf(short transition);
 
 	/**
 	 * returns the type of the transion as a byte equal to one of the constants

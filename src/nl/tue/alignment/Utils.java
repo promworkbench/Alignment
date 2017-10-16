@@ -9,7 +9,7 @@ import gnu.trove.set.hash.TShortHashSet;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 
-import nl.tue.alignment.algorithms.datastructures.SyncProduct;
+import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
 public class Utils {
 

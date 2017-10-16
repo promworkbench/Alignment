@@ -1,6 +1,5 @@
 package nl.tue.alignment;
 
-import gnu.trove.list.TShortList;
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
@@ -20,7 +19,8 @@ import nl.tue.alignment.ReplayerParameters.Algorithm;
 import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
-import nl.tue.alignment.algorithms.datastructures.SyncProductFactory;
+import nl.tue.alignment.algorithms.syncproduct.SyncProductFactory;
+import nl.tue.astar.Trace;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
@@ -39,7 +39,7 @@ public class Replayer {
 
 	public static final String MAXMODELMOVECOST = "Model move cost empty trace";
 
-	final TObjectIntMap<TShortList> trace2FirstIdenticalTrace;
+	final TObjectIntMap<Trace> trace2FirstIdenticalTrace;
 
 	private final ReplayerParameters parameters;
 	private final XLog log;

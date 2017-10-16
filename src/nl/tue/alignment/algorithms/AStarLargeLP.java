@@ -15,7 +15,7 @@ import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
-import nl.tue.alignment.algorithms.datastructures.SyncProduct;
+import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
 /**
@@ -298,7 +298,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
 		// find an available solver and block until one is available.
 
-		short event = marking == 0 ? SyncProduct.NOEVENT : getLastEventOf(marking);
+		short rank = marking == 0 ? SyncProduct.NORANK : getLastRankOf(marking);
 
 		// the current shortest path explains the events up to and including event, but cannot continue
 		// serializing a previous LP solution at this stage. Hence, around 'marking' should be a 
@@ -306,11 +306,11 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		int insert;
 		do {
 			// find the insertion point
-			insert = Arrays.binarySearch(splitpoints, ++event);
+			insert = Arrays.binarySearch(splitpoints, ++rank);
 			// if event already a splitpoint, add the first larger event.
 		} while (insert >= 0);
 
-		if (marking == 0 || event > numEvents || event == SyncProduct.NOEVENT) {
+		if (marking == 0 || rank > numEvents || rank == SyncProduct.NORANK) {
 			// No event was explained yet, or the last explained event is already a splitpoint.
 			// There's little we can do but continue with the replayer.
 			//			debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
@@ -323,24 +323,13 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		insert = -insert - 1;
 		splitpoints = Arrays.copyOf(splitpoints, splitpoints.length + 1);
 		System.arraycopy(splitpoints, insert, splitpoints, insert + 1, splitpoints.length - insert - 1);
-		splitpoints[insert] = event;
+		splitpoints[insert] = rank;
 		splits++;
 		debug.writeMarkingReached(this, marking, "peripheries=2");
 
 		return RESTART;
 		// Handle this case now.
 
-	}
-
-	protected short getLastEventOf(int marking) {
-		int m = marking;
-		short trans = getPredecessorTransition(m);
-		while (net.getEventOf(trans) < 0 && m > 0) {
-			m = getPredecessor(m);
-			trans = getPredecessorTransition(m);
-		}
-		short evt = net.getEventOf(trans);
-		return evt;
 	}
 
 	private int getExactHeuristic(LpSolve solver, int marking, byte[] markingArray, int markingBlock, int markingIndex,
@@ -350,7 +339,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		// start from correct right hand side
 		try {
 
-			int e = getLastEventOf(marking);
+			int e = getLastRankOf(marking);
 			int i = 0;
 			while (splitpoints[i] < e) {
 				i++;
