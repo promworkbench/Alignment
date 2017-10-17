@@ -746,15 +746,13 @@ public abstract class ReplayAlgorithm {
 	}
 
 	protected void writeEndOfAlignmentStats(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
-		synchronized (debug) {
-			if (alignment != null) {
-				debug.print(Debug.STATS, net.getLabel());
-				TObjectIntMap<Statistic> map = getStatistics(alignment);
-				for (Statistic s : Statistic.values()) {
-					debug.print(Debug.STATS, "," + map.get(s));
-				}
-				debug.println(Debug.STATS);
+		if (alignment != null) {
+			debug.print(Debug.STATS, net.getLabel());
+			TObjectIntMap<Statistic> map = getStatistics(alignment);
+			for (Statistic s : Statistic.values()) {
+				debug.print(Debug.STATS, "," + map.get(s));
 			}
+			debug.println(Debug.STATS);
 		}
 	}
 
@@ -792,14 +790,16 @@ public abstract class ReplayAlgorithm {
 	}
 
 	protected void terminateIteration(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
-		if (debug == Debug.DOT) {
-			writeEndOfAlignmentDot(alignment, markingsReachedInRun, closedActionsInRun);
-		}
-		if (debug == Debug.NORMAL) {
-			writeEndOfAlignmentNormal(alignment, markingsReachedInRun, closedActionsInRun);
-		}
-		if (debug == Debug.STATS) {
-			writeEndOfAlignmentStats(alignment, markingsReachedInRun, closedActionsInRun);
+		synchronized (debug.getOutputStream()) {
+			if (debug == Debug.DOT) {
+				writeEndOfAlignmentDot(alignment, markingsReachedInRun, closedActionsInRun);
+			}
+			if (debug == Debug.NORMAL) {
+				writeEndOfAlignmentNormal(alignment, markingsReachedInRun, closedActionsInRun);
+			}
+			if (debug == Debug.STATS) {
+				writeEndOfAlignmentStats(alignment, markingsReachedInRun, closedActionsInRun);
+			}
 		}
 	}
 
