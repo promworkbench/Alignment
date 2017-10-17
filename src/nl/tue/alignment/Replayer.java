@@ -172,6 +172,7 @@ public class Replayer {
 			int traceCost = getTraceCost(itTrace.next());
 
 			if (tr.getResult() == TraceReplayResult.SUCCESS) {
+
 				SyncReplayResult srr = tr.getSuccesfulResult();
 				srr.addInfo(PNRepResult.TRACEFITNESS,
 						1 - (srr.getInfo().get(PNRepResult.RAWFITNESSCOST) / (maxModelMoveCost + traceCost)));

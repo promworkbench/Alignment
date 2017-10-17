@@ -220,4 +220,8 @@ public class SyncProductImpl implements SyncProduct {
 		return ranks[transition];
 	}
 
+	public void setRankOf(short transition, short rank) {
+		ranks[transition] = rank;
+	}
+
 }

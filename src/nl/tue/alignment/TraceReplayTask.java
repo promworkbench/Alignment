@@ -11,6 +11,7 @@ import nl.tue.alignment.algorithms.AStar;
 import nl.tue.alignment.algorithms.AStarLargeLP;
 import nl.tue.alignment.algorithms.Dijkstra;
 import nl.tue.alignment.algorithms.ReplayAlgorithm;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 import nl.tue.astar.Trace;
 import nl.tue.astar.util.ilp.LPMatrixException;
@@ -38,6 +39,8 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 	private TraceReplayResult result;
 	private ReplayAlgorithm algorithm;
 	private final ReplayerParameters parameters;
+	private SyncProduct product;
+	private short[] alignment;
 
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, int timeoutMilliseconds) {
 		this.replayer = replayer;
@@ -67,12 +70,17 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 			}
 		}
 		if (original < 0) {
-			SyncProduct product;
 			List<Transition> transitionList = new ArrayList<Transition>();
 			product = this.replayer.factory.getSyncProduct(trace, transitionList, parameters.partiallyOrderEvents);
 			if (product != null) {
+				if (parameters.debug == Debug.DOT) {
+					Utils.toDot(product, ReplayAlgorithm.Debug.getOutputStream());
+				}
 				algorithm = getAlgorithm(product);
-				short[] alignment = algorithm.run(this.replayer.progress, timeoutMilliseconds);
+				alignment = algorithm.run(this.replayer.progress, timeoutMilliseconds);
+				if (parameters.debug == Debug.DOT) {
+					Utils.toDot(product, alignment, ReplayAlgorithm.Debug.getOutputStream());
+				}
 				TObjectIntMap<Statistic> stats = algorithm.getStatistics(alignment);
 				srr = toSyncReplayResult(product, stats, alignment, trace, traceIndex, transitionList);
 				this.replayer.progress.inc();
@@ -171,4 +179,11 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 		return null;
 	}
 
+	public SyncProduct getProduct() {
+		return product;
+	}
+
+	public short[] getAlignment() {
+		return alignment;
+	}
 }

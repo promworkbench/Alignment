@@ -6,8 +6,7 @@ import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.set.TShortSet;
 import gnu.trove.set.hash.TShortHashSet;
 
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
@@ -107,192 +106,197 @@ public class Utils {
 		return buf.toString();
 	}
 
-	public static void toTpn(SyncProduct product, OutputStreamWriter stream) throws IOException {
-		for (short p = 0; p < product.numPlaces(); p++) {
-			stream.write("place \"place_" + p);
-			stream.write("\"");
-			if (product.getInitialMarking()[p] > 0) {
-				stream.write("init " + product.getInitialMarking()[p]);
-			}
-			stream.write(";\n");
-		}
-		for (short t = 0; t < product.numTransitions(); t++) {
-			stream.write("trans \"t_" + t);
-			stream.write("\"~\"");
-			stream.write(product.getTransitionLabel(t));
-			stream.write("\" in ");
-			for (short p : product.getInput(t)) {
-				stream.write(" \"place_" + p);
-				stream.write("\"");
-			}
-			stream.write(" out ");
-			for (short p : product.getOutput(t)) {
-				stream.write(" \"place_" + p);
-				stream.write("\"");
-			}
-			stream.write(";\n");
-		}
-		stream.flush();
-
-	}
-
-	public static void toDot(SyncProduct product, OutputStreamWriter stream) throws IOException {
-		stream.write("Digraph P { \n rankdir=LR;\n");
-
-		for (short p = 0; p < product.numPlaces(); p++) {
-			placeToDot(product, stream, p, p);
-		}
-		stream.write("{ rank=same;");
-		for (short p = 0; p < product.numPlaces(); p++) {
-			if (product.getInitialMarking()[p] > 0) {
-				stream.write("p" + p + "; ");
-			}
-		}
-		stream.write("}\n");
-		stream.write("{ rank=same;");
-		for (short p = 0; p < product.numPlaces(); p++) {
-			if (product.getFinalMarking()[p] > 0) {
-				stream.write("p" + p + "; ");
-			}
-		}
-		stream.write("}\n");
-
-		TShortSet events = new TShortHashSet(product.numTransitions(), 0.5f, (short) -2);
-		for (short t = 0; t < product.numTransitions(); t++) {
-			events.add(product.getEventOf(t));
-			transitionToDot(product, stream, t, t);
-
-			for (short p : product.getInput(t)) {
-				stream.write("p" + p + " -> t" + t);
-				if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
-					stream.write(" [weight=2]");
-				} else {
-					stream.write(" [weight=10]");
+	public static void toTpn(SyncProduct product, PrintStream stream) {
+		synchronized (stream) {
+			for (short p = 0; p < product.numPlaces(); p++) {
+				stream.print("place \"place_" + p);
+				stream.print("\"");
+				if (product.getInitialMarking()[p] > 0) {
+					stream.print("init " + product.getInitialMarking()[p]);
 				}
-				stream.write(";\n");
+				stream.print(";\n");
 			}
-			for (short p : product.getOutput(t)) {
-				stream.write("t" + t + " -> p" + p);
-				if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
-					stream.write(" [weight=2]");
-				} else {
-					stream.write(" [weight=10]");
-				}
-				stream.write(";\n");
-			}
-		}
-
-		events.remove(SyncProduct.NOEVENT);
-
-		short e;
-		for (TShortIterator it = events.iterator(); it.hasNext();) {
-			e = it.next();
-			stream.write("{ rank=same;");
 			for (short t = 0; t < product.numTransitions(); t++) {
-				if (product.getEventOf(t) == e) {
-					stream.write("t" + t + "; ");
+				stream.print("trans \"t_" + t);
+				stream.print("\"~\"");
+				stream.print(product.getTransitionLabel(t));
+				stream.print("\" in ");
+				for (short p : product.getInput(t)) {
+					stream.print(" \"place_" + p);
+					stream.print("\"");
 				}
+				stream.print(" out ");
+				for (short p : product.getOutput(t)) {
+					stream.print(" \"place_" + p);
+					stream.print("\"");
+				}
+				stream.print(";\n");
 			}
-			stream.write("}\n");
-
+			stream.flush();
 		}
-
-		stream.write("}");
-		stream.flush();
 
 	}
 
-	public static void toDot(SyncProduct product, short[] alignment, OutputStreamWriter stream) throws IOException {
-		stream.write("Digraph A { \n rankdir=LR;\n");
+	public static void toDot(SyncProduct product, PrintStream stream) {
+		synchronized (stream) {
+			stream.println("Digraph SP { \n rankdir=LR;\n");
 
-		stream.write("{ rank=same;");
-		TIntList[] place2index = new TIntList[product.numPlaces()];
-		for (short p = 0; p < product.numPlaces(); p++) {
-			place2index[p] = new TIntArrayList(3);
-			if (product.getInitialMarking()[p] > 0) {
-				place2index[p].add(p);
-				stream.write("p" + p + "; ");
+			for (short p = 0; p < product.numPlaces(); p++) {
+				placeToDot(product, stream, p, p);
 			}
+			stream.print("{ rank=same;");
+			for (short p = 0; p < product.numPlaces(); p++) {
+				if (product.getInitialMarking()[p] > 0) {
+					stream.print("p" + p + "; ");
+				}
+			}
+			stream.print("}\n");
+			stream.print("{ rank=same;");
+			for (short p = 0; p < product.numPlaces(); p++) {
+				if (product.getFinalMarking()[p] > 0) {
+					stream.print("p" + p + "; ");
+				}
+			}
+			stream.print("}\n");
+
+			TShortSet events = new TShortHashSet(product.numTransitions(), 0.5f, (short) -2);
+			for (short t = 0; t < product.numTransitions(); t++) {
+				events.add(product.getEventOf(t));
+				transitionToDot(product, stream, t, t);
+
+				for (short p : product.getInput(t)) {
+					stream.print("p" + p + " -> t" + t);
+					if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
+						stream.print(" [weight=2]");
+					} else {
+						stream.print(" [weight=10]");
+					}
+					stream.print(";\n");
+				}
+				for (short p : product.getOutput(t)) {
+					stream.print("t" + t + " -> p" + p);
+					if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
+						stream.print(" [weight=2]");
+					} else {
+						stream.print(" [weight=10]");
+					}
+					stream.print(";\n");
+				}
+			}
+
+			events.remove(SyncProduct.NOEVENT);
+
+			short e;
+			for (TShortIterator it = events.iterator(); it.hasNext();) {
+				e = it.next();
+				stream.print("{ rank=same;");
+				for (short t = 0; t < product.numTransitions(); t++) {
+					if (product.getEventOf(t) == e) {
+						stream.print("t" + t + "; ");
+					}
+				}
+				stream.print("}\n");
+
+			}
+
+			stream.print("}");
+			stream.flush();
 		}
-		stream.write("}\n");
 
-		for (int i = 0; i < alignment.length; i++) {
-			short t = alignment[i];
-			transitionToDot(product, stream, i, t);
+	}
 
-			for (short p : product.getInput(t)) {
-				int j = place2index[p].removeAt(place2index[p].size() - 1);
-				if (j == p) {
+	public static void toDot(SyncProduct product, short[] alignment, PrintStream stream) {
+		synchronized (stream) {
+			stream.print("Digraph A { \n rankdir=LR;\n");
+
+			stream.print("{ rank=same;");
+			TIntList[] place2index = new TIntList[product.numPlaces()];
+			for (short p = 0; p < product.numPlaces(); p++) {
+				place2index[p] = new TIntArrayList(3);
+				if (product.getInitialMarking()[p] > 0) {
+					place2index[p].add(p);
+					stream.print("p" + p + "; ");
+				}
+			}
+			stream.print("}\n");
+
+			for (int i = 0; i < alignment.length; i++) {
+				short t = alignment[i];
+				transitionToDot(product, stream, i, t);
+
+				for (short p : product.getInput(t)) {
+					int j = place2index[p].removeAt(place2index[p].size() - 1);
+					if (j == p) {
+						placeToDot(product, stream, j, p);
+					}
+					stream.print("p" + j + " -> t" + i);
+					if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
+						stream.print(" [weight=2]");
+					} else {
+						stream.print(" [weight=10]");
+					}
+					stream.print(";\n");
+				}
+				for (short p : product.getOutput(t)) {
+					int j = i * product.numPlaces() + p;
+					place2index[p].add(j);
 					placeToDot(product, stream, j, p);
+					stream.print("t" + i + " -> p" + j);
+					if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
+						stream.print(" [weight=2]");
+					} else {
+						stream.print(" [weight=10]");
+					}
+					stream.print(";\n");
 				}
-				stream.write("p" + j + " -> t" + i);
-				if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
-					stream.write(" [weight=2]");
-				} else {
-					stream.write(" [weight=10]");
-				}
-				stream.write(";\n");
 			}
-			for (short p : product.getOutput(t)) {
-				int j = i * product.numPlaces() + p;
-				place2index[p].add(j);
-				placeToDot(product, stream, j, p);
-				stream.write("t" + i + " -> p" + j);
-				if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
-					stream.write(" [weight=2]");
-				} else {
-					stream.write(" [weight=10]");
+
+			stream.print("{ rank=same;");
+			for (short p = 0; p < product.numPlaces(); p++) {
+				if (place2index[p].size() > 0) {
+					int i = place2index[p].get(0);
+					stream.print("p" + i + "; ");
 				}
-				stream.write(";\n");
 			}
+			stream.print("}\n");
+
+			stream.print("}");
+			stream.flush();
 		}
-
-		stream.write("{ rank=same;");
-		for (short p = 0; p < product.numPlaces(); p++) {
-			if (place2index[p].size() > 0) {
-				int i = place2index[p].get(0);
-				stream.write("p" + i + "; ");
-			}
-		}
-		stream.write("}\n");
-
-		stream.write("}");
-		stream.flush();
-
 	}
 
-	private static void placeToDot(SyncProduct product, OutputStreamWriter stream, int i, short p) throws IOException {
-		stream.write("p" + i);
-		stream.write(" [label=<" + product.getPlaceLabel(p));
+	private static void placeToDot(SyncProduct product, PrintStream stream, int i, short p) {
+		stream.print("p" + i);
+		stream.print(" [label=<" + product.getPlaceLabel(p));
 		if (product.getInitialMarking()[p] > 0) {
-			stream.write("<br/>i:" + product.getInitialMarking()[p]);
+			stream.print("<br/>i:" + product.getInitialMarking()[p]);
 		}
 		if (product.getFinalMarking()[p] > 0) {
-			stream.write("<br/>f:" + product.getFinalMarking()[p]);
+			stream.print("<br/>f:" + product.getFinalMarking()[p]);
 		}
-		stream.write(">,shape=circle];");
-		stream.write("\n");
+		stream.print(">,shape=circle];");
+		stream.print("\n");
 	}
 
-	private static void transitionToDot(SyncProduct product, OutputStreamWriter stream, int i, short t)
-			throws IOException {
-		stream.write("t" + i);
-		stream.write(" [label=<" + product.getTransitionLabel(t));
-		stream.write("<br/>" + product.getCost(t));
-		stream.write(">");
+	private static void transitionToDot(SyncProduct product, PrintStream stream, int i, short t) {
+		stream.print("t" + i);
+		stream.print(" [label=<" + product.getTransitionLabel(t));
+		stream.print("<br/>r:" + product.getRankOf(t));
+		stream.print("<br/>c:" + product.getCost(t));
+		stream.print(">");
 
 		if (product.getTypeOf(t) == SyncProduct.LOG_MOVE) {
-			stream.write(",style=filled,fillcolor=goldenrod2,fontcolor=black");
+			stream.print(",style=filled,fillcolor=goldenrod2,fontcolor=black");
 		} else if (product.getTypeOf(t) == SyncProduct.MODEL_MOVE) {
-			stream.write(",style=filled,fillcolor=darkorchid1,fontcolor=white");
+			stream.print(",style=filled,fillcolor=darkorchid1,fontcolor=white");
 		} else if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
-			stream.write(",style=filled,fillcolor=forestgreen,fontcolor=white");
+			stream.print(",style=filled,fillcolor=forestgreen,fontcolor=white");
 		} else if (product.getTypeOf(t) == SyncProduct.TAU_MOVE) {
-			stream.write(",style=filled,fillcolor=honeydew4,fontcolor=white");
+			stream.print(",style=filled,fillcolor=honeydew4,fontcolor=white");
 		}
 
-		stream.write(",shape=box];");
-		stream.write("\n");
+		stream.print(",shape=box];");
+		stream.print("\n");
 	}
 
 }

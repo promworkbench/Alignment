@@ -129,7 +129,7 @@ public class SyncProductFactory {
 		}
 	}
 
-	private final int transitions;
+	private final short transitions;
 	private final TIntList t2mmCost;
 	private final TIntList t2smCost;
 	private final TObjectShortMap<Object> t2id;
@@ -145,7 +145,7 @@ public class SyncProductFactory {
 	private final TIntList c2lmCost;
 	private final TShortObjectMap<TShortSet> c2t;
 
-	private final int places;
+	private final short places;
 	private final StringList p2name;
 	private final byte[] initMarking;
 	private final byte[] finMarking;
@@ -199,7 +199,7 @@ public class SyncProductFactory {
 			c2lmCost.add(mapEvClass2Cost.get(clazz));
 		}
 
-		transitions = net.getTransitions().size();
+		transitions = (short) net.getTransitions().size();
 		t2mmCost = new TIntArrayList(transitions * 2);
 		t2smCost = new TIntArrayList(transitions * 2);
 		t2eid = new TShortArrayList(transitions * 2);
@@ -209,7 +209,7 @@ public class SyncProductFactory {
 		t2output = new ArrayList<>(transitions * 2);
 		t2transition = new Transition[transitions];
 
-		places = net.getPlaces().size();
+		places = (short) net.getPlaces().size();
 		p2name = new StringList(places * 2);
 		TObjectShortMap<Place> p2id = new TObjectShortHashMap<>(net.getPlaces().size(), 0.75f, (short) -1);
 		t2id = new TObjectShortHashMap<>(net.getTransitions().size(), 0.75f, (short) -1);
@@ -311,12 +311,11 @@ public class SyncProductFactory {
 			traceLabel = "XTrace@" + Integer.toHexString(xTrace.hashCode());
 		}
 		if (partiallyOrderSameTimestamp) {
-			return getLinearSyncProduct(getLinearTrace(xTrace, traceLabel), transitionList);
-		} else {
 			PartiallyOrderedTrace trace = getPartiallyOrderedTrace(xTrace, traceLabel);
 			// Do the ranking on this trace.
-			// TODO: Handle the sync product ranking properly.
-			return null;
+			return getPartiallyOrderedSyncProduct(trace, transitionList);
+		} else {
+			return getLinearSyncProduct(getLinearTrace(xTrace, traceLabel), transitionList);
 		}
 
 	}
@@ -331,7 +330,7 @@ public class SyncProductFactory {
 			// add a place
 			p2name.add("pe_" + e);
 			// add log move
-			t2name.add("e" + cid);//clazz.toString());
+			t2name.add("e" + e + "(" + cid + ")");//clazz.toString());
 			t2mmCost.add(c2lmCost.get(cid));
 			t2eid.add(e);
 			t2type.add(SyncProduct.LOG_MOVE);
@@ -342,7 +341,7 @@ public class SyncProductFactory {
 				while (it.hasNext()) {
 					// add sync move
 					short t = it.next();
-					t2name.add(t2name.get(t) + ",e" + cid);
+					t2name.add(t2name.get(t) + ",e" + e + "(" + cid + ")");
 					t2mmCost.add(t2smCost.get(t));
 					t2eid.add(e);
 					t2type.add(SyncProduct.SYNC_MOVE);
@@ -421,6 +420,145 @@ public class SyncProductFactory {
 
 		return trace;
 
+	}
+
+	private SyncProduct getPartiallyOrderedSyncProduct(PartiallyOrderedTrace trace, List<Transition> transitionList) {
+		transitionList.clear();
+
+		short[] e2t = new short[trace.getSize()];
+
+		// for this trace, compute the log-moves
+		// compute the sync moves
+		for (short e = 0; e < trace.getSize(); e++) {
+			//			XEventClass clazz = classes.getClassOf(trace.get(e));
+			short cid = (short) trace.get(e); // c2id.get(clazz);
+			int[] predecessors = trace.getPredecessors(e);
+			if (predecessors == null) {
+				// initial place
+				// add a place
+				p2name.add("p_init-" + e);
+			} else {
+				for (int pi = 0; pi < predecessors.length; pi++) {
+					// add a place
+					p2name.add("p_" + predecessors[pi] + "-" + e);
+				}
+			}
+
+			e2t[e] = (short) t2name.size();
+			// add log move
+			t2name.add("e" + e + "(" + cid + ")");//clazz.toString());
+			t2mmCost.add(c2lmCost.get(cid));
+			t2eid.add(e);
+			t2type.add(SyncProduct.LOG_MOVE);
+
+			TShortSet set = c2t.get(cid);
+			if (set != null) {
+				TShortIterator it = set.iterator();
+				while (it.hasNext()) {
+					// add sync move
+					short t = it.next();
+					t2name.add(t2name.get(t) + ",e" + e + "(" + cid + ")");
+					t2mmCost.add(t2smCost.get(t));
+					t2eid.add(e);
+					t2type.add(SyncProduct.SYNC_MOVE);
+				}
+			}
+
+		}
+
+		short[] ranks = new short[t2eid.size()];
+		Arrays.fill(ranks, SyncProduct.NORANK);
+		SyncProductImpl product = new SyncProductImpl(trace.getLabel(), //label
+				t2name.asArray(), //transition labels
+				p2name.asArray(), // place labels
+				t2eid.toArray(), //event numbers
+				ranks, // ranks
+				t2type.toArray(), //types
+				t2mmCost.toArray());
+
+		short t = 0;
+		for (; t < transitions; t++) {
+			// first the model moves
+			product.setInput(t, t2input.get(t));
+			product.setOutput(t, t2output.get(t));
+			transitionList.add(t2transition[t]);
+		}
+
+		product.setInitialMarking(Arrays.copyOf(initMarking, p2name.size()));
+		product.setFinalMarking(Arrays.copyOf(finMarking, p2name.size()));
+
+		// TODO: Handle the sync product ranking properly. Currently, a random sequence
+		// of events is ranked and the assumption is that events are ordered, i.e. that 
+		// the predecessors of the event at index e are a index < e .
+
+		short minRank = SyncProduct.NORANK;
+		short p = places;
+		for (short e = 0; e < trace.getSize(); e++) {
+			short cid = (short) trace.get(e); // c2id.get(clazz);
+
+			int[] predecessors = trace.getPredecessors(e);
+			if (predecessors == null) {
+				// initial place
+				// add a place
+				if (minRank == SyncProduct.NORANK) {
+					product.setRankOf(e2t[e], ++minRank);
+				}
+				product.setInput(e2t[e], p);
+				product.addToInitialMarking(p);
+				p++;
+			} else {
+				for (int pi = 0; pi < predecessors.length; pi++) {
+					// add a place
+					if (product.getRankOf(e2t[predecessors[pi]]) == minRank) {
+						product.setRankOf(e2t[e], ++minRank);
+					}
+					product.addToInput(e2t[e], p);
+					product.addToOutput(e2t[predecessors[pi]], p);
+					p++;
+				}
+
+			}
+			transitionList.add(null);
+
+			TShortSet set = c2t.get(cid);
+			if (set != null) {
+				TShortIterator it = set.iterator();
+				while (it.hasNext()) {
+					// add sync move
+					short t2 = it.next();
+
+					transitionList.add(t2transition[t2]);
+				}
+			}
+		}
+		for (short e = 0; e < trace.getSize(); e++) {
+			short cid = (short) trace.get(e); // c2id.get(clazz);
+			t++;
+			TShortSet set = c2t.get(cid);
+			if (set != null) {
+				TShortIterator it = set.iterator();
+				while (it.hasNext()) {
+					// add sync move
+					short t2 = it.next();
+					product.setInput(t, t2input.get(t2));
+					product.setOutput(t, t2output.get(t2));
+
+					product.addToInput(t, product.getInput(e2t[e]));
+					product.addToOutput(t, product.getOutput(e2t[e]));
+
+					t++;
+				}
+			}
+		}
+
+		// trim to size;
+		p2name.trunctate(places);
+		t2name.trunctate(transitions);
+		t2mmCost.remove(transitions, t2mmCost.size() - transitions);
+		t2eid.remove(transitions, t2eid.size() - transitions);
+		t2type.remove(transitions, t2type.size() - transitions);
+
+		return product;
 	}
 
 	private PartiallyOrderedTrace getPartiallyOrderedTrace(XTrace xTrace, String label) {

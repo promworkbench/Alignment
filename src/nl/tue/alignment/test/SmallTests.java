@@ -1,7 +1,6 @@
 package nl.tue.alignment.test;
 
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.util.Arrays;
 
 import lpsolve.LpSolve;
@@ -374,9 +373,9 @@ public class SmallTests {
 		//		SyncProduct net = new SyncProductExampleBook();
 		SyncProduct net = new LoopExample();
 
-		Utils.toDot(net, new OutputStreamWriter(System.out));
 		alignment = testSingleGraph(net, Debug.DOT);
-		Utils.toDot(net, alignment, new OutputStreamWriter(System.out));
+		Utils.toDot(net, System.out);
+		Utils.toDot(net, alignment, System.out);
 		//		testSingleGraph(new NastySyncProductExample(), Debug.DOT);
 	}
 

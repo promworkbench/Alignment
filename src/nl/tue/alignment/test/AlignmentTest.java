@@ -48,9 +48,9 @@ public class AlignmentTest {
 
 	public static void main(String[] args) throws Exception {
 
-		Debug debug = Debug.STATS;
+		Debug debug = Debug.DOT;
 
-		String[] names = new String[] { "sepsis" };//, "prCm6", "prDm6", "prEm6", "prFm6", "prGm6",  "prAm6", "prBm6" };
+		String[] names = new String[] { "temp" };// "sepsis" , "prCm6", "prDm6", "prEm6", "prFm6", "prGm6",  "prAm6", "prBm6" };
 		for (String name : names) {
 
 			PetrinetGraph net = constructNet("d:/temp/alignment/" + name + "/" + name + ".pnml");
@@ -76,12 +76,16 @@ public class AlignmentTest {
 			System.out.println("Started: " + name);
 
 			PrintStream stream;
+			int threads;
 			if (debug == Debug.STATS) {
 				stream = new PrintStream(new File("d:/temp/alignment/" + name + "/" + name + ".csv"));
+				threads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
 			} else if (debug == Debug.DOT) {
 				stream = new PrintStream(new File("d:/temp/alignment/" + name + "/" + name + ".dot"));
+				threads = 1;
 			} else {
 				stream = System.out;
+				threads = 1;
 			}
 			ReplayAlgorithm.Debug.setOutputStream(stream);
 
@@ -89,8 +93,8 @@ public class AlignmentTest {
 			int timeout = 60 * 60 * 1000;
 			int initBins = 1;
 
-			ReplayerParameters parameters = new ReplayerParameters.AStarWithMarkingSplit(false, Math.max(1, Runtime
-					.getRuntime().availableProcessors() / 2), false, initBins, debug, timeout, true);
+			ReplayerParameters parameters = new ReplayerParameters.AStarWithMarkingSplit(false, threads, false,
+					initBins, debug, timeout, true);
 
 			//			ReplayerParameters parameters = new ReplayerParameters.AStar(false, true, true, Math.max(1, Runtime
 			//					.getRuntime().availableProcessors() / 2), false, debug, timeout);

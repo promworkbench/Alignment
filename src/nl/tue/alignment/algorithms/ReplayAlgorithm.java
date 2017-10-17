@@ -111,12 +111,14 @@ public abstract class ReplayAlgorithm {
 					b.append(extra);
 				}
 				b.append("];");
-				output.println(b.toString());
+				synchronized (output) {
+					output.println(b.toString());
+				}
 			}
 
 			@Override
-			public synchronized void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition,
-					int toMarking, String extra) {
+			public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition, int toMarking,
+					String extra) {
 				StringBuilder b = new StringBuilder();
 				b.append("i" + algorithm.iteration);
 				b.append("m");
@@ -153,8 +155,9 @@ public abstract class ReplayAlgorithm {
 				}
 
 				b.append("];");
-
-				output.println(b.toString());
+				synchronized (output) {
+					output.println(b.toString());
+				}
 			}
 		}, //
 		NORMAL, //
@@ -181,24 +184,34 @@ public abstract class ReplayAlgorithm {
 
 		public synchronized void println(Debug db, String s) {
 			if (this == db) {
-				output.println(s);
+				synchronized (output) {
+					output.println(s);
+				}
 			}
 		}
 
 		public synchronized void println(Debug db) {
 			if (this == db) {
-				output.println();
+				synchronized (output) {
+					output.println();
+				}
 			}
 		}
 
 		public synchronized void print(Debug db, String s) {
 			if (this == db) {
-				output.print(s);
+				synchronized (output) {
+					output.print(s);
+				}
 			}
 		}
 
 		public synchronized static void setOutputStream(PrintStream out) {
 			output = out;
+		}
+
+		public synchronized static PrintStream getOutputStream() {
+			return output;
 		}
 	}
 
