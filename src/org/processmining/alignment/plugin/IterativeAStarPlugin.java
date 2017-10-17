@@ -34,7 +34,7 @@ import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 
 @KeepInProMCache
 @PNReplayAlgorithm
-public class IterativeDeepeningAStarPlugin implements IPNReplayAlgorithm {
+public class IterativeAStarPlugin implements IPNReplayAlgorithm {
 
 	private Map<Transition, Integer> mapTrans2Cost;
 	private Map<XEventClass, Integer> mapEvClass2Cost;
@@ -183,7 +183,7 @@ public class IterativeDeepeningAStarPlugin implements IPNReplayAlgorithm {
 	}
 
 	public String toString() {
-		return "Iterative Deepening A*";
+		return "Iterative A* with trace splitting";
 	}
 
 	protected void importParameters(CostBasedCompleteParam parameters) {
