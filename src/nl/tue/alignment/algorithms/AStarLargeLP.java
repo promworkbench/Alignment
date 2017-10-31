@@ -1,7 +1,5 @@
 package nl.tue.alignment.algorithms;
 
-import java.util.Arrays;
-
 import gnu.trove.iterator.TShortIterator;
 import gnu.trove.list.TShortList;
 import gnu.trove.list.array.TShortArrayList;
@@ -10,6 +8,9 @@ import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.TShortObjectMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.map.hash.TShortObjectHashMap;
+
+import java.util.Arrays;
+
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import nl.tue.alignment.Utils;
@@ -142,14 +143,14 @@ public class AStarLargeLP extends ReplayAlgorithm {
 				for (short e = splitpoints[s - 1]; e < splitpoints[s] - 1; e++) {
 					c = addLogAndSyncMovesToSolver(col, c, start, e, true);
 				}
-				c = addLogAndSyncMovesToSolver(col, c, start, (short) (splitpoints[s] - 1),
-						s == splitpoints.length - 1);
+				c = addLogAndSyncMovesToSolver(col, c, start, (short) (splitpoints[s] - 1), false);
 				start += product.numPlaces();
 			}
 
 			c = addModelMovesToSolver(col, c, start);
 
 			int r;
+			// The first blocks have to result in a marking >= 0 after consumption
 			for (r = 1; r <= rows - product.numPlaces(); r++) {
 				solver.setConstrType(r, LpSolve.GE);
 				solver.setRh(r, -product.getInitialMarking()[(r - 1) % product.numPlaces()]);
@@ -220,8 +221,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 							coefficients++;
 						}
 					} else {
-						for (int p = start + product.numPlaces() + output[i]; p < col.length; p += product
-								.numPlaces()) {
+						for (int p = start + product.numPlaces() + output[i]; p < col.length; p += product.numPlaces()) {
 							col[p] += 1;
 							coefficients++;
 						}
@@ -567,8 +567,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		return equalMarking(marking, net.getFinalMarking());
 	}
 
-	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
-			int toIndex) {
+	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,
+			int toBlock, int toIndex) {
 		if (hasExactHeuristic(fromBlock, fromIndex) && (getLpSolution(from, transition) >= 1)) {
 			// from Marking has exact heuristic
 			// we can derive an exact heuristic from it
