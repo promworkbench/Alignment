@@ -1,6 +1,5 @@
 package nl.tue.alignment.test;
 
-import java.io.IOException;
 import java.util.Arrays;
 
 import lpsolve.LpSolve;
@@ -314,11 +313,11 @@ public class SmallTests {
 		public TwoSwapsExample() {
 			super("Two Swaps Example",
 					new String[] { "A,-", "D,-", "C,-", "-,B", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
-							"E,E", "F,F" }, //
-					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11" }, //
-					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4 }, //
-					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM }, //
-					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0 }//
+							"E,E", "F,F", "-,G" }, //
+					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
+					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4,5 }, //
+					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, LM }, //
+					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1 }//
 			);
 			setInput(0, 0);
 			setOutput(0, 1);
@@ -362,12 +361,15 @@ public class SmallTests {
 			setInput(13, 3, 10);
 			setOutput(13, 8, 11);
 
+			setInput(14, 11);
+			setOutput(14, 12);
+
 			setInitialMarking(0, 4);
-			setFinalMarking(9, 11);
+			setFinalMarking(9, 12);
 		}
 	}
 
-	public static void main(String[] args) throws LPMatrixException, IOException {
+	public static void main(String[] args) throws LPMatrixException {
 		// INITIALIZE LpSolve for stdout
 		try {
 			LpSolve.makeLp(1, 1).deleteAndRemoveLp();
