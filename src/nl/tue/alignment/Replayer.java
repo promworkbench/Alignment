@@ -39,6 +39,8 @@ public class Replayer {
 
 	public static final String MAXMODELMOVECOST = "Model move cost empty trace";
 
+	public static final String TRACEEXITCODE = "Exit code of alignment for trace";
+
 	final TObjectIntMap<Trace> trace2FirstIdenticalTrace;
 
 	private final ReplayerParameters parameters;
@@ -189,7 +191,6 @@ public class Replayer {
 
 		PNRepResultImpl pnRepResult = new PNRepResultImpl(result.valueCollection());
 		pnRepResult.addInfo(MAXMODELMOVECOST, Double.toString(maxModelMoveCost));
-
 		return pnRepResult;
 
 	}
