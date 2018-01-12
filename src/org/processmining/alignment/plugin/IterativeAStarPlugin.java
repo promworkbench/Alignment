@@ -41,6 +41,25 @@ public class IterativeAStarPlugin implements IPNReplayAlgorithm {
 	private Map<Transition, Integer> mapSync2Cost;
 	private Marking initMarking;
 	private Marking[] finalMarkings;
+	private boolean useMoveSorting;
+	private int numThreads;
+	private boolean useIntegerVariables;
+	private int initialBins;
+	private int timeOutMilliseconds;
+
+	public IterativeAStarPlugin() {
+		this(false, Math.max(1, Runtime.getRuntime().availableProcessors() / 2), false, 1, 60 * 1000 * 1000);
+	}
+
+	public IterativeAStarPlugin(boolean useMoveSorting, int numThreads, boolean useIntegerVariables, int initialBins,
+			int timeOutMilliseconds) {
+		this.useMoveSorting = useMoveSorting;
+		this.numThreads = numThreads;
+		this.useIntegerVariables = useIntegerVariables;
+		this.initialBins = initialBins;
+		this.timeOutMilliseconds = timeOutMilliseconds;
+
+	}
 
 	public PNRepResult replayLog(final PluginContext context, PetrinetGraph net, XLog xLog,
 			TransEvClassMapping mapping, IPNReplayParameter parameters) throws AStarException {
@@ -49,8 +68,8 @@ public class IterativeAStarPlugin implements IPNReplayAlgorithm {
 
 		context.getProgress().setMaximum(xLog.size() + 1);
 
-		ReplayerParameters replayParameters = new ReplayerParameters.AStarWithMarkingSplit(false, Math.max(1, Runtime
-				.getRuntime().availableProcessors() / 2), false, 1, Debug.NONE, 60 * 1000 * 1000,
+		ReplayerParameters replayParameters = new ReplayerParameters.AStarWithMarkingSplit(useMoveSorting, numThreads,
+				useIntegerVariables, initialBins, Debug.NONE, timeOutMilliseconds,
 				((CostBasedCompleteParam) parameters).isPartiallyOrderedEvents());
 
 		XLogInfo summary = XLogInfoFactory.createLogInfo(xLog, mapping.getEventClassifier());
