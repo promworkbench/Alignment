@@ -1,11 +1,18 @@
 package nl.tue.alignment;
 
-import gnu.trove.map.TObjectIntMap;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import org.deckfour.xes.extension.std.XConceptExtension;
+import org.deckfour.xes.factory.XFactoryRegistry;
+import org.deckfour.xes.model.XTrace;
+import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
+import org.processmining.plugins.petrinet.replayresult.PNRepResult;
+import org.processmining.plugins.petrinet.replayresult.StepTypes;
+import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
+
+import gnu.trove.map.TObjectIntMap;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.AStar;
 import nl.tue.alignment.algorithms.AStarLargeLP;
@@ -15,14 +22,6 @@ import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 import nl.tue.astar.Trace;
 import nl.tue.astar.util.ilp.LPMatrixException;
-
-import org.deckfour.xes.extension.std.XConceptExtension;
-import org.deckfour.xes.factory.XFactoryRegistry;
-import org.deckfour.xes.model.XTrace;
-import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
-import org.processmining.plugins.petrinet.replayresult.PNRepResult;
-import org.processmining.plugins.petrinet.replayresult.StepTypes;
-import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
 class TraceReplayTask implements Callable<TraceReplayTask> {
 
@@ -169,7 +168,7 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 		switch (parameters.algorithm) {
 			case ASTAR :
 				return new AStar(product, parameters.moveSort, parameters.queueSort, parameters.preferExact, //
-						parameters.useInt, parameters.nThreads, parameters.debug);
+						parameters.useInt, parameters.debug);
 			case ASTARWITHMARKINGSPLIT :
 				return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.intialBins,
 						parameters.debug);

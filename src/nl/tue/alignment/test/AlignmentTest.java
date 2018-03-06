@@ -1,15 +1,11 @@
 package nl.tue.alignment.test;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
-
-import nl.tue.alignment.Progress;
-import nl.tue.alignment.Replayer;
-import nl.tue.alignment.ReplayerParameters;
-import nl.tue.alignment.algorithms.ReplayAlgorithm;
-import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
+import java.util.concurrent.ExecutionException;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
@@ -33,8 +29,15 @@ import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 
+import nl.tue.alignment.Progress;
+import nl.tue.alignment.Replayer;
+import nl.tue.alignment.ReplayerParameters;
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
+
 public class AlignmentTest {
 
+	private static final String FOLDER = "c:/temp/alignment/";
 	public static int iteration = 0;
 
 	static {
@@ -48,25 +51,26 @@ public class AlignmentTest {
 
 	public static void main(String[] args) throws Exception {
 
-		Debug debug = Debug.DOT;
+		Debug debug = Debug.STATS;
 
-		String[] names = new String[] { "temp" };// "sepsis" , "prCm6", "prDm6", "prEm6", "prFm6", "prGm6",  "prAm6", "prBm6" };
+		String[] names = new String[] { /* "temp", "sepsis", */ "prCm6", "prDm6", "prEm6", "prFm6", "prGm6", "prAm6",
+				"prBm6" };
 		for (String name : names) {
 
-			PetrinetGraph net = constructNet("d:/temp/alignment/" + name + "/" + name + ".pnml");
+			PetrinetGraph net = constructNet(FOLDER + name + "/" + name + ".pnml");
 			Marking initialMarking = getInitialMarking(net);
 			Marking finalMarking = getFinalMarking(net);
 			XLog log;
 			XEventClassifier eventClassifier;
 
-			if (new File("d:/temp/alignment/" + name + "/" + name + ".mxml").exists()) {
+			if (new File(FOLDER + name + "/" + name + ".mxml").exists()) {
 				XMxmlParser parser = new XMxmlParser();
 				eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
-				log = parser.parse(new File("d:/temp/alignment/" + name + "/" + name + ".mxml")).get(0);
+				log = parser.parse(new File(FOLDER + name + "/" + name + ".mxml")).get(0);
 			} else {
 				XesXmlParser parser = new XesXmlParser();
 				eventClassifier = new XEventNameClassifier();
-				log = parser.parse(new File("d:/temp/alignment/" + name + "/" + name + ".xes")).get(0);
+				log = parser.parse(new File(FOLDER + name + "/" + name + ".xes")).get(0);
 			}
 			XEventClass dummyEvClass = new XEventClass("DUMMY", 99999);
 			TransEvClassMapping mapping = constructMapping(net, log, dummyEvClass, eventClassifier);
@@ -75,39 +79,57 @@ public class AlignmentTest {
 
 			System.out.println("Started: " + name);
 
-			PrintStream stream;
 			int threads;
 			if (debug == Debug.STATS) {
-				stream = new PrintStream(new File("d:/temp/alignment/" + name + "/" + name + ".csv"));
 				threads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
 			} else if (debug == Debug.DOT) {
-				stream = new PrintStream(new File("d:/temp/alignment/" + name + "/" + name + ".dot"));
 				threads = 1;
 			} else {
-				stream = System.out;
-				threads = 1;
+				threads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
 			}
-			ReplayAlgorithm.Debug.setOutputStream(stream);
 
 			// timeout 60 minutes
 			int timeout = 60 * 60 * 1000;
 			int initBins = 1;
 
-			ReplayerParameters parameters = new ReplayerParameters.AStarWithMarkingSplit(false, threads, false,
-					initBins, debug, timeout, true);
+			boolean moveSort = false;
+			boolean useInt = false;
+			boolean partialOrder = false;
+			boolean preferExact = true;
+			boolean queueSort = true;
+			ReplayerParameters parameters;
 
-			//			ReplayerParameters parameters = new ReplayerParameters.AStar(false, true, true, Math.max(1, Runtime
-			//					.getRuntime().availableProcessors() / 2), false, debug, timeout);
+			parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, initBins, debug,
+					timeout, partialOrder);
+			doReplay(debug, name, " Incre", net, initialMarking, finalMarking, log, mapping, classes, parameters);
 
-			Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, log, classes,
-					mapping);
-			PNRepResult result = replayer.computePNRepResult(Progress.INVISIBLE);
+			parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug, timeout,
+					partialOrder);
+			doReplay(debug, name, " AStar", net, initialMarking, finalMarking, log, mapping, classes, parameters);
 
-			System.out.println(result.getInfo().toString());
-			System.out.println("Completed: " + name);
-
-			stream.close();
 		}
+	}
+
+	private static void doReplay(Debug debug, String name, String postfix, PetrinetGraph net, Marking initialMarking,
+			Marking finalMarking, XLog log, TransEvClassMapping mapping, XEventClasses classes,
+			ReplayerParameters parameters) throws FileNotFoundException, InterruptedException, ExecutionException {
+		PrintStream stream;
+		if (debug == Debug.STATS) {
+			stream = new PrintStream(new File(FOLDER + name + "/" + name + postfix + ".csv"));
+		} else if (debug == Debug.DOT) {
+			stream = new PrintStream(new File(FOLDER + name + "/" + name + postfix + ".dot"));
+		} else {
+			stream = System.out;
+		}
+		ReplayAlgorithm.Debug.setOutputStream(stream);
+
+		Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, log, classes,
+				mapping);
+		PNRepResult result = replayer.computePNRepResult(Progress.INVISIBLE);
+
+		System.out.println(result.getInfo().toString());
+		System.out.println("Completed: " + name + postfix);
+		stream.close();
 	}
 
 	private static PetrinetGraph constructNet(String netFile) {
@@ -136,8 +158,8 @@ public class AlignmentTest {
 		Map<org.jbpt.petri.Transition, Transition> t2t = new HashMap<org.jbpt.petri.Transition, Transition>();
 		for (org.jbpt.petri.Transition t : sys.getTransitions()) {
 			Transition tt = net.addTransition(t.getLabel());
-			if (t.isSilent() || t.getLabel().startsWith("tau") || t.getLabel().equals("t2")
-					|| t.getLabel().equals("t8") || t.getLabel().equals("complete")) {
+			if (t.isSilent() || t.getLabel().startsWith("tau") || t.getLabel().equals("t2") || t.getLabel().equals("t8")
+					|| t.getLabel().equals("complete")) {
 				tt.setInvisible(true);
 			}
 			t2t.put(t, tt);

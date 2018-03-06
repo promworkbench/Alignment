@@ -1,20 +1,15 @@
 package nl.tue.alignment.algorithms;
 
+import java.util.Arrays;
+
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
-
-import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
-import nl.tue.astar.util.LPProblemProvider;
 import nl.tue.astar.util.ilp.LPMatrix;
 import nl.tue.astar.util.ilp.LPMatrix.SPARSE.LPSOLVE;
 import nl.tue.astar.util.ilp.LPMatrixException;
@@ -33,72 +28,77 @@ public class AStar extends ReplayAlgorithm {
 
 	private final Object estimatedLock = new Object();
 
-	private final class BlockMonitor implements Runnable {
-
-		private final int currentBlock;
-
-		private final double[] varsBlockMonitor;
-
-		public BlockMonitor(int currentBlock, int numTrans) {
-			this.currentBlock = currentBlock;
-			this.varsBlockMonitor = new double[numTrans];
-			synchronized (AStar.this) {
-				lpSolutionsSize += 12 + 4 + 8 + 12 + 4 + numTrans * 8;
-			}
-		}
-
-		public void run() {
-			int b = currentBlock;
-			int i = 0;
-			do {
-				int m = b * blockSize + i;
-				if (m < markingsReached) {
-					//					System.out.println("Monitor waiting for " + b + "," + i);
-					getLockForComputingEstimate(b, i);
-					//					System.out.println("Monitor locking " + b + "," + i);
-					try {
-						if (!isClosed(b, i) && !hasExactHeuristic(b, i)) {
-							// an open marking without an exact solution for the heuristic
-							LpSolve solver = provider.firstAvailable();
-							int heuristic;
-							try {
-								heuristic = getExactHeuristic(solver, m, getMarking(m), b, i, varsBlockMonitor);
-							} finally {
-								provider.finished(solver);
-							}
-							if (heuristic > getHScore(b, i)) {
-								setHScore(b, i, heuristic, true);
-								// sort the marking in the queue
-								assert queue.contains(m);
-								queue.add(m);
-								queueActions++;
-							} else {
-								setHScore(b, i, heuristic, true);
-							}
-						}
-					} finally {
-						//						System.out.println("Monitor releasing " + b + "," + (m & blockMask));
-						releaseLockForComputingEstimate(b, m & blockMask);
-					}
-					i++;
-				} else {
-					synchronized (e_g_h_pt[b]) {
-						try {
-							e_g_h_pt[b].wait(200);
-						} catch (InterruptedException e) {
-						}
-					}
-				}
-			} while (!threadpool.isShutdown() && i < blockSize);
-			synchronized (AStar.this) {
-				lpSolutionsSize -= 12 + 4 + 8 + 12 + 4 + varsBlockMonitor.length * 8;
-			}
-
-			//			System.out.println("Closing monitor for block " + b + ". Threadpool shutdown: " + threadpool.isShutdown()
-			//					+ ".");
-
-		}
-	}
+	//	private final class BlockMonitor implements Runnable {
+	//
+	//		private final int currentBlock;
+	//
+	//		private final double[] varsBlockMonitor;
+	//
+	//		public BlockMonitor(int currentBlock, int numTrans) {
+	//			this.currentBlock = currentBlock;
+	//			this.varsBlockMonitor = new double[numTrans];
+	//			synchronized (AStar.this) {
+	//				lpSolutionsSize += 12 + 4 + 8 + 12 + 4 + numTrans * 8;
+	//			}
+	//		}
+	//
+	//		public void run() {
+	//			int b = currentBlock;
+	//			int i = 0;
+	//			do {
+	//				int m = b * blockSize + i;
+	//				if (m < markingsReached) {
+	//					//					System.out.println("Monitor waiting for " + b + "," + i);
+	//					getLockForComputingEstimate(b, i);
+	//					//					System.out.println("Monitor locking " + b + "," + i);
+	//					try {
+	//						if (!isClosed(b, i) && !hasExactHeuristic(b, i)) {
+	//							// an open marking without an exact solution for the heuristic
+	//							LpSolve solver = provider.firstAvailable();
+	//							int heuristic;
+	//							try {
+	//								heuristic = getExactHeuristic(solver, m, getMarking(m), b, i, varsBlockMonitor);
+	//							} finally {
+	//								provider.finished(solver);
+	//							}
+	//							synchronized (queue) {
+	//								if (heuristic > getHScore(b, i)) {
+	//									assert queue.checkInv();
+	//									setHScore(b, i, heuristic, true);
+	//									// sort the marking in the queue
+	//									assert queue.contains(m);
+	//									queue.add(m);
+	//									queueActions++;
+	//									assert queue.checkInv();
+	//								} else {
+	//									assert heuristic == getHScore(b, i);
+	//									setHScore(b, i, heuristic, true);
+	//								}
+	//							}
+	//						}
+	//					} finally {
+	//						//						System.out.println("Monitor releasing " + b + "," + (m & blockMask));
+	//						releaseLockForComputingEstimate(b, m & blockMask);
+	//					}
+	//					i++;
+	//				} else {
+	//					synchronized (e_g_h_pt[b]) {
+	//						try {
+	//							e_g_h_pt[b].wait(200);
+	//						} catch (InterruptedException e) {
+	//						}
+	//					}
+	//				}
+	//			} while (!threadpool.isShutdown() && i < blockSize);
+	//			synchronized (AStar.this) {
+	//				lpSolutionsSize -= 12 + 4 + 8 + 12 + 4 + varsBlockMonitor.length * 8;
+	//			}
+	//
+	//			//			System.out.println("Closing monitor for block " + b + ". Threadpool shutdown: " + threadpool.isShutdown()
+	//			//					+ ".");
+	//
+	//		}
+	//	}
 
 	// for each stored solution, the first byte is used for flagging.
 	// the first bit indicates whether the solution is derived
@@ -121,22 +121,22 @@ public class AStar extends ReplayAlgorithm {
 	//	protected int numRows;
 	//	protected int numCols;
 
-	private ExecutorService threadpool;
-	private LPProblemProvider provider;
+	//	private ExecutorService threadpool;
+	//	private LPProblemProvider provider;
 	private LpSolve solver;
 
-	private final int numberOfThreads;
+	//	private final int numberOfThreads;
 
 	private LPSOLVE matrix;
 
 	public AStar(SyncProduct product) throws LPMatrixException {
-		this(product, true, true, true, false, 1, Debug.NONE);
+		this(product, true, true, true, false, Debug.NONE);
 	}
 
-	public AStar(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact,
-			boolean isInteger, int numberOfThreads, Debug debug) throws LPMatrixException {
-		super(product, moveSorting, queueSorting, preferExact, numberOfThreads > 1, debug);
-		this.numberOfThreads = numberOfThreads;
+	public AStar(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact, boolean isInteger,
+			Debug debug) throws LPMatrixException {
+		super(product, moveSorting, queueSorting, preferExact, debug);
+		//		this.numberOfThreads = numberOfThreads;
 		//		this.numRows = net.numPlaces();
 		matrix = new LPMatrix.SPARSE.LPSOLVE(net.numPlaces(), net.numTransitions());
 
@@ -187,23 +187,23 @@ public class AStar extends ReplayAlgorithm {
 
 	@Override
 	protected void initializeIteration() throws LPMatrixException {
-		try {
-			solver = matrix.toSolver();
-			if (numberOfThreads > 1) {
-				provider = new LPProblemProvider(solver.copyLp(), numberOfThreads);
-				threadpool = Executors.newFixedThreadPool(numberOfThreads);
-
-			} else {
-				provider = null;
-				threadpool = null;
-			}
-		} catch (LpSolveException e) {
-			throw new LPMatrixException(e);
-		}
+		//		try {
+		solver = matrix.toSolver();
+		//			if (numberOfThreads > 1) {
+		//				provider = new LPProblemProvider(solver.copyLp(), numberOfThreads);
+		//				threadpool = Executors.newFixedThreadPool(numberOfThreads);
+		//
+		//			} else {
+		//				provider = null;
+		//				threadpool = null;
+		//			}
+		//		} catch (LpSolveException e) {
+		//			throw new LPMatrixException(e);
+		//		}
 		// bytes for solver
 		bytesUsed = matrix.bytesUsed();
 		// bytes for solvers inside monitorthreads
-		bytesUsed += matrix.bytesUsed() * numberOfThreads;
+		//bytesUsed += matrix.bytesUsed();//* numberOfThreads;
 		//		numCols = net.numTransitions() + 1;
 		varsMainThread = new double[net.numTransitions()];
 		tempForSettingSolution = new int[net.numTransitions()];
@@ -213,9 +213,9 @@ public class AStar extends ReplayAlgorithm {
 	@Override
 	protected void growArrays() {
 		super.growArrays();
-		if (numberOfThreads > 1) {
-			threadpool.submit(new BlockMonitor(block, net.numTransitions()));
-		}
+		//		if (numberOfThreads > 1) {
+		//			threadpool.submit(new BlockMonitor(block, net.numTransitions()));
+		//		}
 	}
 
 	protected double[] varsMainThread;
@@ -440,8 +440,8 @@ public class AStar extends ReplayAlgorithm {
 		return equalMarking(marking, net.getFinalMarking());
 	}
 
-	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,
-			int toBlock, int toIndex) {
+	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
+			int toIndex) {
 		if (hasExactHeuristic(fromBlock, fromIndex) && (getLpSolution(from, transition) >= 1)) {
 			// from Marking has exact heuristic
 			// we can derive an exact heuristic from it
@@ -498,7 +498,7 @@ public class AStar extends ReplayAlgorithm {
 	}
 
 	@Override
-	protected  void writeEndOfAlignmentDot(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+	protected void writeEndOfAlignmentDot(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		TObjectIntMap<Statistic> map = getStatistics(alignment);
 		for (int m = 0; m < markingsReached; m++) {
 			if (!isClosed(m)) {
@@ -540,24 +540,24 @@ public class AStar extends ReplayAlgorithm {
 		}
 	}
 
-	protected  void terminateIteration(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+	protected void terminateIteration(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		try {
 			super.terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
 		} finally {
-			if (numberOfThreads > 1 && !threadpool.isShutdown()) {
-				threadpool.shutdown();
-				//				System.out.println("Threadpool shutdown upon termination of run.");
-				do {
-					synchronized (estimatedLock) {
-						estimatedLock.notifyAll();
-					}
-					try {
-						threadpool.awaitTermination(100, TimeUnit.MILLISECONDS);
-					} catch (InterruptedException e) {
-					}
-				} while (!threadpool.isTerminated());
-				provider.deleteLps();
-			}
+			//			if (numberOfThreads > 1 && !threadpool.isShutdown()) {
+			//				threadpool.shutdown();
+			//				//				System.out.println("Threadpool shutdown upon termination of run.");
+			//				do {
+			//					synchronized (estimatedLock) {
+			//						estimatedLock.notifyAll();
+			//					}
+			//					try {
+			//						threadpool.awaitTermination(100, TimeUnit.MILLISECONDS);
+			//					} catch (InterruptedException e) {
+			//					}
+			//				} while (!threadpool.isTerminated());
+			//				provider.deleteLps();
+			//			}
 			solver.deleteAndRemoveLp();
 		}
 	}

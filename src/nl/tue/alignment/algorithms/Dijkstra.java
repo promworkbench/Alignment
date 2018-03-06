@@ -20,7 +20,7 @@ public class Dijkstra extends ReplayAlgorithm {
 	}
 
 	public Dijkstra(SyncProduct product, boolean moveSorting, boolean queueSorting, Debug debug) {
-		super(product, moveSorting, queueSorting, true, false, debug);
+		super(product, moveSorting, queueSorting, true, debug);
 		tempFinalMarking = new byte[numPlaces];
 	}
 
@@ -44,8 +44,8 @@ public class Dijkstra extends ReplayAlgorithm {
 		return net.isFinalMarking(tempFinalMarking);
 	}
 
-	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,
-			int toBlock, int toIndex) {
+	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
+			int toIndex) {
 		setHScore(toBlock, toIndex, 0, true);
 	}
 

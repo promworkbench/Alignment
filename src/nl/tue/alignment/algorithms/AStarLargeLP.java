@@ -1,5 +1,7 @@
 package nl.tue.alignment.algorithms;
 
+import java.util.Arrays;
+
 import gnu.trove.iterator.TShortIterator;
 import gnu.trove.list.TShortList;
 import gnu.trove.list.array.TShortArrayList;
@@ -8,9 +10,6 @@ import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.TShortObjectMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.map.hash.TShortObjectHashMap;
-
-import java.util.Arrays;
-
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import nl.tue.alignment.Utils;
@@ -67,7 +66,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, int initialBins, Debug debug) {
-		super(product, moveSorting, true, true, false, debug);
+		super(product, moveSorting, true, true,  debug);
 		this.product = product;
 		this.useInteger = useInteger;
 

@@ -315,7 +315,7 @@ public class SmallTests {
 					new String[] { "A,-", "D,-", "C,-", "-,B", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
 							"E,E", "F,F", "-,G" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
-					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4,5 }, //
+					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4, 5 }, //
 					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, LM }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1 }//
 			);
@@ -401,7 +401,7 @@ public class SmallTests {
 		boolean moveSort = true; // moveSort on total order
 		boolean queueSort = true; // queue sorted "depth-first"
 		boolean preferExact = true; // prefer Exact solution
-		int multiThread = 1; // do multithreading
+		//		int multiThread = 1; // do multithreading
 		boolean useInt = false; //  use Integer
 
 		if (dijkstra) {
@@ -424,7 +424,7 @@ public class SmallTests {
 					queueSort, // queue sorted "depth-first"
 					preferExact, // prefer Exact solution
 					useInt, // use Integers
-					multiThread, // multithreading
+					//					multiThread, // multithreading
 					debug // debug mode
 			);
 		}

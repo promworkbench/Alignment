@@ -1,10 +1,9 @@
 package nl.tue.alignment.algorithms.datastructures;
 
-import gnu.trove.map.hash.TIntIntHashMap;
-
 import java.util.Arrays;
 import java.util.Collection;
 
+import gnu.trove.map.hash.TIntIntHashMap;
 import nl.tue.alignment.algorithms.Queue;
 import nl.tue.alignment.algorithms.ReplayAlgorithm;
 
@@ -17,10 +16,10 @@ public class HashBackedPriorityQueue implements Queue {
 
 	/**
 	 * Priority queue represented as a balanced binary heap: the two children of
-	 * queue[n] are queue[2*n+1] and queue[2*(n+1)]. The priority queue is
-	 * ordered by the record's natural ordering: For each node n in the heap and
-	 * each descendant d of n, n <= d. The element with the best value is in
-	 * queue[0], assuming the queue is nonempty.
+	 * queue[n] are queue[2*n+1] and queue[2*(n+1)]. The priority queue is ordered
+	 * by the record's natural ordering: For each node n in the heap and each
+	 * descendant d of n, n <= d. The element with the best value is in queue[0],
+	 * assuming the queue is nonempty.
 	 */
 	protected int[] queue;
 
@@ -40,8 +39,8 @@ public class HashBackedPriorityQueue implements Queue {
 	protected int size = 0;
 
 	/**
-	 * The maximum total cost for any record in this queue. If the cost of a
-	 * record which is added is higher that this value, it is not added
+	 * The maximum total cost for any record in this queue. If the cost of a record
+	 * which is added is higher that this value, it is not added
 	 */
 	protected int maxCost;
 
@@ -204,11 +203,13 @@ public class HashBackedPriorityQueue implements Queue {
 			siftUp(location, marking);
 			//			assert checkInv();
 			return true;
-		} else if (location << 1 + 1 < size && isBetter(peek(location << 1 + 1), marking)) {
+		} else if ((location << 1) + 1 < size && isBetter(peek((location << 1) + 1), marking)) {
 			siftDown(location, marking);
+			//			assert checkInv();
 			return true;
-		} else if (location << 1 + 2 < size && isBetter(peek(location << 1 + 2), marking)) {
+		} else if ((location << 1) + 2 < size && isBetter(peek((location << 1) + 2), marking)) {
 			siftDown(location, marking);
+			//			assert checkInv();
 			return true;
 		}
 
@@ -250,9 +251,8 @@ public class HashBackedPriorityQueue implements Queue {
 	}
 
 	/**
-	 * Inserts item x at position k, maintaining heap invariant by promoting x
-	 * up the tree until it is greater than or equal to its parent, or is the
-	 * root.
+	 * Inserts item x at position k, maintaining heap invariant by promoting x up
+	 * the tree until it is greater than or equal to its parent, or is the root.
 	 * 
 	 * @param fromPosition
 	 * @param marking
@@ -274,9 +274,9 @@ public class HashBackedPriorityQueue implements Queue {
 	}
 
 	/**
-	 * Inserts item x at position k, maintaining heap invariant by demoting x
-	 * down the tree repeatedly until it is less than or equal to its children
-	 * or is a leaf.
+	 * Inserts item x at position k, maintaining heap invariant by demoting x down
+	 * the tree repeatedly until it is less than or equal to its children or is a
+	 * leaf.
 	 * 
 	 * @param positionToFill
 	 *            the position to fill
@@ -316,8 +316,21 @@ public class HashBackedPriorityQueue implements Queue {
 		if (2 * (loc + 1) < size)
 			c2 = queue[2 * (loc + 1)];
 
-		return (c1 == NEV ? true : !isBetter(c1, n) && checkInv(2 * loc + 1))
-				&& (c2 == NEV ? true : !isBetter(c2, n) && checkInv(2 * (loc + 1)));
+		if (c1 != NEV) {
+			if (isBetter(c1, n)) {
+				System.err.println("Child " + c1 + "(" + algorithm.getFScore(c1) + ") is better than parent " + n + "("
+						+ algorithm.getFScore(n) + ")");
+				return false;
+			}
+		}
+		if (c2 != NEV) {
+			if (isBetter(c2, n)) {
+				System.err.println("Child " + c2 + "(" + algorithm.getFScore(c2) + ") is better than parent " + n + "("
+						+ algorithm.getFScore(n) + ")");
+				return false;
+			}
+		}
+		return (c1 == NEV ? true : checkInv(2 * loc + 1)) && (c2 == NEV ? true : checkInv(2 * (loc + 1)));
 
 	}
 

@@ -1,10 +1,5 @@
 package nl.tue.alignment;
 
-import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -14,13 +9,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import nl.tue.alignment.ReplayerParameters.Algorithm;
-import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
-import nl.tue.alignment.Utils.Statistic;
-import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
-import nl.tue.alignment.algorithms.syncproduct.SyncProductFactory;
-import nl.tue.astar.Trace;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
@@ -34,6 +22,16 @@ import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMap
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 import org.processmining.plugins.petrinet.replayresult.PNRepResultImpl;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
+
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
+import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
+import nl.tue.alignment.Utils.Statistic;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
+import nl.tue.alignment.algorithms.syncproduct.SyncProductFactory;
+import nl.tue.astar.Trace;
 
 public class Replayer {
 
@@ -63,19 +61,19 @@ public class Replayer {
 				mapping);
 	}
 
-	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
-			XLog log, XEventClasses classes, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT,
+	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
+			XEventClasses classes, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT,
 			TransEvClassMapping mapping) {
 		this(parameters, net, initialMarking, finalMarking, log, classes, costMOS, costMOT, null, mapping);
 	}
 
-	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
-			XLog log, XEventClasses classes, TransEvClassMapping mapping) {
+	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
+			XEventClasses classes, TransEvClassMapping mapping) {
 		this(parameters, net, initialMarking, finalMarking, log, classes, null, null, null, mapping);
 	}
 
-	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
-			XLog log, XEventClasses classes, Map<Transition, Integer> costMM, Map<XEventClass, Integer> costLM,
+	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
+			XEventClasses classes, Map<Transition, Integer> costMM, Map<XEventClass, Integer> costLM,
 			Map<Transition, Integer> costSM, TransEvClassMapping mapping) {
 		this.parameters = parameters;
 		this.log = log;
@@ -119,6 +117,10 @@ public class Replayer {
 				parameters.debug.print(Debug.STATS, ",");
 				parameters.debug.print(Debug.STATS, s.toString());
 			}
+			parameters.debug.print(Debug.STATS, ",max Memory (MB)");
+			parameters.debug.print(Debug.STATS, ",total Memory (MB)");
+			parameters.debug.print(Debug.STATS, ",free Memory (MB)");
+
 			parameters.debug.println(Debug.STATS);
 
 		}
@@ -128,12 +130,12 @@ public class Replayer {
 		timeoutMilliseconds = Math.min(timeoutMilliseconds, parameters.timeoutMilliseconds);
 
 		ExecutorService service;
-		if (parameters.algorithm == Algorithm.ASTAR) {
-			// multi-threading is handled inside ASTAR
-			service = Executors.newFixedThreadPool(1);
-		} else {
-			service = Executors.newFixedThreadPool(parameters.nThreads);
-		}
+		//		if (parameters.algorithm == Algorithm.ASTAR) {
+		//			// multi-threading is handled inside ASTAR
+		//			service = Executors.newFixedThreadPool(1);
+		//		} else {
+		service = Executors.newFixedThreadPool(parameters.nThreads);
+		//		}
 		progress.setMaximum(log.size() + 1);
 
 		List<Future<TraceReplayTask>> resultList = new ArrayList<>();
@@ -156,8 +158,8 @@ public class Replayer {
 		int maxModelMoveCost;
 		TraceReplayTask traceReplay = itResult.next().get();
 		if (traceReplay.getResult() == TraceReplayResult.SUCCESS) {
-			maxModelMoveCost = (int) Math.round(traceReplay.getSuccesfulResult().getInfo()
-					.get(PNRepResult.RAWFITNESSCOST));
+			maxModelMoveCost = (int) Math
+					.round(traceReplay.getSuccesfulResult().getInfo().get(PNRepResult.RAWFITNESSCOST));
 			itResult.remove();
 		} else if (traceReplay.getResult() == TraceReplayResult.DUPLICATE) {
 			assert false;
