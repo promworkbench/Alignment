@@ -39,6 +39,8 @@ public class Replayer {
 
 	public static final String TRACEEXITCODE = "Exit code of alignment for trace";
 
+	public static final String MEMORYUSED = "Approximate memory used (kb)";
+
 	final TObjectIntMap<Trace> trace2FirstIdenticalTrace;
 
 	private final ReplayerParameters parameters;
@@ -109,7 +111,6 @@ public class Replayer {
 
 	public PNRepResult computePNRepResult(Progress progress) throws InterruptedException, ExecutionException {
 		this.progress = progress;
-		//TODO: Detect previously computed cases as duplicates when the traces are equal as sequences of classifiers.
 
 		if (parameters.debug == Debug.STATS) {
 			parameters.debug.print(Debug.STATS, "SP label");
@@ -168,7 +169,7 @@ public class Replayer {
 			maxModelMoveCost = 0;
 		}
 
-		TIntObjectMap<SyncReplayResult> result = new TIntObjectHashMap<>();
+		TIntObjectMap<SyncReplayResult> result = new TIntObjectHashMap<>(10, 0.5f, -1);
 		// process further changes
 		Iterator<XTrace> itTrace = log.iterator();
 		while (itResult.hasNext() && !progress.isCancelled()) {
@@ -181,14 +182,24 @@ public class Replayer {
 				srr.addInfo(PNRepResult.TRACEFITNESS,
 						1 - (srr.getInfo().get(PNRepResult.RAWFITNESSCOST) / (maxModelMoveCost + traceCost)));
 				result.put(tr.getTraceIndex(), srr);
+				//				System.out.println("Success: " + tr.getTraceIndex());
 
 			} else if (tr.getResult() == TraceReplayResult.DUPLICATE) {
-				SyncReplayResult srr = result.get(tr.getOriginalTraceIndex());
-				srr.addNewCase(tr.getTraceIndex());
+				// skip
 			} else {
 				// FAILURE TO COMPUTE ALIGNMENT
+				System.err.println("Failure: " + tr.getTraceIndex());
 			}
-
+		}
+		itResult = resultList.iterator();
+		// skip empty trace
+		itResult.next();
+		while (itResult.hasNext() && !progress.isCancelled()) {
+			tr = itResult.next().get();
+			if (tr.getResult() == TraceReplayResult.DUPLICATE) {
+				SyncReplayResult srr = result.get(tr.getOriginalTraceIndex());
+				srr.addNewCase(tr.getTraceIndex());
+			}
 		}
 
 		PNRepResultImpl pnRepResult = new PNRepResultImpl(result.valueCollection());

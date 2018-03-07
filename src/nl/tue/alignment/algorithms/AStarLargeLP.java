@@ -60,13 +60,15 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 	private SyncProduct product;
 	private boolean useInteger;
+	private short maxRankExact;
+	private int maxRankMarking;
 
 	public AStarLargeLP(SyncProduct product) {
 		this(product, false, false, 1, Debug.NONE);
 	}
 
 	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, int initialBins, Debug debug) {
-		super(product, moveSorting, true, true,  debug);
+		super(product, moveSorting, true, true, debug);
 		this.product = product;
 		this.useInteger = useInteger;
 
@@ -117,6 +119,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	private void init() throws LPMatrixException {
 		lpSolutions.clear();
 		lpSolutionsSize = 0;
+		maxRankExact = SyncProduct.NORANK;
+		maxRankMarking = 0;
 
 		rows = (splitpoints.length) * product.numPlaces();
 
@@ -220,7 +224,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 							coefficients++;
 						}
 					} else {
-						for (int p = start + product.numPlaces() + output[i]; p < col.length; p += product.numPlaces()) {
+						for (int p = start + product.numPlaces() + output[i]; p < col.length; p += product
+								.numPlaces()) {
 							col[p] += 1;
 							coefficients++;
 						}
@@ -292,25 +297,30 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	protected double[] varsMainThread;
-	protected int splits = 0;
+	protected int splits = 1;
 
 	@Override
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
 		// find an available solver and block until one is available.
 
-		short rank = marking == 0 ? SyncProduct.NORANK : getLastRankOf(marking);
+		short rank = (short) (maxRankExact + 1);// marking == 0 ? SyncProduct.NORANK : getLastRankOf(marking);
 
 		// the current shortest path explains the events up to and including event, but cannot continue
 		// serializing a previous LP solution at this stage. Hence, around 'marking' should be a 
 		// split marking and therefore event+1 needs to be added to the splitpoints.
-		int insert;
+		int insert = 1;
+
+		// cap the number of columns to go to the LPSolver on 20000. This avoids too large LPs to be constructed.
+		//		if (solver.getNcolumns() < 20000) {
+
 		do {
 			// find the insertion point
 			insert = Arrays.binarySearch(splitpoints, ++rank);
 			// if event already a splitpoint, add the first larger event.
 		} while (insert >= 0);
+		//		}
 
-		if (marking == 0 || rank > numRanks || rank == SyncProduct.NORANK) {
+		if (marking == 0 || insert > 0 || rank > numRanks || rank == SyncProduct.NORANK) {
 			// No event was explained yet, or the last explained event is already a splitpoint.
 			// There's little we can do but continue with the replayer.
 			//			debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
@@ -325,7 +335,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		System.arraycopy(splitpoints, insert, splitpoints, insert + 1, splitpoints.length - insert - 1);
 		splitpoints[insert] = rank;
 		splits++;
-		debug.writeMarkingReached(this, marking, "peripheries=2");
+		debug.writeMarkingReached(this, marking);
+		debug.writeMarkingReached(this, maxRankMarking, "peripheries=2");
 
 		return RESTART;
 		// Handle this case now.
@@ -566,8 +577,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		return equalMarking(marking, net.getFinalMarking());
 	}
 
-	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,
-			int toBlock, int toIndex) {
+	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
+			int toIndex) {
 		if (hasExactHeuristic(fromBlock, fromIndex) && (getLpSolution(from, transition) >= 1)) {
 			// from Marking has exact heuristic
 			// we can derive an exact heuristic from it
@@ -577,6 +588,11 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			setHScore(toBlock, toIndex, getHScore(fromBlock, fromIndex) - net.getCost(transition), true);
 			heuristicsDerived++;
 
+			short r = getLastRankOf(to);
+			if (r > maxRankExact) {
+				maxRankExact = r;
+				maxRankMarking = to;
+			}
 		} else {
 			if (isFinal(to)) {
 				setHScore(toBlock, toIndex, 0, true);

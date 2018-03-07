@@ -2,6 +2,7 @@ package nl.tue.alignment.test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +29,7 @@ import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetFactor
 import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
+import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
 import nl.tue.alignment.Progress;
 import nl.tue.alignment.Replayer;
@@ -51,12 +53,50 @@ public class AlignmentTest {
 
 	public static void main(String[] args) throws Exception {
 
-		Debug debug = Debug.STATS;
+		mainFileFolder("test");//"pr1151_l4_noise","pr1912_l4_noise");
+		//		mainFileFolder("temp", "sepsis", "prCm6", "prDm6", "prEm6", "prFm6", "prGm6", "prAm6", "prBm6" );
+		//		mainFolder("laura/", "isbpm2013/" );
+	}
 
-		String[] names = new String[] { /* "temp", "sepsis", */ "prCm6", "prDm6", "prEm6", "prFm6", "prGm6", "prAm6",
-				"prBm6" };
+	public static void mainFolder(String... eval) throws Exception {
+
+		Debug debug = Debug.NONE;
+
+		for (String folder : eval) {
+
+			String[] names = new File(FOLDER + folder).list(new FilenameFilter() {
+
+				public boolean accept(File dir, String name) {
+					return name.endsWith(".pnml");
+				}
+			});
+
+			System.out.println("file,algorithm,traces,time (ms),memory (kb),timeout,cost");
+			for (String name : names) {
+				name = name.replace(".pnml", "");
+
+				PetrinetGraph net = constructNet(FOLDER + folder + name + ".pnml");
+				Marking initialMarking = getInitialMarking(net);
+				Marking finalMarking = getFinalMarking(net);
+				XLog log;
+				XEventClassifier eventClassifier;
+
+				XMxmlParser parser = new XMxmlParser();
+				eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
+				log = parser.parse(new File(FOLDER + folder + name + ".xml")).get(0);
+
+				doReplayExperiment(debug, FOLDER + folder + name, net, initialMarking, finalMarking, log,
+						eventClassifier);
+
+			}
+		}
+	}
+
+	public static void mainFileFolder(String... names) throws Exception {
+
+		Debug debug = Debug.DOT;
+
 		for (String name : names) {
-
 			PetrinetGraph net = constructNet(FOLDER + name + "/" + name + ".pnml");
 			Marking initialMarking = getInitialMarking(net);
 			Marking finalMarking = getFinalMarking(net);
@@ -72,52 +112,59 @@ public class AlignmentTest {
 				eventClassifier = new XEventNameClassifier();
 				log = parser.parse(new File(FOLDER + name + "/" + name + ".xes")).get(0);
 			}
-			XEventClass dummyEvClass = new XEventClass("DUMMY", 99999);
-			TransEvClassMapping mapping = constructMapping(net, log, dummyEvClass, eventClassifier);
-			XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
-			XEventClasses classes = summary.getEventClasses();
 
-			System.out.println("Started: " + name);
-
-			int threads;
-			if (debug == Debug.STATS) {
-				threads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
-			} else if (debug == Debug.DOT) {
-				threads = 1;
-			} else {
-				threads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
-			}
-
-			// timeout 60 minutes
-			int timeout = 60 * 60 * 1000;
-			int initBins = 1;
-
-			boolean moveSort = false;
-			boolean useInt = false;
-			boolean partialOrder = false;
-			boolean preferExact = true;
-			boolean queueSort = true;
-			ReplayerParameters parameters;
-
-			parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, initBins, debug,
-					timeout, partialOrder);
-			doReplay(debug, name, " Incre", net, initialMarking, finalMarking, log, mapping, classes, parameters);
-
-			parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug, timeout,
-					partialOrder);
-			doReplay(debug, name, " AStar", net, initialMarking, finalMarking, log, mapping, classes, parameters);
+			doReplayExperiment(debug, FOLDER + name + "/" + name, net, initialMarking, finalMarking, log,
+					eventClassifier);
 
 		}
 	}
 
-	private static void doReplay(Debug debug, String name, String postfix, PetrinetGraph net, Marking initialMarking,
+	private static void doReplayExperiment(Debug debug, String folder, PetrinetGraph net, Marking initialMarking,
+			Marking finalMarking, XLog log, XEventClassifier eventClassifier)
+			throws FileNotFoundException, InterruptedException, ExecutionException {
+		XEventClass dummyEvClass = new XEventClass("DUMMY", 99999);
+		TransEvClassMapping mapping = constructMapping(net, log, dummyEvClass, eventClassifier);
+		XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
+		XEventClasses classes = summary.getEventClasses();
+
+		int threads;
+		if (debug == Debug.STATS) {
+			System.out.println("Started: " + folder);
+			threads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
+		} else if (debug == Debug.DOT) {
+			threads = 1;
+		} else {
+			threads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
+		}
+
+		// timeout 30 sec per trace minutes
+		int timeout = log.size() * 30 * 1000 / 10;
+		int initBins = 1;
+
+		boolean moveSort = false;
+		boolean useInt = false;
+		boolean partialOrder = false;
+		boolean preferExact = true;
+		boolean queueSort = true;
+		ReplayerParameters parameters;
+
+		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, initBins, debug, timeout,
+				partialOrder);
+		doReplay(debug, folder, "Incre", net, initialMarking, finalMarking, log, mapping, classes, parameters);
+
+		//		parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug, timeout,
+		//				partialOrder);
+		//		doReplay(debug, folder, "AStar", net, initialMarking, finalMarking, log, mapping, classes, parameters);
+	}
+
+	private static void doReplay(Debug debug, String folder, String postfix, PetrinetGraph net, Marking initialMarking,
 			Marking finalMarking, XLog log, TransEvClassMapping mapping, XEventClasses classes,
 			ReplayerParameters parameters) throws FileNotFoundException, InterruptedException, ExecutionException {
 		PrintStream stream;
 		if (debug == Debug.STATS) {
-			stream = new PrintStream(new File(FOLDER + name + "/" + name + postfix + ".csv"));
+			stream = new PrintStream(new File(folder + " " + postfix + ".csv"));
 		} else if (debug == Debug.DOT) {
-			stream = new PrintStream(new File(FOLDER + name + "/" + name + postfix + ".dot"));
+			stream = new PrintStream(new File(folder + " " + postfix + ".dot"));
 		} else {
 			stream = System.out;
 		}
@@ -127,9 +174,34 @@ public class AlignmentTest {
 				mapping);
 		PNRepResult result = replayer.computePNRepResult(Progress.INVISIBLE);
 
-		System.out.println(result.getInfo().toString());
-		System.out.println("Completed: " + name + postfix);
-		stream.close();
+		if (stream != System.out) {
+			System.out.println(result.getInfo().toString());
+			System.out.println("Completed: " + folder + postfix);
+			stream.close();
+		} else {
+
+			System.out.print(folder + ",");
+			System.out.print(postfix + ",");
+			System.out.print((log.size() + 1) + ",");
+
+			int cost = (int) Double.parseDouble((String) result.getInfo().get(Replayer.MAXMODELMOVECOST));
+			int timeout = 0;
+			int time = 0;
+			int mem = 0;
+			for (SyncReplayResult res : result) {
+				cost += res.getInfo().get(PNRepResult.RAWFITNESSCOST);
+				timeout += res.getInfo().get(Replayer.TRACEEXITCODE).intValue() != 1 ? 1 : 0;
+				time += res.getInfo().get(PNRepResult.TIME).intValue();
+				mem = Math.max(mem, res.getInfo().get(Replayer.MEMORYUSED).intValue());
+			}
+			System.out.print(time + ",");
+			System.out.print(mem + ",");
+			System.out.print(timeout + ",");
+			System.out.print(cost + ",");
+
+			System.out.println();
+			System.out.flush();
+		}
 	}
 
 	private static PetrinetGraph constructNet(String netFile) {

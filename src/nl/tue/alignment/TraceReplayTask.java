@@ -155,6 +155,7 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 		srr.addInfo(PNRepResult.NUMSTATEGENERATED, 1.0 * statistics.get(Statistic.MARKINGSREACHED));
 		srr.addInfo(PNRepResult.ORIGTRACELENGTH, 1.0 * trace.size());
 		srr.addInfo(Replayer.TRACEEXITCODE, new Double(statistics.get(Statistic.EXITCODE)));
+		srr.addInfo(Replayer.MEMORYUSED, new Double(statistics.get(Statistic.MEMORYUSED)));
 
 		srr.setReliable(statistics.get(Statistic.EXITCODE) == Utils.OPTIMALALIGNMENT);
 		return srr;
