@@ -1,13 +1,12 @@
 package nl.tue.alignment;
 
+import java.io.PrintStream;
+
 import gnu.trove.iterator.TShortIterator;
 import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.set.TShortSet;
 import gnu.trove.set.hash.TShortHashSet;
-
-import java.io.PrintStream;
-
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
 public class Utils {
@@ -18,11 +17,11 @@ public class Utils {
 	public static int COSTFUNCTIONOVERFLOW = 8;
 	public static int HEURISTICFUNCTIONOVERFLOW = 16;
 	public static int TIMEOUTREACHED = 32;
+	public static int STATELIMITREACHED = 64;
 
 	/**
-	 * Default block size determines how many bytes are reserved top store
-	 * markings. Whenever a block is full, a new block of this size is
-	 * allocated.
+	 * Default block size determines how many bytes are reserved top store markings.
+	 * Whenever a block is full, a new block of this size is allocated.
 	 */
 	public static int DEFAULTBLOCKSIZE = 1024;
 

@@ -15,9 +15,10 @@ public class AStarPlugin extends AbstractAlignmentPlugin {
 	}
 
 	@Override
-	protected ReplayerParameters constructReplayParameters(int numThreads, boolean usePartialOrder) {
+	protected ReplayerParameters constructReplayParameters(int numThreads, boolean usePartialOrder,
+			int maximumNumberOfStates) {
 		ReplayerParameters replayParameters = new ReplayerParameters.AStar(true, true, true, numThreads, false,
-				Debug.NONE, Integer.MAX_VALUE, usePartialOrder);
+				Debug.NONE, Integer.MAX_VALUE, maximumNumberOfStates, usePartialOrder);
 		return replayParameters;
 	}
 

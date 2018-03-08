@@ -141,12 +141,13 @@ public class Replayer {
 
 		List<Future<TraceReplayTask>> resultList = new ArrayList<>();
 
-		TraceReplayTask tr = new TraceReplayTask(this, parameters, timeoutMilliseconds);
+		TraceReplayTask tr = new TraceReplayTask(this, parameters, timeoutMilliseconds,
+				parameters.maximumNumberOfStates);
 		resultList.add(service.submit(tr));
 
 		int t = 0;
 		for (XTrace trace : log) {
-			tr = new TraceReplayTask(this, parameters, trace, t, timeoutMilliseconds);
+			tr = new TraceReplayTask(this, parameters, trace, t, timeoutMilliseconds, parameters.maximumNumberOfStates);
 			resultList.add(service.submit(tr));
 			t++;
 		}

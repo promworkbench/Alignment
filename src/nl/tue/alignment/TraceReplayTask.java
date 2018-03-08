@@ -40,10 +40,13 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 	private final ReplayerParameters parameters;
 	private SyncProduct product;
 	private short[] alignment;
+	private int maximumNumberOfStates;
 
-	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, int timeoutMilliseconds) {
+	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, int timeoutMilliseconds,
+			int maximumNumberOfStates) {
 		this.replayer = replayer;
 		this.parameters = parameters;
+		this.maximumNumberOfStates = maximumNumberOfStates;
 		this.trace = XFactoryRegistry.instance().currentDefault().createTrace();
 		XConceptExtension.instance().assignName(trace, "Empty");
 		this.traceIndex = -1;
@@ -51,12 +54,13 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 	}
 
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, XTrace trace, int traceIndex,
-			int timeoutMilliseconds) {
+			int timeoutMilliseconds, int maximumNumberOfStates) {
 		this.replayer = replayer;
 		this.parameters = parameters;
 		this.trace = trace;
 		this.traceIndex = traceIndex;
 		this.timeoutMilliseconds = timeoutMilliseconds;
+		this.maximumNumberOfStates = maximumNumberOfStates;
 	}
 
 	public TraceReplayTask call() throws LPMatrixException {
@@ -76,7 +80,7 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 					Utils.toDot(product, ReplayAlgorithm.Debug.getOutputStream());
 				}
 				algorithm = getAlgorithm(product);
-				alignment = algorithm.run(this.replayer.progress, timeoutMilliseconds);
+				alignment = algorithm.run(this.replayer.progress, timeoutMilliseconds, maximumNumberOfStates);
 				if (parameters.debug == Debug.DOT) {
 					Utils.toDot(product, alignment, ReplayAlgorithm.Debug.getOutputStream());
 				}

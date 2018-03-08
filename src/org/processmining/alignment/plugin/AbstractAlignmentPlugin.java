@@ -49,7 +49,8 @@ public abstract class AbstractAlignmentPlugin implements IPNReplayAlgorithm {
 		context.getProgress().setMaximum(xLog.size() + 1);
 
 		ReplayerParameters replayParameters = constructReplayParameters(numThreads,
-				((CostBasedCompleteParam) parameters).isPartiallyOrderedEvents());
+				((CostBasedCompleteParam) parameters).isPartiallyOrderedEvents(),
+				((CostBasedCompleteParam) parameters).getMaxNumOfStates());
 
 		XLogInfo summary = XLogInfoFactory.createLogInfo(xLog, mapping.getEventClassifier());
 		Replayer replayer = constructReplayer((Petrinet) net, xLog, mapping, replayParameters, summary);
@@ -93,7 +94,8 @@ public abstract class AbstractAlignmentPlugin implements IPNReplayAlgorithm {
 		return replayer;
 	}
 
-	protected abstract ReplayerParameters constructReplayParameters(int numThreads, boolean usePartialOrder);
+	protected abstract ReplayerParameters constructReplayParameters(int numThreads, boolean usePartialOrder,
+			int maximumNumberOfStates);
 
 	public IPNReplayParamProvider constructParamProvider(PluginContext context, PetrinetGraph net, XLog log,
 			TransEvClassMapping mapping) {

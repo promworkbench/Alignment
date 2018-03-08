@@ -327,6 +327,7 @@ public abstract class ReplayAlgorithm {
 	private boolean queueSorting;
 	//	private boolean multiThreading;
 	protected long timeoutAtTimeInMillisecond;
+	private int maximumNumberOfStates;
 
 	public ReplayAlgorithm(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact) {
 		this(product, moveSorting, queueSorting, preferExact, Debug.NONE);
@@ -406,7 +407,12 @@ public abstract class ReplayAlgorithm {
 		return val;
 	}
 
-	public short[] run(Progress progress, int timeoutMilliseconds) throws LPMatrixException {
+	public short[] run(Progress progress, int timeoutMilliseconds, int maximumNumberOfStates) throws LPMatrixException {
+		if (maximumNumberOfStates <= 0) {
+			this.maximumNumberOfStates = Integer.MAX_VALUE;
+		} else {
+			this.maximumNumberOfStates = maximumNumberOfStates;
+		}
 		pollActions = 0;
 		closedActions = 0;
 		queueActions = 0;
@@ -417,7 +423,8 @@ public abstract class ReplayAlgorithm {
 		heuristicsDerived = 0;
 		iteration = -1;
 
-		return runReplayAlgorithm(progress, System.nanoTime(), timeoutMilliseconds);
+		return runReplayAlgorithm(progress, System.nanoTime(),
+				timeoutMilliseconds <= 0 ? Integer.MAX_VALUE : timeoutMilliseconds);
 	}
 
 	protected short[] runReplayAlgorithm(Progress progress, long startTime, int timeoutMilliseconds)
@@ -446,7 +453,8 @@ public abstract class ReplayAlgorithm {
 
 				byte[] marking_m = new byte[numPlaces];
 
-				queueLoop: while (!queue.isEmpty() && (System.currentTimeMillis() < timeoutAtTimeInMillisecond)) {
+				queueLoop: while (!queue.isEmpty() && (System.currentTimeMillis() < timeoutAtTimeInMillisecond)
+						&& markingsReachedInRun < maximumNumberOfStates) {
 
 					assert queue.size() == markingsReachedInRun - closedActionsInRun;
 
@@ -482,6 +490,9 @@ public abstract class ReplayAlgorithm {
 			} finally {
 				if (System.currentTimeMillis() >= timeoutAtTimeInMillisecond) {
 					alignmentResult |= Utils.TIMEOUTREACHED;
+				}
+				if (markingsReachedInRun >= maximumNumberOfStates) {
+					alignmentResult |= Utils.STATELIMITREACHED;
 				}
 				terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
 			}
