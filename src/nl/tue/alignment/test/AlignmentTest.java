@@ -53,14 +53,14 @@ public class AlignmentTest {
 
 	public static void main(String[] args) throws Exception {
 
-		mainFileFolder("test");//"pr1151_l4_noise","pr1912_l4_noise");
-		//		mainFileFolder("temp", "sepsis", "prCm6", "prDm6", "prEm6", "prFm6", "prGm6", "prAm6", "prBm6" );
-		//		mainFolder("laura/", "isbpm2013/" );
+		mainFileFolder(Debug.DOT, "temp");//"pr1151_l4_noise","pr1912_l4_noise");
+		mainFileFolder(Debug.DOT, "test");//"pr1151_l4_noise","pr1912_l4_noise");
+		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6", "prFm6",
+		//				"prGm6", "prAm6", "prBm6");
+		//		mainFolder(Debug.NONE,"laura/", "isbpm2013/");
 	}
 
-	public static void mainFolder(String... eval) throws Exception {
-
-		Debug debug = Debug.NONE;
+	public static void mainFolder(Debug debug, String... eval) throws Exception {
 
 		for (String folder : eval) {
 
@@ -92,9 +92,7 @@ public class AlignmentTest {
 		}
 	}
 
-	public static void mainFileFolder(String... names) throws Exception {
-
-		Debug debug = Debug.DOT;
+	public static void mainFileFolder(Debug debug, String... names) throws Exception {
 
 		for (String name : names) {
 			PetrinetGraph net = constructNet(FOLDER + name + "/" + name + ".pnml");
