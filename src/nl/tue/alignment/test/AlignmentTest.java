@@ -53,8 +53,8 @@ public class AlignmentTest {
 
 	public static void main(String[] args) throws Exception {
 
-		mainFileFolder(Debug.DOT, "temp");//"pr1151_l4_noise","pr1912_l4_noise");
-		mainFileFolder(Debug.DOT, "test");//"pr1151_l4_noise","pr1912_l4_noise");
+		mainFileFolder(Debug.STATS, "bpi12");//"pr1151_l4_noise","pr1912_l4_noise");
+		//mainFileFolder(Debug.DOT, "test");//"pr1151_l4_noise","pr1912_l4_noise");
 		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6", "prFm6",
 		//				"prGm6", "prAm6", "prBm6");
 		//		mainFolder(Debug.NONE,"laura/", "isbpm2013/");
@@ -151,9 +151,9 @@ public class AlignmentTest {
 				maxNumberOfStates, partialOrder);
 		doReplay(debug, folder, "Incre", net, initialMarking, finalMarking, log, mapping, classes, parameters);
 
-		//		parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug, timeout,
-		//				partialOrder);
-		//		doReplay(debug, folder, "AStar", net, initialMarking, finalMarking, log, mapping, classes, parameters);
+		parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug, timeout,
+				maxNumberOfStates, partialOrder);
+		doReplay(debug, folder, "AStar", net, initialMarking, finalMarking, log, mapping, classes, parameters);
 	}
 
 	private static void doReplay(Debug debug, String folder, String postfix, PetrinetGraph net, Marking initialMarking,

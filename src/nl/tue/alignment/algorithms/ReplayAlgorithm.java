@@ -456,8 +456,9 @@ public abstract class ReplayAlgorithm {
 				queueLoop: while (!queue.isEmpty() && (System.currentTimeMillis() < timeoutAtTimeInMillisecond)
 						&& markingsReachedInRun < maximumNumberOfStates) {
 
-					assert queue.size() == markingsReachedInRun - closedActionsInRun;
-
+					// not true in multi-threaded environment
+					//assert queue.size() == markingsReachedInRun - closedActionsInRun;
+					
 					int m = queue.peek();
 					int bm = m >>> blockBit;
 					int im = m & blockMask;
@@ -533,7 +534,6 @@ public abstract class ReplayAlgorithm {
 					//					System.out.println("   Fire " + t + ": " + Utils.print(getMarking(n), net.numPlaces()));
 
 					if (!isClosed(bn, in)) {
-
 						// n is a fresh marking, not in the closed set
 						// compute the F score on this path
 						int tmpG = getGScore(bm, im) + net.getCost(t);
@@ -559,6 +559,8 @@ public abstract class ReplayAlgorithm {
 							}
 
 						} else if (!hasExactHeuristic(bn, in)) {
+							// not a new marking
+							assert n < newIndex;
 							//tmpG >= getGScore(n), i.e. we reached state n through a longer path.
 
 							// G shore might not be an improvement, but see if we can derive the 
@@ -574,6 +576,8 @@ public abstract class ReplayAlgorithm {
 								}
 							}
 						} else {
+							// not a new marking
+							assert n < newIndex;
 							// reached a marking of which F score is higher than current F score
 							debug.writeEdgeTraversed(this, m, t, n, "style=dashed,color=gray19,arrowtail=tee");
 						}
@@ -638,7 +642,6 @@ public abstract class ReplayAlgorithm {
 					assert !queue.contains(m);
 					setHScore(bm, im, heuristic, true);
 					addToQueue(m);
-
 					return CloseResult.REQUEUED;
 				} else {
 					// continue with this marking
@@ -717,13 +720,14 @@ public abstract class ReplayAlgorithm {
 			//				System.out.println("Main released " + b + "," + i);
 		}
 
-		queue.add(0);
-		queueActions++;
+		addToQueue(0);
 	}
 
 	protected void addToQueue(int marking) {
-		queue.add(marking);
-		queueActions++;
+		synchronized (queue) {
+			queue.add(marking);
+			queueActions++;
+		}
 	}
 
 	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {
