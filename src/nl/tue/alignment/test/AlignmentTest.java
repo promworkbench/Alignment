@@ -134,6 +134,7 @@ public class AlignmentTest {
 		} else {
 			threads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
 		}
+		threads = 1;
 
 		// timeout 30 sec per trace minutes
 		int timeout = log.size() * 30 * 1000 / 10;

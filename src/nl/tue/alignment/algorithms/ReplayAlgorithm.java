@@ -456,8 +456,7 @@ public abstract class ReplayAlgorithm {
 				queueLoop: while (!queue.isEmpty() && (System.currentTimeMillis() < timeoutAtTimeInMillisecond)
 						&& markingsReachedInRun < maximumNumberOfStates) {
 
-					// not true in multi-threaded environment
-					//assert queue.size() == markingsReachedInRun - closedActionsInRun;
+					assert queue.size() == markingsReachedInRun - closedActionsInRun;
 
 					int m = queue.peek();
 					int bm = m >>> blockBit;
@@ -469,6 +468,8 @@ public abstract class ReplayAlgorithm {
 							alignment = handleFinalMarkingReached(startTime, m);
 							return alignment;
 						case CLOSEDINFEASIBLE :
+							closedActionsInRun++;
+							//$FALL-THROUGH$
 						case REQUEUED :
 							continue queueLoop;
 						case RESTARTNEEDED :
@@ -555,7 +556,9 @@ public abstract class ReplayAlgorithm {
 								}
 
 								// update position of n in the queue
+								int s = queue.size();
 								addToQueue(n);
+								assert n == newIndex ? queue.size() == s + 1 : queue.size() == s;
 							}
 
 						} else if (!hasExactHeuristic(bn, in)) {
@@ -572,7 +575,9 @@ public abstract class ReplayAlgorithm {
 									debug.writeEdgeTraversed(this, m, t, n, "style=dashed,color=gray19");
 									// marking is now exact and was not before. 
 									assert queue.contains(n);
+									int s = queue.size();
 									addToQueue(n);
+									assert queue.size() == s;
 								}
 							}
 						} else {
