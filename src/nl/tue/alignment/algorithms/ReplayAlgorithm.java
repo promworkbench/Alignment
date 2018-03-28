@@ -458,7 +458,7 @@ public abstract class ReplayAlgorithm {
 
 					// not true in multi-threaded environment
 					//assert queue.size() == markingsReachedInRun - closedActionsInRun;
-					
+
 					int m = queue.peek();
 					int bm = m >>> blockBit;
 					int im = m & blockMask;
@@ -600,17 +600,15 @@ public abstract class ReplayAlgorithm {
 		//		getLockForComputingEstimate(bm, im);
 		//				System.out.println("Main locking " + bm + "," + im);
 		try {
-			if (m != queue.peek()) {
-				// a parallel thread may have demoted m because the heuristic
-				// changed from estimated to exact.
-				return CloseResult.REQUEUED;
+			synchronized (queue) {
+				if (m != queue.peek()) {
+					// a parallel thread may have demoted m because the heuristic
+					// changed from estimated to exact.
+					return CloseResult.REQUEUED;
+				}
+				m = queue.poll();
+				pollActions++;
 			}
-
-			//					if (debug == Debug.NORMAL && pollActions % 10000 == 0) {
-			//						writeStatus();
-			//					}
-			m = queue.poll();
-			pollActions++;
 
 			if (isFinal(m)) {
 				assert queue.isEmpty() || getFScore(queue.peek()) >= getFScore(m);
