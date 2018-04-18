@@ -414,7 +414,6 @@ public class SmallTests {
 			algorithm = new AStarLargeLP(net, //
 					moveSort, // moveSort on total order
 					useInt, // use Integers
-					0, // number of bins
 					debug // debug mode
 			);
 
