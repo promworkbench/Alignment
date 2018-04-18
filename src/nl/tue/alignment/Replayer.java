@@ -153,8 +153,14 @@ public class Replayer {
 		}
 
 		service.shutdown();
+		return mergeResults(resultList);
+	}
+
+	public PNRepResult mergeResults(List<Future<TraceReplayTask>> resultList)
+			throws InterruptedException, ExecutionException {
 
 		Iterator<Future<TraceReplayTask>> itResult = resultList.iterator();
+		TraceReplayTask tr;
 
 		// get the alignment of the empty trace
 		int maxModelMoveCost;

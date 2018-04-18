@@ -1,7 +1,5 @@
 package nl.tue.alignment;
 
-import java.util.Arrays;
-
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 
 public abstract class ReplayerParameters {
@@ -10,17 +8,16 @@ public abstract class ReplayerParameters {
 		DIJKSTRA, ASTAR, ASTARWITHMARKINGSPLIT;
 	}
 
-	final Algorithm algorithm; // which algorithm
-	final boolean moveSort; // moveSort on total order
-	final boolean queueSort; // queue sorted "depth-first"
-	final boolean preferExact; // prefer Exact solution
-	final int nThreads; // do multithreading
-	final boolean useInt; //  use Integer
-	final Debug debug; // debug level
-	final int timeoutMilliseconds; // timeout for the log
-	final short[] initialSplits; // initial bins for LPbased replayer
-	final int maximumNumberOfStates; // limit for the number of states
-	final boolean partiallyOrderEvents;
+	public final Algorithm algorithm; // which algorithm
+	public final boolean moveSort; // moveSort on total order
+	public final boolean queueSort; // queue sorted "depth-first"
+	public final boolean preferExact; // prefer Exact solution
+	public final int nThreads; // do multithreading
+	public final boolean useInt; //  use Integer
+	public final Debug debug; // debug level
+	public final int timeoutMilliseconds; // timeout for the log
+	public final int maximumNumberOfStates; // limit for the number of states
+	public final boolean partiallyOrderEvents;
 
 	private ReplayerParameters(Algorithm algorithm, boolean moveSort, boolean queueSort, boolean preferExact,
 			int multiThread, boolean useInt, Debug debug, int timeoutMilliseconds, int maximumNumberOfStates,
@@ -34,8 +31,6 @@ public abstract class ReplayerParameters {
 		this.debug = debug;
 		this.timeoutMilliseconds = timeoutMilliseconds;
 		this.maximumNumberOfStates = maximumNumberOfStates;
-		this.initialSplits = initialSplits;
-		Arrays.sort(this.initialSplits);
 		this.partiallyOrderEvents = partiallyOrderEvents;
 	}
 
@@ -83,11 +78,11 @@ public abstract class ReplayerParameters {
 		}
 
 		public AStarWithMarkingSplit(boolean moveSort, int nThreads, boolean useInt, Debug debug,
-				int timeoutMilliseconds, int maximumNumberOfStates, boolean partiallyOrderEvents,
-				short... initialSplits) {
+				int timeoutMilliseconds, int maximumNumberOfStates, boolean partiallyOrderEvents) {
 			super(Algorithm.ASTARWITHMARKINGSPLIT, moveSort, true, true, nThreads, useInt, debug, timeoutMilliseconds,
-					maximumNumberOfStates, partiallyOrderEvents, initialSplits);
+					maximumNumberOfStates, partiallyOrderEvents);
 		}
+
 	}
 
 	public final static class Dijkstra extends ReplayerParameters {

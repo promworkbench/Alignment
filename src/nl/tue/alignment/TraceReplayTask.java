@@ -1,6 +1,7 @@
 package nl.tue.alignment;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -23,7 +24,7 @@ import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 import nl.tue.astar.Trace;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
-class TraceReplayTask implements Callable<TraceReplayTask> {
+public class TraceReplayTask implements Callable<TraceReplayTask> {
 
 	enum TraceReplayResult {
 		FAILED, DUPLICATE, SUCCESS
@@ -41,9 +42,10 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 	private SyncProduct product;
 	private short[] alignment;
 	private int maximumNumberOfStates;
+	private short[] eventsWithErrors;
 
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, int timeoutMilliseconds,
-			int maximumNumberOfStates) {
+			int maximumNumberOfStates, short... eventsWithErrors) {
 		this.replayer = replayer;
 		this.parameters = parameters;
 		this.maximumNumberOfStates = maximumNumberOfStates;
@@ -51,16 +53,19 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 		XConceptExtension.instance().assignName(trace, "Empty");
 		this.traceIndex = -1;
 		this.timeoutMilliseconds = timeoutMilliseconds;
+		Arrays.sort(eventsWithErrors);
 	}
 
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, XTrace trace, int traceIndex,
-			int timeoutMilliseconds, int maximumNumberOfStates) {
+			int timeoutMilliseconds, int maximumNumberOfStates, short... eventsWithErrors) {
 		this.replayer = replayer;
 		this.parameters = parameters;
 		this.trace = trace;
 		this.traceIndex = traceIndex;
 		this.timeoutMilliseconds = timeoutMilliseconds;
 		this.maximumNumberOfStates = maximumNumberOfStates;
+		this.eventsWithErrors = eventsWithErrors;
+		Arrays.sort(eventsWithErrors);
 	}
 
 	public TraceReplayTask call() throws LPMatrixException {
@@ -176,7 +181,7 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 						parameters.useInt, parameters.debug);
 			case ASTARWITHMARKINGSPLIT :
 				return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.debug,
-						parameters.initialSplits);
+						eventsWithErrors);
 			case DIJKSTRA :
 				return new Dijkstra(product, parameters.moveSort, parameters.queueSort, parameters.debug);
 		}
