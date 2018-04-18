@@ -175,8 +175,8 @@ class TraceReplayTask implements Callable<TraceReplayTask> {
 				return new AStar(product, parameters.moveSort, parameters.queueSort, parameters.preferExact, //
 						parameters.useInt, parameters.debug);
 			case ASTARWITHMARKINGSPLIT :
-				return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.intialBins,
-						parameters.debug);
+				return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.debug,
+						parameters.initialSplits);
 			case DIJKSTRA :
 				return new Dijkstra(product, parameters.moveSort, parameters.queueSort, parameters.debug);
 		}

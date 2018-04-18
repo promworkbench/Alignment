@@ -134,12 +134,12 @@ public class AlignmentTest {
 		} else {
 			threads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
 		}
-		threads = 1;
+		//		threads = 1;
 
 		// timeout 30 sec per trace minutes
 		int timeout = log.size() * 30 * 1000 / 10;
 		int maxNumberOfStates = Integer.MAX_VALUE;
-		int initBins = 1;
+		short[] initSplits = new short[] { 1 };
 
 		boolean moveSort = false;
 		boolean useInt = false;
@@ -148,8 +148,8 @@ public class AlignmentTest {
 		boolean queueSort = true;
 		ReplayerParameters parameters;
 
-		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, initBins, debug, timeout,
-				maxNumberOfStates, partialOrder);
+		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
+				maxNumberOfStates, partialOrder, initSplits);
 		doReplay(debug, folder, "Incre", net, initialMarking, finalMarking, log, mapping, classes, parameters);
 
 		parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug, timeout,

@@ -67,7 +67,57 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		this(product, false, false, 1, Debug.NONE);
 	}
 
-	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, int initialBins, Debug debug) {
+	/**
+	 * 
+	 * @param product
+	 * @param moveSorting
+	 * @param useInteger
+	 * @param debug
+	 * @param splitpoints
+	 *            provides the initial splitpoints for this sync product. This is an
+	 *            array of ranks of log-move transitions. If event at rank 2 is
+	 *            problematic, the array should be [2]. In linear traces, the rank
+	 *            is the index of the event in the trace.
+	 */
+	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug,
+			short[] splitpoints) {
+		this(product, moveSorting, useInteger, splitpoints.length, debug);
+
+		if (splitpoints.length > 0) {
+			System.arraycopy(splitpoints, 0, this.splitpoints, 1, splitpoints.length);
+		}
+		this.splitpoints[splitpoints.length + 1] = (short) numRanks;
+
+		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
+	}
+
+	/**
+	 * 
+	 * @param product
+	 * @param moveSorting
+	 * @param useInteger
+	 * @param initialBins
+	 * @param debug
+	 */
+	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug) {
+		this(product, moveSorting, useInteger, 0, debug);
+		this.splitpoints = new short[] { 0, (short) numRanks };
+
+		//		int inc = Math.max(1, (int) Math.floor((1.0 * numRanks) / initialBins));
+		//		int i = 1;
+		//		for (; i < splitpoints.length && splitpoints[i - 1] < numRanks; i++) {
+		//			splitpoints[i] = (short) (splitpoints[i - 1] + inc);
+		//		}
+		//		splitpoints[i - 1] = (short) numRanks;
+		//		if (i < splitpoints.length) {
+		//			// truncate to size
+		//			splitpoints = Arrays.copyOf(splitpoints, i);
+		//		}
+
+		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
+	}
+
+	private AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, int initialBins, Debug debug) {
 		super(product, moveSorting, true, true, debug);
 		this.product = product;
 		this.useInteger = useInteger;
@@ -93,21 +143,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			// ensure model is not empty for empty trace
 			numRanks = 1;
 		}
-		//		splitpoints = new short[] { 0, 2, 4, (short) numEvents };
 		splitpoints = new short[initialBins + 2];
 
-		int inc = Math.max(1, (int) Math.floor((1.0 * numRanks) / initialBins));
-		int i = 1;
-		for (; i < splitpoints.length && splitpoints[i - 1] < numRanks; i++) {
-			splitpoints[i] = (short) (splitpoints[i - 1] + inc);
-		}
-		splitpoints[i - 1] = (short) numRanks;
-		if (i < splitpoints.length) {
-			// truncate to size
-			splitpoints = Arrays.copyOf(splitpoints, i);
-		}
-
-		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
 
 	private short[] splitpoints;
