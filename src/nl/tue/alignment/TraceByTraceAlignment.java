@@ -30,7 +30,7 @@ import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 		
 		List<Future<TraceReplayTask>> list = new ArrayList<>(log.size());
 		for (int i=0; i< log.size(); i++) {
-			list.add(traceByTraceAlignment.doReplay(i, 60*10*000));
+			list.add(traceByTraceAlignment.doReplay(i, 60*10*000), eventsWithErrors);
 		}
 		
 		PNRepResult repResult = traceByTraceAlignment.merge(list);
@@ -127,12 +127,13 @@ public class TraceByTraceAlignment {
 	 * 
 	 * @param traceIndex
 	 * @param timeoutMilliseconds
+	 * @param eventsWithErrors
 	 * @return
 	 */
-	public Future<TraceReplayTask> doReplay(int traceIndex, int timeoutMilliseconds) {
+	public Future<TraceReplayTask> doReplay(int traceIndex, int timeoutMilliseconds, short... eventsWithErrors) {
 
 		TraceReplayTask task = new TraceReplayTask(replayer, parameters, log.get(traceIndex), traceIndex,
-				timeoutMilliseconds, parameters.maximumNumberOfStates);
+				timeoutMilliseconds, parameters.maximumNumberOfStates, eventsWithErrors);
 
 		return new FutureTask<>(task);
 	}
