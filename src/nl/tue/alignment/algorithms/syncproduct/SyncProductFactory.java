@@ -1,5 +1,25 @@
 package nl.tue.alignment.algorithms.syncproduct;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.deckfour.xes.classification.XEventClass;
+import org.deckfour.xes.classification.XEventClasses;
+import org.deckfour.xes.extension.std.XConceptExtension;
+import org.deckfour.xes.extension.std.XTimeExtension;
+import org.deckfour.xes.model.XEvent;
+import org.deckfour.xes.model.XTrace;
+import org.processmining.models.graphbased.directed.petrinet.Petrinet;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
+import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
+import org.processmining.models.semantics.petrinet.Marking;
+import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
+
 import gnu.trove.iterator.TShortIterator;
 import gnu.trove.list.TByteList;
 import gnu.trove.list.TIntList;
@@ -14,30 +34,9 @@ import gnu.trove.map.hash.TObjectShortHashMap;
 import gnu.trove.map.hash.TShortObjectHashMap;
 import gnu.trove.set.TShortSet;
 import gnu.trove.set.hash.TShortHashSet;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
 import nl.tue.astar.Trace;
 import nl.tue.astar.util.LinearTrace;
 import nl.tue.astar.util.PartiallyOrderedTrace;
-
-import org.deckfour.xes.classification.XEventClass;
-import org.deckfour.xes.classification.XEventClasses;
-import org.deckfour.xes.extension.std.XConceptExtension;
-import org.deckfour.xes.extension.std.XTimeExtension;
-import org.deckfour.xes.model.XEvent;
-import org.deckfour.xes.model.XTrace;
-import org.processmining.models.graphbased.directed.petrinet.Petrinet;
-import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
-import org.processmining.models.graphbased.directed.petrinet.elements.Place;
-import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
-import org.processmining.models.semantics.petrinet.Marking;
-import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 
 public class SyncProductFactory {
 
@@ -141,8 +140,7 @@ public class SyncProductFactory {
 	private final Transition[] t2transition;
 
 	private final int classCount;
-	private final TObjectShortMap<XEventClass> c2id;
-	private final TIntList c2lmCost;
+	private final int[] c2lmCost;
 	private final TShortObjectMap<TShortSet> c2t;
 
 	private final short places;
@@ -150,53 +148,63 @@ public class SyncProductFactory {
 	private final byte[] initMarking;
 	private final byte[] finMarking;
 	private final XEventClasses classes;
+	private TObjectShortMap<XEventClass> c2id;
 
-	public SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map, Marking initialMarking,
-			Marking finalMarking) {
-		this(net, classes, map, new MapWrap<Transition>(1), new MapWrap<XEventClass>(1), //
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
+			TransEvClassMapping map, Marking initialMarking, Marking finalMarking) {
+		this(net, classes, c2id, map, new MapWrap<Transition>(1), new MapWrap<XEventClass>(1), //
 				new MapWrap<Transition>(0), initialMarking, finalMarking);
 	}
 
-	public SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map,
-			Map<Transition, Integer> mapTrans2Cost, Map<XEventClass, Integer> mapEvClass2Cost,
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
+			TransEvClassMapping map, Map<Transition, Integer> mapTrans2Cost, Map<XEventClass, Integer> mapEvClass2Cost,
 			Map<Transition, Integer> mapSync2Cost, Marking initialMarking, Marking finalMarking) {
-		this(net, classes, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
+		this(net, classes, c2id, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
 				new MapWrap<>(mapSync2Cost, 0), initialMarking, finalMarking);
 	}
 
-	public SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map,
-			TObjectIntMap<Transition> mapTrans2Cost, TObjectIntMap<XEventClass> mapEvClass2Cost,
-			TObjectIntMap<Transition> mapSync2Cost, Marking initialMarking, Marking finalMarking) {
-		this(net, classes, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
-				new MapWrap<>(mapSync2Cost, 0), initialMarking, finalMarking);
-	}
-
-	public SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map,
-			Map<Transition, Integer> mapTrans2Cost, Map<XEventClass, Integer> mapEvClass2Cost, Marking initialMarking,
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
+			TransEvClassMapping map, TObjectIntMap<Transition> mapTrans2Cost,
+			TObjectIntMap<XEventClass> mapEvClass2Cost, TObjectIntMap<Transition> mapSync2Cost, Marking initialMarking,
 			Marking finalMarking) {
-		this(net, classes, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
+		this(net, classes, c2id, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
+				new MapWrap<>(mapSync2Cost, 0), initialMarking, finalMarking);
+	}
+
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
+			TransEvClassMapping map, Map<Transition, Integer> mapTrans2Cost, Map<XEventClass, Integer> mapEvClass2Cost,
+			Marking initialMarking, Marking finalMarking) {
+		this(net, classes, c2id, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
 				new MapWrap<Transition>(0), initialMarking, finalMarking);
 	}
 
-	public SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map,
-			TObjectIntMap<Transition> mapTrans2Cost, TObjectIntMap<XEventClass> mapEvClass2Cost,
-			Marking initialMarking, Marking finalMarking) {
-		this(net, classes, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
+			TransEvClassMapping map, TObjectIntMap<Transition> mapTrans2Cost,
+			TObjectIntMap<XEventClass> mapEvClass2Cost, Marking initialMarking, Marking finalMarking) {
+		this(net, classes, c2id, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
 				new MapWrap<Transition>(0), initialMarking, finalMarking);
 	}
 
-	private SyncProductFactory(Petrinet net, XEventClasses classes, TransEvClassMapping map,
-			MapWrap<Transition> mapTrans2Cost, MapWrap<XEventClass> mapEvClass2Cost, MapWrap<Transition> mapSync2Cost,
-			Marking initialMarking, Marking finalMarking) {
+	public static TObjectShortMap<XEventClass> createClass2ID(XEventClasses classes) {
+		TObjectShortHashMap<XEventClass> c2id = new TObjectShortHashMap<>(classes.size(), 0.75f, (short) -1);
+		short id = 0;
+		for (XEventClass clazz : classes.getClasses()) {
+			c2id.put(clazz, id++);
+		}
+		return c2id;
+	}
 
+	private SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
+			TransEvClassMapping map, MapWrap<Transition> mapTrans2Cost, MapWrap<XEventClass> mapEvClass2Cost,
+			MapWrap<Transition> mapSync2Cost, Marking initialMarking, Marking finalMarking) {
+
+		this.c2id = c2id;
 		this.classes = classes;
 		this.classCount = classes.size();
-		c2id = new TObjectShortHashMap<>(this.classCount, 0.75f, (short) -1);
-		c2lmCost = new TIntArrayList(this.classCount);
+		c2lmCost = new int[classCount];
 		c2t = new TShortObjectHashMap<>(this.classCount);
 		for (XEventClass clazz : classes.getClasses()) {
-			c2id.put(clazz, (short) c2lmCost.size());
-			c2lmCost.add(mapEvClass2Cost.get(clazz));
+			c2lmCost[c2id.get(clazz)] = mapEvClass2Cost.get(clazz);
 		}
 
 		transitions = (short) net.getTransitions().size();
@@ -331,7 +339,7 @@ public class SyncProductFactory {
 			p2name.add("pe_" + e);
 			// add log move
 			t2name.add("e" + e + "(" + cid + ")");//clazz.toString());
-			t2mmCost.add(c2lmCost.get(cid));
+			t2mmCost.add(c2lmCost[cid]);
 			t2eid.add(e);
 			t2type.add(SyncProduct.LOG_MOVE);
 
@@ -447,7 +455,7 @@ public class SyncProductFactory {
 			e2t[e] = (short) t2name.size();
 			// add log move
 			t2name.add("e" + e + "(" + cid + ")");//clazz.toString());
-			t2mmCost.add(c2lmCost.get(cid));
+			t2mmCost.add(c2lmCost[cid]);
 			t2eid.add(e);
 			t2type.add(SyncProduct.LOG_MOVE);
 

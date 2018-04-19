@@ -53,8 +53,8 @@ public class AlignmentTest {
 
 	public static void main(String[] args) throws Exception {
 
-		mainFileFolder(Debug.STATS, "bpi12");//"pr1151_l4_noise","pr1912_l4_noise");
-		//mainFileFolder(Debug.DOT, "test");//"pr1151_l4_noise","pr1912_l4_noise");
+//		mainFileFolder(Debug.STATS, "bpi12");//"pr1151_l4_noise","pr1912_l4_noise");
+		mainFileFolder(Debug.NONE, "test");//"pr1151_l4_noise","pr1912_l4_noise");
 		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6", "prFm6",
 		//				"prGm6", "prAm6", "prBm6");
 		//		mainFolder(Debug.NONE,"laura/", "isbpm2013/");

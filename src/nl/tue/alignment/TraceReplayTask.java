@@ -53,6 +53,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		XConceptExtension.instance().assignName(trace, "Empty");
 		this.traceIndex = -1;
 		this.timeoutMilliseconds = timeoutMilliseconds;
+		this.eventsWithErrors = eventsWithErrors;
 		Arrays.sort(eventsWithErrors);
 	}
 

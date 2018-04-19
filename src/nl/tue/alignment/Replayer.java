@@ -25,11 +25,13 @@ import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.TObjectShortMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
+import nl.tue.alignment.algorithms.syncproduct.ConstraintSet;
 import nl.tue.alignment.algorithms.syncproduct.SyncProductFactory;
 import nl.tue.astar.Trace;
 
@@ -104,7 +106,12 @@ public class Replayer {
 		}
 		this.costMM = costMM;
 		this.costLM = costLM;
-		factory = new SyncProductFactory(net, classes, mapping, costMM, costLM, costSM, initialMarking, finalMarking);
+		TObjectShortMap<XEventClass> c2id = SyncProductFactory.createClass2ID(classes);
+
+		ConstraintSet constraintSet = new ConstraintSet(net, classes, c2id, mapping);
+
+		factory = new SyncProductFactory(net, classes, c2id, mapping, costMM, costLM, costSM, initialMarking,
+				finalMarking);
 
 		trace2FirstIdenticalTrace = new TObjectIntHashMap<>(log.size() / 2, 0.7f, -1);
 	}
