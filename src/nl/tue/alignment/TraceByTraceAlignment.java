@@ -22,7 +22,8 @@ import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 
 /**
- * To use this class for experiments, the following code snippet can be used:
+ * To use this class for experiments, the following code snippet can be used. It
+ * is required for the provided log that the first trace is an empty trace:
  *
  * <code>
 	public static void doLogReplay() {
