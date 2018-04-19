@@ -108,7 +108,7 @@ public class Replayer {
 		this.costLM = costLM;
 		TObjectShortMap<XEventClass> c2id = SyncProductFactory.createClass2ID(classes);
 
-		ConstraintSet constraintSet = new ConstraintSet(net, classes, c2id, mapping);
+		ConstraintSet constraintSet = new ConstraintSet(net, initialMarking, classes, c2id, mapping);
 
 		factory = new SyncProductFactory(net, classes, c2id, mapping, costMM, costLM, costSM, initialMarking,
 				finalMarking);
