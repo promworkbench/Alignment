@@ -85,20 +85,20 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 					Utils.toDot(product, ReplayAlgorithm.Debug.getOutputStream());
 				}
 				algorithm = getAlgorithm(product);
-				alignment = algorithm.run(this.replayer.progress, timeoutMilliseconds, maximumNumberOfStates);
+				alignment = algorithm.run(this.replayer.getProgress(), timeoutMilliseconds, maximumNumberOfStates);
 				if (parameters.debug == Debug.DOT) {
 					Utils.toDot(product, alignment, ReplayAlgorithm.Debug.getOutputStream());
 				}
 				TObjectIntMap<Statistic> stats = algorithm.getStatistics(alignment);
 				srr = toSyncReplayResult(product, stats, alignment, trace, traceIndex, transitionList);
-				this.replayer.progress.inc();
+				this.replayer.getProgress().inc();
 				result = TraceReplayResult.SUCCESS;
 			} else {
-				this.replayer.progress.inc();
+				this.replayer.getProgress().inc();
 				result = TraceReplayResult.FAILED;
 			}
 		} else {
-			this.replayer.progress.inc();
+			this.replayer.getProgress().inc();
 			result = TraceReplayResult.DUPLICATE;
 		}
 		return this;

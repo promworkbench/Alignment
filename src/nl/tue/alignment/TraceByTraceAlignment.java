@@ -122,8 +122,8 @@ public class TraceByTraceAlignment {
 
 	/**
 	 * returns a future to allow for normal merging procedures, but computation is
-	 * synchronously. Collect them in a list for later merging. Call run() on this
-	 * future to do the actual alignment computation.
+	 * synchronously. Collect them in a list for later merging. When merging, the
+	 * result is already available.
 	 * 
 	 * @param traceIndex
 	 * @param timeoutMilliseconds
@@ -135,7 +135,9 @@ public class TraceByTraceAlignment {
 		TraceReplayTask task = new TraceReplayTask(replayer, parameters, log.get(traceIndex), traceIndex,
 				timeoutMilliseconds, parameters.maximumNumberOfStates, eventsWithErrors);
 
-		return new FutureTask<>(task);
+		FutureTask<TraceReplayTask> futureTask = new FutureTask<>(task);
+		futureTask.run();
+		return futureTask;
 	}
 
 	/**

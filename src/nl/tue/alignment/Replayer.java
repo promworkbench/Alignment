@@ -49,7 +49,7 @@ public class Replayer {
 	final SyncProductFactory factory;
 	final XEventClasses classes;
 	private Map<Transition, Integer> costMM;
-	Progress progress;
+	private Progress progress;
 
 	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log, XEventClasses classes,
 			Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
@@ -179,7 +179,7 @@ public class Replayer {
 		TIntObjectMap<SyncReplayResult> result = new TIntObjectHashMap<>(10, 0.5f, -1);
 		// process further changes
 		Iterator<XTrace> itTrace = log.iterator();
-		while (itResult.hasNext() && !progress.isCancelled()) {
+		while (itResult.hasNext() && !isCancelled()) {
 			tr = itResult.next().get();
 			int traceCost = getTraceCost(itTrace.next());
 
@@ -201,7 +201,7 @@ public class Replayer {
 		itResult = resultList.iterator();
 		// skip empty trace
 		itResult.next();
-		while (itResult.hasNext() && !progress.isCancelled()) {
+		while (itResult.hasNext() && !isCancelled()) {
 			tr = itResult.next().get();
 			if (tr.getResult() == TraceReplayResult.DUPLICATE) {
 				SyncReplayResult srr = result.get(tr.getOriginalTraceIndex());
@@ -213,6 +213,10 @@ public class Replayer {
 		pnRepResult.addInfo(MAXMODELMOVECOST, Double.toString(maxModelMoveCost));
 		return pnRepResult;
 
+	}
+
+	private boolean isCancelled() {
+		return getProgress().isCancelled();
 	}
 
 	private int getTraceCost(XTrace trace) {
@@ -229,6 +233,10 @@ public class Replayer {
 
 	int getCostMM(Transition transition) {
 		return costMM != null && costMM.containsKey(transition) ? costMM.get(transition) : 1;
+	}
+
+	public Progress getProgress() {
+		return progress == null ? Progress.INVISIBLE : progress;
 	}
 
 }
