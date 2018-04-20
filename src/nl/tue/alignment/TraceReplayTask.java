@@ -128,14 +128,15 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 
 				algorithm = getAlgorithm(product, (int) (System.currentTimeMillis() - startSP));
 
+				algorithm.putStatistic(Statistic.PREPROCESSTIME, preProcessTimeMilliseconds);
+				algorithm.putStatistic(Statistic.CONSTRAINTSETSIZE, replayer.getConstraintSetSize());
+
 				alignment = algorithm.run(this.replayer.getProgress(), timeoutMilliseconds, maximumNumberOfStates);
 
 				if (parameters.debug == Debug.DOT) {
 					Utils.toDot(product, alignment, ReplayAlgorithm.Debug.getOutputStream());
 				}
-				TObjectIntMap<Statistic> stats = algorithm.getStatistics(alignment);
-				stats.put(Statistic.PREPROCESSTIME, preProcessTimeMilliseconds);
-				stats.put(Statistic.CONSTRAINTSETSIZE, replayer.getConstraintSetSize());
+				TObjectIntMap<Statistic> stats = algorithm.getStatistics();
 
 				srr = toSyncReplayResult(product, stats, alignment, trace, traceIndex, transitionList);
 				this.replayer.getProgress().inc();

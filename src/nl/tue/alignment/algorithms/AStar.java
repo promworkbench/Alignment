@@ -3,7 +3,6 @@ package nl.tue.alignment.algorithms;
 import java.util.Arrays;
 
 import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
@@ -130,12 +129,12 @@ public class AStar extends ReplayAlgorithm {
 	private LPSOLVE matrix;
 
 	public AStar(SyncProduct product) throws LPMatrixException {
-		this(product, true, true, true, false,  Debug.NONE);
+		this(product, true, true, true, false, Debug.NONE);
 	}
 
 	public AStar(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact, boolean isInteger,
 			Debug debug) throws LPMatrixException {
-		super(product, moveSorting, queueSorting, preferExact,  debug);
+		super(product, moveSorting, queueSorting, preferExact, debug);
 		//		this.numberOfThreads = numberOfThreads;
 		//		this.numRows = net.numPlaces();
 		matrix = new LPMatrix.SPARSE.LPSOLVE(net.numPlaces(), net.numTransitions());
@@ -491,15 +490,13 @@ public class AStar extends ReplayAlgorithm {
 	}
 
 	@Override
-	public TObjectIntMap<Utils.Statistic> getStatistics(short[] alignment) {
-		TObjectIntMap<Statistic> map = super.getStatistics(alignment);
-		map.put(Statistic.HEURISTICTIME, (int) (solveTime / 1000));
-		return map;
+	protected void fillStatistics(short[] alignment) {
+		super.fillStatistics(alignment);
+		putStatistic(Statistic.HEURISTICTIME, (int) (solveTime / 1000));
 	}
 
 	@Override
 	protected void writeEndOfAlignmentDot(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
-		TObjectIntMap<Statistic> map = getStatistics(alignment);
 		for (int m = 0; m < markingsReached; m++) {
 			if (!isClosed(m)) {
 				if (isDerivedLpSolution(m)) {
@@ -516,7 +513,7 @@ public class AStar extends ReplayAlgorithm {
 		for (Statistic s : Statistic.values()) {
 			b.append(s);
 			b.append(": ");
-			b.append(map.get(s));
+			b.append(replayStatistics.get(s));
 			b.append("<br/>");
 		}
 		b.append(">];");

@@ -328,6 +328,7 @@ public abstract class ReplayAlgorithm {
 	//	private boolean multiThreading;
 	protected long timeoutAtTimeInMillisecond;
 	private int maximumNumberOfStates;
+	protected TObjectIntMap<Utils.Statistic> replayStatistics;
 
 	public ReplayAlgorithm(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact) {
 		this(product, moveSorting, queueSorting, preferExact, Debug.NONE);
@@ -360,36 +361,43 @@ public abstract class ReplayAlgorithm {
 		hashCodeMarking = new byte[product.numPlaces()];
 		equalMarking = new byte[product.numPlaces()];
 
+		replayStatistics = new TObjectIntHashMap<>(20);
+
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
 
-	public TObjectIntMap<Utils.Statistic> getStatistics(short[] alignment) {
-		TObjectIntMap<Utils.Statistic> map = new TObjectIntHashMap<>(20);
-		map.put(Utils.Statistic.POLLACTIONS, pollActions);
-		map.put(Utils.Statistic.CLOSEDACTIONS, closedActions);
-		map.put(Utils.Statistic.QUEUEACTIONS, queueActions);
-		map.put(Utils.Statistic.EDGESTRAVERSED, edgesTraversed);
-		map.put(Utils.Statistic.MARKINGSREACHED, markingsReached);
-		map.put(Utils.Statistic.HEURISTICSCOMPUTED, heuristicsComputed);
-		map.put(Utils.Statistic.HEURISTICSDERIVED, heuristicsDerived);
-		map.put(Utils.Statistic.HEURISTICSESTIMATED, heuristicsEstimated);
-		map.put(Utils.Statistic.ALIGNMENTLENGTH, alignmentLength);
-		map.put(Utils.Statistic.COST, alignmentCost);
-		map.put(Utils.Statistic.EXITCODE, alignmentResult);
-		map.put(Utils.Statistic.RUNTIME, runTime);
-		map.put(Utils.Statistic.SETUPTIME, setupTime);
-		map.put(Utils.Statistic.TOTALTIME, setupTime + runTime);
-		map.put(Utils.Statistic.MAXQUEUELENGTH, queue.maxSize());
-		map.put(Utils.Statistic.MAXQUEUECAPACITY, queue.maxCapacity());
-		map.put(Utils.Statistic.VISITEDSETCAPACITY, visited.capacity());
-		map.put(Utils.Statistic.TRACELENGTH, net.numEvents());
-		map.put(Utils.Statistic.PLACES, net.numPlaces());
-		map.put(Utils.Statistic.TRANSITIONS, net.numTransitions());
-		map.put(Utils.Statistic.LMCOST, getCostForType(alignment, SyncProduct.LOG_MOVE, SyncProduct.LOG_MOVE));
-		map.put(Utils.Statistic.MMCOST, getCostForType(alignment, SyncProduct.MODEL_MOVE, SyncProduct.TAU_MOVE));
-		map.put(Utils.Statistic.SMCOST, getCostForType(alignment, SyncProduct.SYNC_MOVE, SyncProduct.SYNC_MOVE));
-		map.put(Utils.Statistic.MEMORYUSED, (int) (getEstimatedMemorySize() / 1024));
-		return map;
+	public TObjectIntMap<Utils.Statistic> getStatistics() {
+		return replayStatistics;
+	}
+
+	protected void fillStatistics(short[] alignment) {
+		replayStatistics.put(Utils.Statistic.POLLACTIONS, pollActions);
+		replayStatistics.put(Utils.Statistic.CLOSEDACTIONS, closedActions);
+		replayStatistics.put(Utils.Statistic.QUEUEACTIONS, queueActions);
+		replayStatistics.put(Utils.Statistic.EDGESTRAVERSED, edgesTraversed);
+		replayStatistics.put(Utils.Statistic.MARKINGSREACHED, markingsReached);
+		replayStatistics.put(Utils.Statistic.HEURISTICSCOMPUTED, heuristicsComputed);
+		replayStatistics.put(Utils.Statistic.HEURISTICSDERIVED, heuristicsDerived);
+		replayStatistics.put(Utils.Statistic.HEURISTICSESTIMATED, heuristicsEstimated);
+		replayStatistics.put(Utils.Statistic.ALIGNMENTLENGTH, alignmentLength);
+		replayStatistics.put(Utils.Statistic.COST, alignmentCost);
+		replayStatistics.put(Utils.Statistic.EXITCODE, alignmentResult);
+		replayStatistics.put(Utils.Statistic.RUNTIME, runTime);
+		replayStatistics.put(Utils.Statistic.SETUPTIME, setupTime);
+		replayStatistics.put(Utils.Statistic.TOTALTIME, setupTime + runTime);
+		replayStatistics.put(Utils.Statistic.MAXQUEUELENGTH, queue.maxSize());
+		replayStatistics.put(Utils.Statistic.MAXQUEUECAPACITY, queue.maxCapacity());
+		replayStatistics.put(Utils.Statistic.VISITEDSETCAPACITY, visited.capacity());
+		replayStatistics.put(Utils.Statistic.TRACELENGTH, net.numEvents());
+		replayStatistics.put(Utils.Statistic.PLACES, net.numPlaces());
+		replayStatistics.put(Utils.Statistic.TRANSITIONS, net.numTransitions());
+		replayStatistics.put(Utils.Statistic.LMCOST,
+				getCostForType(alignment, SyncProduct.LOG_MOVE, SyncProduct.LOG_MOVE));
+		replayStatistics.put(Utils.Statistic.MMCOST,
+				getCostForType(alignment, SyncProduct.MODEL_MOVE, SyncProduct.TAU_MOVE));
+		replayStatistics.put(Utils.Statistic.SMCOST,
+				getCostForType(alignment, SyncProduct.SYNC_MOVE, SyncProduct.SYNC_MOVE));
+		replayStatistics.put(Utils.Statistic.MEMORYUSED, (int) (getEstimatedMemorySize() / 1024));
 	}
 
 	protected long getEstimatedMemorySize() {
@@ -770,9 +778,8 @@ public abstract class ReplayAlgorithm {
 	protected void writeEndOfAlignmentStats(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		if (alignment != null) {
 			debug.print(Debug.STATS, net.getLabel());
-			TObjectIntMap<Statistic> map = getStatistics(alignment);
 			for (Statistic s : Statistic.values()) {
-				debug.print(Debug.STATS, "," + map.get(s));
+				debug.print(Debug.STATS, "," + replayStatistics.get(s));
 			}
 			debug.print(Debug.STATS, "," + Runtime.getRuntime().maxMemory() / 1048576);
 			debug.print(Debug.STATS, "," + Runtime.getRuntime().totalMemory() / 1048576);
@@ -783,9 +790,8 @@ public abstract class ReplayAlgorithm {
 
 	protected void writeEndOfAlignmentNormal(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		if (alignment != null) {
-			TObjectIntMap<Statistic> map = getStatistics(alignment);
 			for (Statistic s : Statistic.values()) {
-				debug.println(Debug.NORMAL, s + ": " + map.get(s));
+				debug.println(Debug.NORMAL, s + ": " + replayStatistics.get(s));
 			}
 		}
 	}
@@ -800,7 +806,6 @@ public abstract class ReplayAlgorithm {
 		debug.println(Debug.DOT, "}");
 
 		if (alignment != null) {
-			TObjectIntMap<Statistic> map = getStatistics(alignment);
 
 			// close the graph
 			StringBuilder b = new StringBuilder();
@@ -808,7 +813,7 @@ public abstract class ReplayAlgorithm {
 			for (Statistic s : Statistic.values()) {
 				b.append(s);
 				b.append(": ");
-				b.append(map.get(s));
+				b.append(replayStatistics.get(s));
 				b.append("<br/>");
 			}
 			b.append(">];");
@@ -820,6 +825,9 @@ public abstract class ReplayAlgorithm {
 
 	protected void terminateIteration(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		synchronized (debug.getOutputStream()) {
+			if (alignment != null) {
+				fillStatistics(alignment);
+			}
 			if (debug == Debug.DOT) {
 				writeEndOfAlignmentDot(alignment, markingsReachedInRun, closedActionsInRun);
 			}
@@ -1484,6 +1492,10 @@ public abstract class ReplayAlgorithm {
 		}
 		short evt = net.getRankOf(trans);
 		return evt;
+	}
+
+	public void putStatistic(Statistic stat, int value) {
+		replayStatistics.put(stat, value);
 	}
 
 }

@@ -6,7 +6,6 @@ import gnu.trove.iterator.TShortIterator;
 import gnu.trove.list.TShortList;
 import gnu.trove.list.array.TShortArrayList;
 import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.TShortObjectMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.map.hash.TShortObjectHashMap;
@@ -64,7 +63,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	private int maxRankMarking;
 
 	public AStarLargeLP(SyncProduct product) {
-		this(product, false, false, 1,  Debug.NONE);
+		this(product, false, false, 1, Debug.NONE);
 	}
 
 	/**
@@ -79,9 +78,9 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	 *            problematic, the array should be [2]. In linear traces, the rank
 	 *            is the index of the event in the trace.
 	 */
-	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger,  Debug debug,
+	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug,
 			short[] splitpoints) {
-		this(product, moveSorting, useInteger, splitpoints.length,  debug);
+		this(product, moveSorting, useInteger, splitpoints.length, debug);
 
 		if (splitpoints.length > 0) {
 			System.arraycopy(splitpoints, 0, this.splitpoints, 1, splitpoints.length);
@@ -99,9 +98,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	 * @param initialBins
 	 * @param debug
 	 */
-	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, 
-			Debug debug) {
-		this(product, moveSorting, useInteger, 0,  debug);
+	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug) {
+		this(product, moveSorting, useInteger, 0, debug);
 		this.splitpoints = new short[] { 0, (short) numRanks };
 
 		//		int inc = Math.max(1, (int) Math.floor((1.0 * numRanks) / initialBins));
@@ -118,9 +116,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
 
-	private AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, int initialBins,
-			  Debug debug) {
-		super(product, moveSorting, true, true,  debug);
+	private AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, int initialBins, Debug debug) {
+		super(product, moveSorting, true, true, debug);
 		this.product = product;
 		this.useInteger = useInteger;
 
@@ -663,11 +660,10 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	@Override
-	public TObjectIntMap<Utils.Statistic> getStatistics(short[] alignment) {
-		TObjectIntMap<Statistic> map = super.getStatistics(alignment);
-		map.put(Statistic.HEURISTICTIME, (int) (solveTime / 1000));
-		map.put(Statistic.SPLITS, splits);
-		return map;
+	protected void fillStatistics(short[] alignment) {
+		super.fillStatistics(alignment);
+		putStatistic(Statistic.HEURISTICTIME, (int) (solveTime / 1000));
+		putStatistic(Statistic.SPLITS, splits);
 	}
 
 	@Override
@@ -704,7 +700,6 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		// close the subgraph
 		debug.println(Debug.DOT, "}");
 		if (alignment != null) {
-			TObjectIntMap<Statistic> map = getStatistics(alignment);
 			b = new StringBuilder();
 			b.append("subgraph cluster_info {");
 			b.append("label=<Global results>;");
@@ -712,7 +707,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			for (Statistic s : Statistic.values()) {
 				b.append(s);
 				b.append(": ");
-				b.append(map.get(s));
+				b.append(replayStatistics.get(s));
 				b.append("<br/>");
 			}
 			b.append(">];");
