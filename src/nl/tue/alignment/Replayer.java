@@ -270,7 +270,7 @@ public class Replayer {
 	}
 
 	public int getConstraintSetSize() {
-		return constraintSet.size();
+		return constraintSet == null ? 0 : constraintSet.size();
 	}
 
 	public XEventClass getEventClass(XEvent e) {
