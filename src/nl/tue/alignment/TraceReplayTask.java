@@ -31,8 +31,8 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		FAILED, DUPLICATE, SUCCESS
 	}
 
-	private final Replayer replayer;
-	private final XTrace trace;
+	private Replayer replayer;
+	private XTrace trace;
 	private final int traceIndex;
 	private final int timeoutMilliseconds;
 	private SyncReplayResult srr;
@@ -140,23 +140,12 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 			this.replayer.getProgress().inc();
 			result = TraceReplayResult.DUPLICATE;
 		}
+
+		replayer = null;
+		trace = null;
+		
+
 		return this;
-	}
-
-	public TraceReplayResult getResult() {
-		return result;
-	}
-
-	public SyncReplayResult getSuccesfulResult() {
-		return srr;
-	}
-
-	public int getOriginalTraceIndex() {
-		return original;
-	}
-
-	public int getTraceIndex() {
-		return traceIndex;
 	}
 
 	private SyncReplayResult toSyncReplayResult(SyncProduct product, TObjectIntMap<Statistic> statistics,
@@ -208,10 +197,6 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		return srr;
 	}
 
-	public ReplayAlgorithm getUsedAlgorithm() {
-		return algorithm;
-	}
-
 	ReplayAlgorithm getAlgorithm(SyncProduct product, int preProcessingTime) throws LPMatrixException {
 		switch (parameters.algorithm) {
 			case ASTAR :
@@ -227,12 +212,20 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		return null;
 	}
 
-	public SyncProduct getProduct() {
-		return product;
+	public TraceReplayResult getResult() {
+		return result;
 	}
 
-	public short[] getAlignment() {
-		return alignment;
+	public SyncReplayResult getSuccesfulResult() {
+		return srr;
+	}
+
+	public int getOriginalTraceIndex() {
+		return original;
+	}
+
+	public int getTraceIndex() {
+		return traceIndex;
 	}
 
 	public int getTraceLogMoveCost() {
