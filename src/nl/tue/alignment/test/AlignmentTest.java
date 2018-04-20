@@ -53,10 +53,12 @@ public class AlignmentTest {
 
 	public static void main(String[] args) throws Exception {
 
-//		mainFileFolder(Debug.STATS, "bpi12");//"pr1151_l4_noise","pr1912_l4_noise");
-		mainFileFolder(Debug.NONE, "test");//"pr1151_l4_noise","pr1912_l4_noise");
-		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6", "prFm6",
-		//				"prGm6", "prAm6", "prBm6");
+		//		mainFileFolder(Debug.STATS, "bpi12");//"pr1151_l4_noise","pr1912_l4_noise");
+		//		mainFileFolder(Debug.STATS, "test");//"pr1151_l4_noise","pr1912_l4_noise");
+		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6",
+		//				"prFm6", "prGm6", "prAm6", "prBm6");
+		mainFileFolder(Debug.STATS, "sepsis", "bpi12", "prEm6", "prBm6", "prAm6", "prCm6", "prFm6", "prGm6", "prDm6");
+
 		//		mainFolder(Debug.NONE,"laura/", "isbpm2013/");
 	}
 
@@ -132,6 +134,7 @@ public class AlignmentTest {
 		} else if (debug == Debug.DOT) {
 			threads = 1;
 		} else {
+			//			System.out.println("Started: " + folder);
 			threads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
 		}
 		//		threads = 1;
@@ -139,17 +142,22 @@ public class AlignmentTest {
 		// timeout 30 sec per trace minutes
 		int timeout = log.size() * 30 * 1000 / 10;
 		int maxNumberOfStates = Integer.MAX_VALUE;
-		
+
 		boolean moveSort = false;
 		boolean useInt = false;
 		boolean partialOrder = false;
 		boolean preferExact = true;
 		boolean queueSort = true;
 		ReplayerParameters parameters;
+		boolean preProcessUsingPlaceBasedConstraints = true;
 
 		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
-				maxNumberOfStates, partialOrder);
+				maxNumberOfStates, partialOrder, false);
 		doReplay(debug, folder, "Incre", net, initialMarking, finalMarking, log, mapping, classes, parameters);
+
+		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
+				maxNumberOfStates, partialOrder, true);
+		doReplay(debug, folder, "Incre+", net, initialMarking, finalMarking, log, mapping, classes, parameters);
 
 		parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug, timeout,
 				maxNumberOfStates, partialOrder);
@@ -169,8 +177,11 @@ public class AlignmentTest {
 		}
 		ReplayAlgorithm.Debug.setOutputStream(stream);
 
+		long start = System.currentTimeMillis();
 		Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, log, classes,
 				mapping);
+		long end = System.currentTimeMillis();
+
 		PNRepResult result = replayer.computePNRepResult(Progress.INVISIBLE);
 
 		if (stream != System.out) {
@@ -188,11 +199,13 @@ public class AlignmentTest {
 			int time = 0;
 			int mem = 0;
 			for (SyncReplayResult res : result) {
-				cost += res.getInfo().get(PNRepResult.RAWFITNESSCOST);
-				timeout += res.getInfo().get(Replayer.TRACEEXITCODE).intValue() != 1 ? 1 : 0;
+				cost += res.getTraceIndex().size() * res.getInfo().get(PNRepResult.RAWFITNESSCOST);
+				timeout += res.getTraceIndex().size()
+						* (res.getInfo().get(Replayer.TRACEEXITCODE).intValue() != 1 ? 1 : 0);
 				time += res.getInfo().get(PNRepResult.TIME).intValue();
 				mem = Math.max(mem, res.getInfo().get(Replayer.MEMORYUSED).intValue());
 			}
+			System.out.print((end - start) + ",");
 			System.out.print(time + ",");
 			System.out.print(mem + ",");
 			System.out.print(timeout + ",");

@@ -116,7 +116,7 @@ public class TraceByTraceAlignment {
 		boolean partialOrder = false;
 
 		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, Debug.NONE, timeout,
-				maxNumberOfStates, partialOrder);
+				maxNumberOfStates, partialOrder, false);
 		replayer = new Replayer(parameters, net, initialMarking, finalMarking, log, classes, mapping);
 
 	}

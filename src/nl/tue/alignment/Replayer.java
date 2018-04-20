@@ -23,6 +23,8 @@ import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 import org.processmining.plugins.petrinet.replayresult.PNRepResultImpl;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
+import gnu.trove.list.TShortList;
+import gnu.trove.list.array.TShortArrayList;
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.TObjectShortMap;
@@ -31,7 +33,7 @@ import gnu.trove.map.hash.TObjectIntHashMap;
 import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
-import nl.tue.alignment.algorithms.syncproduct.ConstraintSet;
+import nl.tue.alignment.algorithms.constraints.ConstraintSet;
 import nl.tue.alignment.algorithms.syncproduct.SyncProductFactory;
 import nl.tue.astar.Trace;
 
@@ -52,6 +54,10 @@ public class Replayer {
 	final XEventClasses classes;
 	private Map<Transition, Integer> costMM;
 	private Progress progress;
+
+	private TObjectShortMap<XEventClass> class2id;
+
+	private ConstraintSet constraintSet;
 
 	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log, XEventClasses classes,
 			Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
@@ -106,11 +112,14 @@ public class Replayer {
 		}
 		this.costMM = costMM;
 		this.costLM = costLM;
-		TObjectShortMap<XEventClass> c2id = SyncProductFactory.createClass2ID(classes);
+		class2id = SyncProductFactory.createClass2ID(classes);
+		if (parameters.preProcessUsingPlaceBasedConstraints) {
+			constraintSet = new ConstraintSet(net, initialMarking, classes, class2id, mapping);
+		} else {
+			constraintSet = null;
+		}
 
-		ConstraintSet constraintSet = new ConstraintSet(net, initialMarking, classes, c2id, mapping);
-
-		factory = new SyncProductFactory(net, classes, c2id, mapping, costMM, costLM, costSM, initialMarking,
+		factory = new SyncProductFactory(net, classes, class2id, mapping, costMM, costLM, costSM, initialMarking,
 				finalMarking);
 
 		trace2FirstIdenticalTrace = new TObjectIntHashMap<>(log.size() / 2, 0.7f, -1);
@@ -154,7 +163,22 @@ public class Replayer {
 
 		int t = 0;
 		for (XTrace trace : log) {
-			tr = new TraceReplayTask(this, parameters, trace, t, timeoutMilliseconds, parameters.maximumNumberOfStates);
+			TShortList errorEvents = new TShortArrayList(trace.size());
+			if (constraintSet != null) {
+				// pre-process the trace
+				constraintSet.reset();
+				for (short e = 0; e < trace.size(); e++) {
+					short label = class2id.get(classes.getClassOf(trace.get(e)));
+					if (!constraintSet.satisfiedAfterOccurence(label)) {
+						if (e > 0) {
+							errorEvents.add(e);
+						}
+					}
+				}
+				//				System.out.println("Splitpoints:" + errorEvents.toString());
+			}
+			tr = new TraceReplayTask(this, parameters, trace, t, timeoutMilliseconds, parameters.maximumNumberOfStates,
+					errorEvents.toArray());
 			resultList.add(service.submit(tr));
 			t++;
 		}

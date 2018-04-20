@@ -31,7 +31,7 @@ public class IterativeAStarPlugin extends AbstractAlignmentPlugin {
 	protected ReplayerParameters constructReplayParameters(int numThreads, boolean usePartialOrder,
 			int maximumNumberOfStates) {
 		ReplayerParameters replayParameters = new ReplayerParameters.AStarWithMarkingSplit(false, numThreads, false,
-				Debug.NONE, Integer.MAX_VALUE, maximumNumberOfStates, usePartialOrder);
+				Debug.NONE, Integer.MAX_VALUE, maximumNumberOfStates, usePartialOrder, false);
 		return replayParameters;
 	}
 
