@@ -31,21 +31,26 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		FAILED, DUPLICATE, SUCCESS
 	}
 
-	private Replayer replayer;
-	private XTrace trace;
-	private final int traceIndex;
-	private final int timeoutMilliseconds;
-	private SyncReplayResult srr;
+	// transient fields. Cleared after call();
+	private transient Replayer replayer;
+	private transient XTrace trace;
+	private transient ReplayerParameters parameters;
+	private transient SyncProduct product;
+	private transient ReplayAlgorithm algorithm;
+
+	// Available after "call()"
 	private int original;
+	private final int traceIndex;
+	private SyncReplayResult srr;
 	private TraceReplayResult result;
-	private ReplayAlgorithm algorithm;
-	private final ReplayerParameters parameters;
-	private SyncProduct product;
+	private int traceLogMoveCost;
+
+	// internal variables
 	private short[] alignment;
 	private int maximumNumberOfStates;
 	private short[] eventsWithErrors;
 	private int preProcessTimeMilliseconds;
-	private int traceLogMoveCost;
+	private final int timeoutMilliseconds;
 
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, int timeoutMilliseconds,
 			int maximumNumberOfStates, int preProcessTimeMilliseconds, short... eventsWithErrors) {
@@ -98,6 +103,9 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 	}
 
 	public TraceReplayTask call() throws LPMatrixException {
+		if (replayer == null) {
+			return this;
+		}
 
 		Trace traceAsList = this.replayer.factory.getTrace(trace, parameters.partiallyOrderEvents);
 		this.traceLogMoveCost = getTraceCost(trace);
@@ -143,7 +151,9 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 
 		replayer = null;
 		trace = null;
-		
+		parameters = null;
+		algorithm = null;
+		product = null;
 
 		return this;
 	}
@@ -197,7 +207,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		return srr;
 	}
 
-	ReplayAlgorithm getAlgorithm(SyncProduct product, int preProcessingTime) throws LPMatrixException {
+	private ReplayAlgorithm getAlgorithm(SyncProduct product, int preProcessingTime) throws LPMatrixException {
 		switch (parameters.algorithm) {
 			case ASTAR :
 				return new AStar(product, parameters.moveSort, parameters.queueSort, parameters.preferExact, //
