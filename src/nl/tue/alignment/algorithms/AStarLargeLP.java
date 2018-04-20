@@ -64,7 +64,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	private int maxRankMarking;
 
 	public AStarLargeLP(SyncProduct product) {
-		this(product, false, false, 1, Debug.NONE);
+		this(product, false, false, 1,  Debug.NONE);
 	}
 
 	/**
@@ -79,9 +79,9 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	 *            problematic, the array should be [2]. In linear traces, the rank
 	 *            is the index of the event in the trace.
 	 */
-	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug,
+	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger,  Debug debug,
 			short[] splitpoints) {
-		this(product, moveSorting, useInteger, splitpoints.length, debug);
+		this(product, moveSorting, useInteger, splitpoints.length,  debug);
 
 		if (splitpoints.length > 0) {
 			System.arraycopy(splitpoints, 0, this.splitpoints, 1, splitpoints.length);
@@ -99,8 +99,9 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	 * @param initialBins
 	 * @param debug
 	 */
-	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug) {
-		this(product, moveSorting, useInteger, 0, debug);
+	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, 
+			Debug debug) {
+		this(product, moveSorting, useInteger, 0,  debug);
 		this.splitpoints = new short[] { 0, (short) numRanks };
 
 		//		int inc = Math.max(1, (int) Math.floor((1.0 * numRanks) / initialBins));
@@ -117,8 +118,9 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
 
-	private AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, int initialBins, Debug debug) {
-		super(product, moveSorting, true, true, debug);
+	private AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, int initialBins,
+			  Debug debug) {
+		super(product, moveSorting, true, true,  debug);
 		this.product = product;
 		this.useInteger = useInteger;
 

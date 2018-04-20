@@ -334,4 +334,8 @@ public class ConstraintSet {
 		return satisfied;
 	}
 
+	public int size() {
+		return constraints.size();
+	}
+
 }

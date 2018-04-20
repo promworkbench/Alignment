@@ -48,7 +48,7 @@ public class Replayer {
 	final TObjectIntMap<Trace> trace2FirstIdenticalTrace;
 
 	private final ReplayerParameters parameters;
-	private final XLog log;
+	//	private final XLog log;
 	private final Map<XEventClass, Integer> costLM;
 	final SyncProductFactory factory;
 	final XEventClasses classes;
@@ -59,34 +59,32 @@ public class Replayer {
 
 	private ConstraintSet constraintSet;
 
-	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log, XEventClasses classes,
+	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XEventClasses classes,
 			Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
-		this(new ReplayerParameters.Default(), net, initialMarking, finalMarking, log, classes, costMOS, costMOT, null,
+		this(new ReplayerParameters.Default(), net, initialMarking, finalMarking, classes, costMOS, costMOT, null,
 				mapping);
 	}
 
-	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log, XEventClasses classes,
+	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XEventClasses classes,
 			TransEvClassMapping mapping) {
-		this(new ReplayerParameters.Default(), net, initialMarking, finalMarking, log, classes, null, null, null,
-				mapping);
+		this(new ReplayerParameters.Default(), net, initialMarking, finalMarking, classes, null, null, null, mapping);
 	}
 
-	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
+	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
 			XEventClasses classes, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT,
 			TransEvClassMapping mapping) {
-		this(parameters, net, initialMarking, finalMarking, log, classes, costMOS, costMOT, null, mapping);
+		this(parameters, net, initialMarking, finalMarking, classes, costMOS, costMOT, null, mapping);
 	}
 
-	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
+	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
 			XEventClasses classes, TransEvClassMapping mapping) {
-		this(parameters, net, initialMarking, finalMarking, log, classes, null, null, null, mapping);
+		this(parameters, net, initialMarking, finalMarking, classes, null, null, null, mapping);
 	}
 
-	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
+	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
 			XEventClasses classes, Map<Transition, Integer> costMM, Map<XEventClass, Integer> costLM,
 			Map<Transition, Integer> costSM, TransEvClassMapping mapping) {
 		this.parameters = parameters;
-		this.log = log;
 		this.classes = classes;
 		if (costMM == null) {
 			costMM = new HashMap<>();
@@ -122,10 +120,10 @@ public class Replayer {
 		factory = new SyncProductFactory(net, classes, class2id, mapping, costMM, costLM, costSM, initialMarking,
 				finalMarking);
 
-		trace2FirstIdenticalTrace = new TObjectIntHashMap<>(log.size() / 2, 0.7f, -1);
+		trace2FirstIdenticalTrace = new TObjectIntHashMap<>(10, 0.7f, -1);
 	}
 
-	public PNRepResult computePNRepResult(Progress progress) throws InterruptedException, ExecutionException {
+	public PNRepResult computePNRepResult(Progress progress, XLog log) throws InterruptedException, ExecutionException {
 		this.progress = progress;
 
 		if (parameters.debug == Debug.STATS) {
@@ -158,11 +156,12 @@ public class Replayer {
 		List<Future<TraceReplayTask>> resultList = new ArrayList<>();
 
 		TraceReplayTask tr = new TraceReplayTask(this, parameters, timeoutMilliseconds,
-				parameters.maximumNumberOfStates);
+				parameters.maximumNumberOfStates, 0);
 		resultList.add(service.submit(tr));
 
 		int t = 0;
 		for (XTrace trace : log) {
+			long start = System.currentTimeMillis();
 			TShortList errorEvents = new TShortArrayList(trace.size());
 			if (constraintSet != null) {
 				// pre-process the trace
@@ -177,8 +176,9 @@ public class Replayer {
 				}
 				//				System.out.println("Splitpoints:" + errorEvents.toString());
 			}
+			int preprocessTime = (int) (System.currentTimeMillis() - start);
 			tr = new TraceReplayTask(this, parameters, trace, t, timeoutMilliseconds, parameters.maximumNumberOfStates,
-					errorEvents.toArray());
+					preprocessTime, errorEvents.toArray());
 			resultList.add(service.submit(tr));
 			t++;
 		}
@@ -209,10 +209,9 @@ public class Replayer {
 
 		TIntObjectMap<SyncReplayResult> result = new TIntObjectHashMap<>(10, 0.5f, -1);
 		// process further changes
-		Iterator<XTrace> itTrace = log.iterator();
 		while (itResult.hasNext() && !isCancelled()) {
 			tr = itResult.next().get();
-			int traceCost = getTraceCost(itTrace.next());
+			int traceCost = tr.getTraceLogMoveCost();
 
 			if (tr.getResult() == TraceReplayResult.SUCCESS) {
 
@@ -268,6 +267,14 @@ public class Replayer {
 
 	public Progress getProgress() {
 		return progress == null ? Progress.INVISIBLE : progress;
+	}
+
+	public int getConstraintSetSize() {
+		return constraintSet.size();
+	}
+
+	public XEventClass getEventClass(XEvent e) {
+		return classes.getClassOf(e);
 	}
 
 }

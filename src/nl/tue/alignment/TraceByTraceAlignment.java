@@ -11,6 +11,7 @@ import org.deckfour.xes.classification.XEventClassifier;
 import org.deckfour.xes.info.XLogInfo;
 import org.deckfour.xes.info.XLogInfoFactory;
 import org.deckfour.xes.model.XLog;
+import org.deckfour.xes.model.XTrace;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
@@ -46,7 +47,7 @@ public class TraceByTraceAlignment {
 	private Petrinet net;
 	private Marking initialMarking;
 	private Marking finalMarking;
-	private XLog log;
+	//	private XLog log;
 	private XEventClasses classes;
 	private TransEvClassMapping mapping;
 	private ReplayerParameters.AStarWithMarkingSplit parameters;
@@ -68,35 +69,10 @@ public class TraceByTraceAlignment {
 		this.net = net;
 		this.initialMarking = initialMarking;
 		this.finalMarking = finalMarking;
-		this.log = log;
+		//		this.log = log;
 		this.classes = classes;
 		this.mapping = mapping;
 
-		setupParameters();
-	}
-
-	/**
-	 * Setup the trace-by-trace replayer using default parameters for the given net
-	 * and log with the mapping provided
-	 * 
-	 * @param net
-	 * @param initialMarking
-	 * @param finalMarking
-	 * @param log
-	 * @param eventClassifier
-	 */
-	public TraceByTraceAlignment(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
-			XEventClassifier eventClassifier) {
-
-		this.net = net;
-		this.initialMarking = initialMarking;
-		this.finalMarking = finalMarking;
-		this.log = log;
-
-		XEventClass dummyEvClass = new XEventClass("DUMMY", 99999);
-		mapping = constructMapping(net, log, dummyEvClass, eventClassifier);
-		XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
-		classes = summary.getEventClasses();
 		setupParameters();
 	}
 
@@ -105,7 +81,7 @@ public class TraceByTraceAlignment {
 		// number of threads (irrelevant for trace by trace computations)
 		int threads = 1;
 		// timeout 30 sec per trace minutes
-		int timeout = log.size() * 30 * 1000 / 10;
+		int timeout = 30 * 1000 / 10;
 		// no maximum state count
 		int maxNumberOfStates = Integer.MAX_VALUE;
 		// move sorting (should be false for incremental alignments)
@@ -117,7 +93,7 @@ public class TraceByTraceAlignment {
 
 		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, Debug.NONE, timeout,
 				maxNumberOfStates, partialOrder, false);
-		replayer = new Replayer(parameters, net, initialMarking, finalMarking, log, classes, mapping);
+		replayer = new Replayer(parameters, net, initialMarking, finalMarking, classes, mapping);
 
 	}
 
@@ -131,10 +107,11 @@ public class TraceByTraceAlignment {
 	 * @param eventsWithErrors
 	 * @return
 	 */
-	public Future<TraceReplayTask> doReplay(int traceIndex, int timeoutMilliseconds, short... eventsWithErrors) {
+	public Future<TraceReplayTask> doReplay(XTrace trace, int traceIndex, int timeoutMilliseconds,
+			int preProcessTimeMilliseconds, short... eventsWithErrors) {
 
-		TraceReplayTask task = new TraceReplayTask(replayer, parameters, log.get(traceIndex), traceIndex,
-				timeoutMilliseconds, parameters.maximumNumberOfStates, eventsWithErrors);
+		TraceReplayTask task = new TraceReplayTask(replayer, parameters, trace, traceIndex, timeoutMilliseconds,
+				parameters.maximumNumberOfStates, preProcessTimeMilliseconds, eventsWithErrors);
 
 		FutureTask<TraceReplayTask> futureTask = new FutureTask<>(task);
 		futureTask.run();

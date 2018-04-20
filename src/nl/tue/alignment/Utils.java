@@ -61,7 +61,11 @@ public class Utils {
 		SPLITS("Number of splits when splitting marking"), //
 		LMCOST("Log move cost of alignment"), //
 		MMCOST("Model move cost of alignment"), //
-		SMCOST("Synchronous move cost of alignment");
+		SMCOST("Synchronous move cost of alignment"),//
+		PREPROCESSTIME("Pre-processing time (ms)"),//
+		CONSTRAINTSETSIZE("Size of the constraintset");
+
+
 		private final String label;
 
 		private Statistic(String label) {

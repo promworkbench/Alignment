@@ -16,11 +16,12 @@ import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 public class Dijkstra extends ReplayAlgorithm {
 
 	public Dijkstra(SyncProduct product) {
-		this(product, false, false, Debug.NONE);
+		this(product, false, false,  Debug.NONE);
 	}
 
-	public Dijkstra(SyncProduct product, boolean moveSorting, boolean queueSorting, Debug debug) {
-		super(product, moveSorting, queueSorting, true, debug);
+	public Dijkstra(SyncProduct product, boolean moveSorting, boolean queueSorting, 
+			Debug debug) {
+		super(product, moveSorting, queueSorting, true,  debug);
 		tempFinalMarking = new byte[numPlaces];
 	}
 

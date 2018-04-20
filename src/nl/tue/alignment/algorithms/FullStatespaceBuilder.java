@@ -15,8 +15,9 @@ import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
  */
 public class FullStatespaceBuilder extends Dijkstra {
 
-	public FullStatespaceBuilder(SyncProduct product, boolean moveSorting, boolean queueSorting, Debug debug) {
-		super(product, moveSorting, queueSorting, debug);
+	public FullStatespaceBuilder(SyncProduct product, boolean moveSorting, boolean queueSorting,  
+			Debug debug) {
+		super(product, moveSorting, queueSorting,  debug);
 	}
 
 	@Override

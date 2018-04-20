@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 
 import org.deckfour.xes.extension.std.XConceptExtension;
 import org.deckfour.xes.factory.XFactoryRegistry;
+import org.deckfour.xes.model.XEvent;
 import org.deckfour.xes.model.XTrace;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
@@ -43,34 +44,63 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 	private short[] alignment;
 	private int maximumNumberOfStates;
 	private short[] eventsWithErrors;
+	private int preProcessTimeMilliseconds;
+	private int traceLogMoveCost;
 
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, int timeoutMilliseconds,
-			int maximumNumberOfStates, short... eventsWithErrors) {
+			int maximumNumberOfStates, int preProcessTimeMilliseconds, short... eventsWithErrors) {
 		this.replayer = replayer;
 		this.parameters = parameters;
 		this.maximumNumberOfStates = maximumNumberOfStates;
+		this.preProcessTimeMilliseconds = preProcessTimeMilliseconds;
 		this.trace = XFactoryRegistry.instance().currentDefault().createTrace();
 		XConceptExtension.instance().assignName(trace, "Empty");
 		this.traceIndex = -1;
 		this.timeoutMilliseconds = timeoutMilliseconds;
 		this.eventsWithErrors = eventsWithErrors;
 		Arrays.sort(eventsWithErrors);
+
+	}
+
+	@Deprecated
+	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, int timeoutMilliseconds,
+			int maximumNumberOfStates, short... eventsWithErrors) {
+		this(replayer, parameters, timeoutMilliseconds, maximumNumberOfStates, 0, eventsWithErrors);
 	}
 
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, XTrace trace, int traceIndex,
-			int timeoutMilliseconds, int maximumNumberOfStates, short... eventsWithErrors) {
+			int timeoutMilliseconds, int maximumNumberOfStates, int preProcessTimeMilliseconds,
+			short... eventsWithErrors) {
 		this.replayer = replayer;
 		this.parameters = parameters;
 		this.trace = trace;
 		this.traceIndex = traceIndex;
 		this.timeoutMilliseconds = timeoutMilliseconds;
 		this.maximumNumberOfStates = maximumNumberOfStates;
+		this.preProcessTimeMilliseconds = preProcessTimeMilliseconds;
 		this.eventsWithErrors = eventsWithErrors;
 		Arrays.sort(eventsWithErrors);
+
+	}
+
+	@Deprecated
+	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, XTrace trace, int traceIndex,
+			int timeoutMilliseconds, int maximumNumberOfStates, short... eventsWithErrors) {
+		this(replayer, parameters, trace, traceIndex, timeoutMilliseconds, maximumNumberOfStates, 0, eventsWithErrors);
+	}
+
+	private int getTraceCost(XTrace trace) {
+		int cost = 0;
+		for (XEvent e : trace) {
+			cost += replayer.getCostLM(replayer.getEventClass(e));
+		}
+		return cost;
 	}
 
 	public TraceReplayTask call() throws LPMatrixException {
+
 		Trace traceAsList = this.replayer.factory.getTrace(trace, parameters.partiallyOrderEvents);
+		this.traceLogMoveCost = getTraceCost(trace);
 
 		synchronized (this.replayer.trace2FirstIdenticalTrace) {
 			original = this.replayer.trace2FirstIdenticalTrace.get(traceAsList);
@@ -80,17 +110,25 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		}
 		if (original < 0) {
 			List<Transition> transitionList = new ArrayList<Transition>();
+			long startSP = System.currentTimeMillis();
 			product = this.replayer.factory.getSyncProduct(trace, transitionList, parameters.partiallyOrderEvents);
+
 			if (product != null) {
 				if (parameters.debug == Debug.DOT) {
 					Utils.toDot(product, ReplayAlgorithm.Debug.getOutputStream());
 				}
-				algorithm = getAlgorithm(product);
+
+				algorithm = getAlgorithm(product, (int) (System.currentTimeMillis() - startSP));
+
 				alignment = algorithm.run(this.replayer.getProgress(), timeoutMilliseconds, maximumNumberOfStates);
+
 				if (parameters.debug == Debug.DOT) {
 					Utils.toDot(product, alignment, ReplayAlgorithm.Debug.getOutputStream());
 				}
 				TObjectIntMap<Statistic> stats = algorithm.getStatistics(alignment);
+				stats.put(Statistic.PREPROCESSTIME, preProcessTimeMilliseconds);
+				stats.put(Statistic.CONSTRAINTSETSIZE, replayer.getConstraintSetSize());
+
 				srr = toSyncReplayResult(product, stats, alignment, trace, traceIndex, transitionList);
 				this.replayer.getProgress().inc();
 				result = TraceReplayResult.SUCCESS;
@@ -150,7 +188,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 
 		SyncReplayResult srr = new SyncReplayResult(nodeInstance, stepTypes, traceIndex);
 		srr.addInfo(PNRepResult.RAWFITNESSCOST, 1.0 * statistics.get(Statistic.COST));
-		srr.addInfo(PNRepResult.TIME, statistics.get(Statistic.TOTALTIME) / 1000.0);
+		srr.addInfo(PNRepResult.TIME, this.preProcessTimeMilliseconds + statistics.get(Statistic.TOTALTIME) / 1000.0);
 		srr.addInfo(PNRepResult.QUEUEDSTATE, 1.0 * statistics.get(Statistic.QUEUEACTIONS));
 		if (lm + slm == 0) {
 			srr.addInfo(PNRepResult.MOVELOGFITNESS, 1.0);
@@ -166,7 +204,6 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		srr.addInfo(PNRepResult.ORIGTRACELENGTH, 1.0 * trace.size());
 		srr.addInfo(Replayer.TRACEEXITCODE, new Double(statistics.get(Statistic.EXITCODE)));
 		srr.addInfo(Replayer.MEMORYUSED, new Double(statistics.get(Statistic.MEMORYUSED)));
-
 		srr.setReliable(statistics.get(Statistic.EXITCODE) == Utils.OPTIMALALIGNMENT);
 		return srr;
 	}
@@ -175,7 +212,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		return algorithm;
 	}
 
-	ReplayAlgorithm getAlgorithm(SyncProduct product) throws LPMatrixException {
+	ReplayAlgorithm getAlgorithm(SyncProduct product, int preProcessingTime) throws LPMatrixException {
 		switch (parameters.algorithm) {
 			case ASTAR :
 				return new AStar(product, parameters.moveSort, parameters.queueSort, parameters.preferExact, //
@@ -196,5 +233,9 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 
 	public short[] getAlignment() {
 		return alignment;
+	}
+
+	public int getTraceLogMoveCost() {
+		return traceLogMoveCost;
 	}
 }

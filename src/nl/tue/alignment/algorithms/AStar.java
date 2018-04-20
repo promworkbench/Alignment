@@ -130,12 +130,12 @@ public class AStar extends ReplayAlgorithm {
 	private LPSOLVE matrix;
 
 	public AStar(SyncProduct product) throws LPMatrixException {
-		this(product, true, true, true, false, Debug.NONE);
+		this(product, true, true, true, false,  Debug.NONE);
 	}
 
 	public AStar(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact, boolean isInteger,
 			Debug debug) throws LPMatrixException {
-		super(product, moveSorting, queueSorting, preferExact, debug);
+		super(product, moveSorting, queueSorting, preferExact,  debug);
 		//		this.numberOfThreads = numberOfThreads;
 		//		this.numRows = net.numPlaces();
 		matrix = new LPMatrix.SPARSE.LPSOLVE(net.numPlaces(), net.numTransitions());

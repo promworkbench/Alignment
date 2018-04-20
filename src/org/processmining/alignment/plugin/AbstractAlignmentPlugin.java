@@ -75,7 +75,7 @@ public abstract class AbstractAlignmentPlugin implements IPNReplayAlgorithm {
 				public void log(String message) {
 					context.log(message);
 				}
-			});
+			}, xLog);
 		} catch (InterruptedException | ExecutionException e) {
 			throw new AStarException(e);
 		}
@@ -89,7 +89,7 @@ public abstract class AbstractAlignmentPlugin implements IPNReplayAlgorithm {
 
 	protected Replayer constructReplayer(Petrinet net, XLog xLog, TransEvClassMapping mapping,
 			ReplayerParameters replayParameters, XLogInfo summary) {
-		Replayer replayer = new Replayer(replayParameters, net, initMarking, finalMarkings[0], xLog,
+		Replayer replayer = new Replayer(replayParameters, net, initMarking, finalMarkings[0],
 				summary.getEventClasses(), mapTrans2Cost, mapEvClass2Cost, mapSync2Cost, mapping);
 		return replayer;
 	}
