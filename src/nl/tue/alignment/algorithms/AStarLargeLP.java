@@ -63,7 +63,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	private int maxRankMarking;
 
 	public AStarLargeLP(SyncProduct product) {
-		this(product, false, false, 1, Debug.NONE);
+		this(product, false, false, 0, Debug.NONE);
 	}
 
 	/**
@@ -86,6 +86,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			System.arraycopy(splitpoints, 0, this.splitpoints, 1, splitpoints.length);
 		}
 		this.splitpoints[splitpoints.length + 1] = (short) numRanks;
+		splits = splitpoints.length + 1;
 
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
@@ -143,7 +144,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			numRanks = 1;
 		}
 		splitpoints = new short[initialBins + 2];
-
+		splits = initialBins + 1;
 	}
 
 	private short[] splitpoints;
@@ -333,7 +334,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	protected double[] varsMainThread;
-	protected int splits = 1;
+	protected int splits;
 
 	@Override
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
