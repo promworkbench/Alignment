@@ -62,7 +62,8 @@ public class AlignmentTest {
 		//		mainFileFolder(Debug.STATS, "sepsis", "bpi12", "prEm6", "prBm6", "prAm6", "prCm6", "prFm6", "prGm6");
 		//		mainFileFolder(Debug.STATS, "test","prDm6", "pr1151_l4_noise", "pr1912_l4_noise");
 
-		mainFolder(Debug.NONE, "laura/", "isbpm2013/");
+		mainFolder(Debug.NONE, "laura/");//
+		//		mainFolder(Debug.NONE, "isbpm2013/");
 	}
 
 	public static void mainFolder(Debug debug, String... eval) throws Exception {
@@ -76,7 +77,8 @@ public class AlignmentTest {
 				}
 			});
 
-			System.out.println("file,algorithm,traces,runtime (ms),CPU time (ms),preprocess time (ms),memory (kb),timeout,cost");
+			System.out.println(
+					"file,algorithm,traces,runtime (ms),CPU time (ms),preprocess time (ms),memory (kb),timeout,cost");
 			for (String name : names) {
 				name = name.replace(".pnml", "");
 
@@ -125,6 +127,7 @@ public class AlignmentTest {
 	private static void doReplayExperiment(Debug debug, String folder, PetrinetGraph net, Marking initialMarking,
 			Marking finalMarking, XLog log, XEventClassifier eventClassifier)
 			throws FileNotFoundException, InterruptedException, ExecutionException {
+
 		XEventClass dummyEvClass = new XEventClass("DUMMY", 99999);
 		TransEvClassMapping mapping = constructMapping(net, log, dummyEvClass, eventClassifier);
 		XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
@@ -154,17 +157,13 @@ public class AlignmentTest {
 		ReplayerParameters parameters;
 		boolean preProcessUsingPlaceBasedConstraints = true;
 
-		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
-				maxNumberOfStates, partialOrder, true);
-		doReplay(debug, folder, "Incre+1", net, initialMarking, finalMarking, log, mapping, classes, parameters);
+		//		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
+		//				maxNumberOfStates, partialOrder, false);
+		//		doReplay(debug, folder, "Incre", net, initialMarking, finalMarking, log, mapping, classes, parameters);
 
-		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
-				maxNumberOfStates, partialOrder, false);
-		doReplay(debug, folder, "Incre", net, initialMarking, finalMarking, log, mapping, classes, parameters);
-
-		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
-				maxNumberOfStates, partialOrder, true);
-		doReplay(debug, folder, "Incre+", net, initialMarking, finalMarking, log, mapping, classes, parameters);
+		//		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
+		//				maxNumberOfStates, partialOrder, true);
+		//		doReplay(debug, folder, "Incre+", net, initialMarking, finalMarking, log, mapping, classes, parameters);
 
 		parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug, timeout,
 				maxNumberOfStates, partialOrder);
@@ -185,7 +184,8 @@ public class AlignmentTest {
 		ReplayAlgorithm.Debug.setOutputStream(stream);
 
 		long start = System.nanoTime();
-		Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, classes, mapping, true);
+		Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, classes, mapping,
+				true);
 
 		PNRepResult result = replayer.computePNRepResult(Progress.INVISIBLE, log);
 		long end = System.nanoTime();
@@ -202,23 +202,23 @@ public class AlignmentTest {
 
 			int cost = (int) Double.parseDouble((String) result.getInfo().get(Replayer.MAXMODELMOVECOST));
 			int timeout = 0;
-			int time = 0;
+			double time = 0;
 			int mem = 0;
-			int pretime = 0;
+			double pretime = 0;
 			for (SyncReplayResult res : result) {
 				cost += res.getTraceIndex().size() * res.getInfo().get(PNRepResult.RAWFITNESSCOST);
 				timeout += res.getTraceIndex().size()
 						* (res.getInfo().get(Replayer.TRACEEXITCODE).intValue() != 1 ? 1 : 0);
-				time += res.getInfo().get(PNRepResult.TIME).intValue();
-				pretime += res.getInfo().get(Replayer.PREPROCESSTIME).intValue();
+				time += res.getInfo().get(PNRepResult.TIME);
+				pretime += res.getInfo().get(Replayer.PREPROCESSTIME);
 				mem = Math.max(mem, res.getInfo().get(Replayer.MEMORYUSED).intValue());
 			}
 			// clocktime
-			System.out.print((end - start) / 1000000.0 + ",");
+			System.out.print(String.format("%.3f", (end - start) / 1000000.0) + ",");
 			// cpu time
-			System.out.print(time + ",");
+			System.out.print(String.format("%.3f", time) + ",");
 			// preprocess time
-			System.out.print(pretime + ",");
+			System.out.print(String.format("%.3f", pretime) + ",");
 			// max memory
 			System.out.print(mem + ",");
 			// number timeouts

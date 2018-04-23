@@ -148,7 +148,7 @@ public class SyncProductFactory {
 	private final byte[] initMarking;
 	private final byte[] finMarking;
 	private final XEventClasses classes;
-	private TObjectShortMap<XEventClass> c2id;
+	private final TObjectShortMap<XEventClass> c2id;
 
 	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
 			TransEvClassMapping map, Marking initialMarking, Marking finalMarking) {
