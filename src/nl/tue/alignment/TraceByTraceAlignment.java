@@ -90,7 +90,7 @@ public class TraceByTraceAlignment {
 
 		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, Debug.NONE, timeout,
 				maxNumberOfStates, partialOrder, false);
-		replayer = new Replayer(parameters, net, initialMarking, finalMarking, classes, mapping);
+		replayer = new Replayer(parameters, net, initialMarking, finalMarking, classes, mapping, false);
 
 	}
 

@@ -185,7 +185,7 @@ public class AlignmentTest {
 		ReplayAlgorithm.Debug.setOutputStream(stream);
 
 		long start = System.nanoTime();
-		Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, classes, mapping);
+		Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, classes, mapping, true);
 
 		PNRepResult result = replayer.computePNRepResult(Progress.INVISIBLE, log);
 		long end = System.nanoTime();

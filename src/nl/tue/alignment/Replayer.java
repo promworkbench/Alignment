@@ -51,40 +51,45 @@ public class Replayer {
 	private final Map<XEventClass, Integer> costLM;
 	final SyncProductFactory factory;
 	final XEventClasses classes;
-	private Map<Transition, Integer> costMM;
+	final private Map<Transition, Integer> costMM;
 	private Progress progress;
+	final boolean mergeDuplicateTraces;
 
 	private TObjectShortMap<XEventClass> class2id;
 
 	private ConstraintSet constraintSet;
 
 	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XEventClasses classes,
-			Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping) {
+			Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT, TransEvClassMapping mapping,
+			boolean mergeDuplicateTraces) {
 		this(new ReplayerParameters.Default(), net, initialMarking, finalMarking, classes, costMOS, costMOT, null,
-				mapping);
+				mapping, mergeDuplicateTraces);
 	}
 
 	public Replayer(Petrinet net, Marking initialMarking, Marking finalMarking, XEventClasses classes,
-			TransEvClassMapping mapping) {
-		this(new ReplayerParameters.Default(), net, initialMarking, finalMarking, classes, null, null, null, mapping);
+			TransEvClassMapping mapping, boolean mergeDuplicateTraces) {
+		this(new ReplayerParameters.Default(), net, initialMarking, finalMarking, classes, null, null, null, mapping,
+				mergeDuplicateTraces);
 	}
 
 	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
 			XEventClasses classes, Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT,
-			TransEvClassMapping mapping) {
-		this(parameters, net, initialMarking, finalMarking, classes, costMOS, costMOT, null, mapping);
+			TransEvClassMapping mapping, boolean mergeDuplicateTraces) {
+		this(parameters, net, initialMarking, finalMarking, classes, costMOS, costMOT, null, mapping,
+				mergeDuplicateTraces);
 	}
 
 	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
-			XEventClasses classes, TransEvClassMapping mapping) {
-		this(parameters, net, initialMarking, finalMarking, classes, null, null, null, mapping);
+			XEventClasses classes, TransEvClassMapping mapping, boolean mergeDuplicateTraces) {
+		this(parameters, net, initialMarking, finalMarking, classes, null, null, null, mapping, mergeDuplicateTraces);
 	}
 
 	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
 			XEventClasses classes, Map<Transition, Integer> costMM, Map<XEventClass, Integer> costLM,
-			Map<Transition, Integer> costSM, TransEvClassMapping mapping) {
+			Map<Transition, Integer> costSM, TransEvClassMapping mapping, boolean mergeDuplicateTraces) {
 		this.parameters = parameters;
 		this.classes = classes;
+		this.mergeDuplicateTraces = mergeDuplicateTraces;
 		if (costMM == null) {
 			costMM = new HashMap<>();
 			for (Transition t : net.getTransitions()) {
@@ -119,7 +124,11 @@ public class Replayer {
 		factory = new SyncProductFactory(net, classes, class2id, mapping, costMM, costLM, costSM, initialMarking,
 				finalMarking);
 
-		trace2FirstIdenticalTrace = new TObjectIntHashMap<>(10, 0.7f, -1);
+		if (mergeDuplicateTraces) {
+			trace2FirstIdenticalTrace = new TObjectIntHashMap<>(10, 0.7f, -1);
+		} else {
+			trace2FirstIdenticalTrace = null;
+		}
 	}
 
 	public PNRepResult computePNRepResult(Progress progress, XLog log) throws InterruptedException, ExecutionException {

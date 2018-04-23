@@ -51,6 +51,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 	private short[] eventsWithErrors;
 	private long preProcessTimeNanoseconds;
 	private final int timeoutMilliseconds;
+	private boolean mergeDuplicateTraces;
 
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, int timeoutMilliseconds,
 			int maximumNumberOfStates, long preProcessTimeNanoseconds, short... eventsWithErrors) {
@@ -110,11 +111,15 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		Trace traceAsList = this.replayer.factory.getTrace(trace, parameters.partiallyOrderEvents);
 		this.traceLogMoveCost = getTraceCost(trace);
 
-		synchronized (this.replayer.trace2FirstIdenticalTrace) {
-			original = this.replayer.trace2FirstIdenticalTrace.get(traceAsList);
-			if (original < 0) {
-				this.replayer.trace2FirstIdenticalTrace.put(traceAsList, traceIndex);
+		if (this.replayer.mergeDuplicateTraces) {
+			synchronized (this.replayer.trace2FirstIdenticalTrace) {
+				original = this.replayer.trace2FirstIdenticalTrace.get(traceAsList);
+				if (original < 0) {
+					this.replayer.trace2FirstIdenticalTrace.put(traceAsList, traceIndex);
+				}
 			}
+		} else {
+			original = -1;
 		}
 		if (original < 0) {
 			List<Transition> transitionList = new ArrayList<Transition>();

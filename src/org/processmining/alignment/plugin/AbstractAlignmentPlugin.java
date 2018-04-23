@@ -90,7 +90,7 @@ public abstract class AbstractAlignmentPlugin implements IPNReplayAlgorithm {
 	protected Replayer constructReplayer(Petrinet net, XLog xLog, TransEvClassMapping mapping,
 			ReplayerParameters replayParameters, XLogInfo summary) {
 		Replayer replayer = new Replayer(replayParameters, net, initMarking, finalMarkings[0],
-				summary.getEventClasses(), mapTrans2Cost, mapEvClass2Cost, mapSync2Cost, mapping);
+				summary.getEventClasses(), mapTrans2Cost, mapEvClass2Cost, mapSync2Cost, mapping, true);
 		return replayer;
 	}
 
