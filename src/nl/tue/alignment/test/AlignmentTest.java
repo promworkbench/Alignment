@@ -57,9 +57,12 @@ public class AlignmentTest {
 		//		mainFileFolder(Debug.STATS, "test");//"pr1151_l4_noise","pr1912_l4_noise");
 		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6",
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
-		mainFileFolder(Debug.STATS, "sepsis", "bpi12", "prEm6", "prBm6", "prAm6", "prCm6", "prFm6", "prGm6", "prDm6");
 
-		//		mainFolder(Debug.NONE,"laura/", "isbpm2013/");
+		//April 2018:
+		//		mainFileFolder(Debug.STATS, "sepsis", "bpi12", "prEm6", "prBm6", "prAm6", "prCm6", "prFm6", "prGm6");
+		//		mainFileFolder(Debug.STATS, "test","prDm6", "pr1151_l4_noise", "pr1912_l4_noise");
+
+		mainFolder(Debug.NONE, "laura/", "isbpm2013/");
 	}
 
 	public static void mainFolder(Debug debug, String... eval) throws Exception {
@@ -73,7 +76,7 @@ public class AlignmentTest {
 				}
 			});
 
-			System.out.println("file,algorithm,traces,time (ms),memory (kb),timeout,cost");
+			System.out.println("file,algorithm,traces,runtime (ms),CPU time (ms),preprocess time (ms),memory (kb),timeout,cost");
 			for (String name : names) {
 				name = name.replace(".pnml", "");
 
@@ -140,7 +143,7 @@ public class AlignmentTest {
 		//		threads = 1;
 
 		// timeout 30 sec per trace minutes
-		int timeout = log.size() * 30 * 1000 / 10;
+		int timeout = log.size() * 2 * 1000 / 10;
 		int maxNumberOfStates = Integer.MAX_VALUE;
 
 		boolean moveSort = false;
@@ -150,6 +153,10 @@ public class AlignmentTest {
 		boolean queueSort = true;
 		ReplayerParameters parameters;
 		boolean preProcessUsingPlaceBasedConstraints = true;
+
+		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
+				maxNumberOfStates, partialOrder, true);
+		doReplay(debug, folder, "Incre+1", net, initialMarking, finalMarking, log, mapping, classes, parameters);
 
 		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
 				maxNumberOfStates, partialOrder, false);
@@ -177,11 +184,11 @@ public class AlignmentTest {
 		}
 		ReplayAlgorithm.Debug.setOutputStream(stream);
 
-		long start = System.currentTimeMillis();
+		long start = System.nanoTime();
 		Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, classes, mapping);
-		long end = System.currentTimeMillis();
 
 		PNRepResult result = replayer.computePNRepResult(Progress.INVISIBLE, log);
+		long end = System.nanoTime();
 
 		if (stream != System.out) {
 			System.out.println(result.getInfo().toString());
@@ -197,17 +204,26 @@ public class AlignmentTest {
 			int timeout = 0;
 			int time = 0;
 			int mem = 0;
+			int pretime = 0;
 			for (SyncReplayResult res : result) {
 				cost += res.getTraceIndex().size() * res.getInfo().get(PNRepResult.RAWFITNESSCOST);
 				timeout += res.getTraceIndex().size()
 						* (res.getInfo().get(Replayer.TRACEEXITCODE).intValue() != 1 ? 1 : 0);
 				time += res.getInfo().get(PNRepResult.TIME).intValue();
+				pretime += res.getInfo().get(Replayer.PREPROCESSTIME).intValue();
 				mem = Math.max(mem, res.getInfo().get(Replayer.MEMORYUSED).intValue());
 			}
-			System.out.print((end - start) + ",");
+			// clocktime
+			System.out.print((end - start) / 1000000.0 + ",");
+			// cpu time
 			System.out.print(time + ",");
+			// preprocess time
+			System.out.print(pretime + ",");
+			// max memory
 			System.out.print(mem + ",");
+			// number timeouts
 			System.out.print(timeout + ",");
+			// total cost.
 			System.out.print(cost + ",");
 
 			System.out.println();

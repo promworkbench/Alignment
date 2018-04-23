@@ -62,7 +62,7 @@ public class Utils {
 		LMCOST("Log move cost of alignment"), //
 		MMCOST("Model move cost of alignment"), //
 		SMCOST("Synchronous move cost of alignment"),//
-		PREPROCESSTIME("Pre-processing time (ms)"),//
+		PREPROCESSTIME("Pre-processing time (us)"),//
 		CONSTRAINTSETSIZE("Size of the constraintset");
 
 

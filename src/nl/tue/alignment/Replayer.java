@@ -40,10 +40,9 @@ import nl.tue.astar.Trace;
 public class Replayer {
 
 	public static final String MAXMODELMOVECOST = "Model move cost empty trace";
-
 	public static final String TRACEEXITCODE = "Exit code of alignment for trace";
-
 	public static final String MEMORYUSED = "Approximate memory used (kb)";
+	public static final String PREPROCESSTIME = "Pre-processing time (ms)";
 
 	final TObjectIntMap<Trace> trace2FirstIdenticalTrace;
 
@@ -161,9 +160,10 @@ public class Replayer {
 
 		int t = 0;
 		for (XTrace trace : log) {
-			long start = System.currentTimeMillis();
 			TShortList errorEvents = new TShortArrayList(trace.size());
+			long preprocessTime = 0;
 			if (constraintSet != null) {
+				long start = System.nanoTime();
 				// pre-process the trace
 				constraintSet.reset();
 				for (short e = 0; e < trace.size(); e++) {
@@ -175,8 +175,8 @@ public class Replayer {
 					}
 				}
 				//				System.out.println("Splitpoints:" + errorEvents.toString());
+				preprocessTime = (System.nanoTime() - start);
 			}
-			int preprocessTime = (int) (System.currentTimeMillis() - start);
 			tr = new TraceReplayTask(this, parameters, trace, t, timeoutMilliseconds, parameters.maximumNumberOfStates,
 					preprocessTime, errorEvents.toArray());
 			resultList.add(service.submit(tr));

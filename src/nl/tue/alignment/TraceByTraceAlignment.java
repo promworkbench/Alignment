@@ -47,7 +47,6 @@ public class TraceByTraceAlignment {
 	private Petrinet net;
 	private Marking initialMarking;
 	private Marking finalMarking;
-	//	private XLog log;
 	private XEventClasses classes;
 	private TransEvClassMapping mapping;
 	private ReplayerParameters.AStarWithMarkingSplit parameters;
@@ -60,16 +59,14 @@ public class TraceByTraceAlignment {
 	 * @param net
 	 * @param initialMarking
 	 * @param finalMarking
-	 * @param log
 	 * @param classes
 	 * @param mapping
 	 */
-	public TraceByTraceAlignment(Petrinet net, Marking initialMarking, Marking finalMarking, XLog log,
-			XEventClasses classes, TransEvClassMapping mapping) {
+	public TraceByTraceAlignment(Petrinet net, Marking initialMarking, Marking finalMarking, XEventClasses classes,
+			TransEvClassMapping mapping) {
 		this.net = net;
 		this.initialMarking = initialMarking;
 		this.finalMarking = finalMarking;
-		//		this.log = log;
 		this.classes = classes;
 		this.mapping = mapping;
 
@@ -108,10 +105,10 @@ public class TraceByTraceAlignment {
 	 * @return
 	 */
 	public Future<TraceReplayTask> doReplay(XTrace trace, int traceIndex, int timeoutMilliseconds,
-			int preProcessTimeMilliseconds, short... eventsWithErrors) {
+			long preProcessTimeNanoseconds, short... eventsWithErrors) {
 
 		TraceReplayTask task = new TraceReplayTask(replayer, parameters, trace, traceIndex, timeoutMilliseconds,
-				parameters.maximumNumberOfStates, preProcessTimeMilliseconds, eventsWithErrors);
+				parameters.maximumNumberOfStates, preProcessTimeNanoseconds, eventsWithErrors);
 
 		FutureTask<TraceReplayTask> futureTask = new FutureTask<>(task);
 		futureTask.run();

@@ -49,15 +49,15 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 	private short[] alignment;
 	private int maximumNumberOfStates;
 	private short[] eventsWithErrors;
-	private int preProcessTimeMilliseconds;
+	private long preProcessTimeNanoseconds;
 	private final int timeoutMilliseconds;
 
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, int timeoutMilliseconds,
-			int maximumNumberOfStates, int preProcessTimeMilliseconds, short... eventsWithErrors) {
+			int maximumNumberOfStates, long preProcessTimeNanoseconds, short... eventsWithErrors) {
 		this.replayer = replayer;
 		this.parameters = parameters;
 		this.maximumNumberOfStates = maximumNumberOfStates;
-		this.preProcessTimeMilliseconds = preProcessTimeMilliseconds;
+		this.preProcessTimeNanoseconds = preProcessTimeNanoseconds;
 		this.trace = XFactoryRegistry.instance().currentDefault().createTrace();
 		XConceptExtension.instance().assignName(trace, "Empty");
 		this.traceIndex = -1;
@@ -74,7 +74,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 	}
 
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, XTrace trace, int traceIndex,
-			int timeoutMilliseconds, int maximumNumberOfStates, int preProcessTimeMilliseconds,
+			int timeoutMilliseconds, int maximumNumberOfStates, long preProcessTimeNanoseconds,
 			short... eventsWithErrors) {
 		this.replayer = replayer;
 		this.parameters = parameters;
@@ -82,7 +82,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		this.traceIndex = traceIndex;
 		this.timeoutMilliseconds = timeoutMilliseconds;
 		this.maximumNumberOfStates = maximumNumberOfStates;
-		this.preProcessTimeMilliseconds = preProcessTimeMilliseconds;
+		this.preProcessTimeNanoseconds = preProcessTimeNanoseconds;
 		this.eventsWithErrors = eventsWithErrors;
 		Arrays.sort(eventsWithErrors);
 
@@ -118,17 +118,19 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		}
 		if (original < 0) {
 			List<Transition> transitionList = new ArrayList<Transition>();
-			long startSP = System.currentTimeMillis();
+			long startSP = System.nanoTime();
 			product = this.replayer.factory.getSyncProduct(trace, transitionList, parameters.partiallyOrderEvents);
+			long endSP = System.nanoTime();
+			preProcessTimeNanoseconds += endSP - startSP;
 
 			if (product != null) {
 				if (parameters.debug == Debug.DOT) {
 					Utils.toDot(product, ReplayAlgorithm.Debug.getOutputStream());
 				}
 
-				algorithm = getAlgorithm(product, (int) (System.currentTimeMillis() - startSP));
+				algorithm = getAlgorithm(product);
 
-				algorithm.putStatistic(Statistic.PREPROCESSTIME, preProcessTimeMilliseconds);
+				algorithm.putStatistic(Statistic.PREPROCESSTIME, (int) (preProcessTimeNanoseconds / 1000));
 				algorithm.putStatistic(Statistic.CONSTRAINTSETSIZE, replayer.getConstraintSetSize());
 
 				alignment = algorithm.run(this.replayer.getProgress(), timeoutMilliseconds, maximumNumberOfStates);
@@ -188,7 +190,8 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 
 		SyncReplayResult srr = new SyncReplayResult(nodeInstance, stepTypes, traceIndex);
 		srr.addInfo(PNRepResult.RAWFITNESSCOST, 1.0 * statistics.get(Statistic.COST));
-		srr.addInfo(PNRepResult.TIME, this.preProcessTimeMilliseconds + statistics.get(Statistic.TOTALTIME) / 1000.0);
+		srr.addInfo(PNRepResult.TIME,
+				(statistics.get(Statistic.PREPROCESSTIME) + statistics.get(Statistic.TOTALTIME)) / 1000.0);
 		srr.addInfo(PNRepResult.QUEUEDSTATE, 1.0 * statistics.get(Statistic.QUEUEACTIONS));
 		if (lm + slm == 0) {
 			srr.addInfo(PNRepResult.MOVELOGFITNESS, 1.0);
@@ -204,11 +207,12 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		srr.addInfo(PNRepResult.ORIGTRACELENGTH, 1.0 * trace.size());
 		srr.addInfo(Replayer.TRACEEXITCODE, new Double(statistics.get(Statistic.EXITCODE)));
 		srr.addInfo(Replayer.MEMORYUSED, new Double(statistics.get(Statistic.MEMORYUSED)));
+		srr.addInfo(Replayer.PREPROCESSTIME, (statistics.get(Statistic.PREPROCESSTIME)) / 1000.0);
 		srr.setReliable(statistics.get(Statistic.EXITCODE) == Utils.OPTIMALALIGNMENT);
 		return srr;
 	}
 
-	private ReplayAlgorithm getAlgorithm(SyncProduct product, int preProcessingTime) throws LPMatrixException {
+	private ReplayAlgorithm getAlgorithm(SyncProduct product) throws LPMatrixException {
 		switch (parameters.algorithm) {
 			case ASTAR :
 				return new AStar(product, parameters.moveSort, parameters.queueSort, parameters.preferExact, //
