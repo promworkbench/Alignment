@@ -127,7 +127,7 @@ public class AlignmentTest {
 
 				try {
 					doReplayExperiment(debug, FOLDER + name + "/" + name, net, initialMarking, finalMarking, log,
-							eventClassifier, type, 2);
+							eventClassifier, type, 15);
 				} catch (Exception e) {
 					System.err.println("Exception: " + e.getMessage());
 				}
