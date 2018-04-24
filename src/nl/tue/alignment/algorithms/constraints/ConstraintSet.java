@@ -326,10 +326,22 @@ public class ConstraintSet {
 		// process all relevant constraints for internal state consistency
 		boolean satisfied = true;
 		for (Constraint constraint : label2input.get(label)) {
-			satisfied &= constraint.satisfiedAfterOccurence(label);
+			if (constraint.satisfied()) {
+				// if it is satisfied, make sure it remains so
+				satisfied &= constraint.satisfiedAfterOccurence(label);
+			} else {
+				// if it is not satisfied, update the state
+				constraint.satisfiedAfterOccurence(label);
+			}
 		}
 		for (Constraint constraint : label2output.get(label)) {
-			satisfied &= constraint.satisfiedAfterOccurence(label);
+			if (constraint.satisfied()) {
+				// if it is satisfied, make sure it remains so
+				satisfied &= constraint.satisfiedAfterOccurence(label);
+			} else {
+				// if it is not satisfied, update the state
+				constraint.satisfiedAfterOccurence(label);
+			}
 		}
 		return satisfied;
 	}

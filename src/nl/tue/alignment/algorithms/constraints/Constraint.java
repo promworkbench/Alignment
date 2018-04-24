@@ -48,6 +48,10 @@ public class Constraint {
 	public boolean satisfiedAfterOccurence(short label) {
 		value += inputLabelOccurrence[label];
 		value -= outputLabelOccurrence[label];
+		return satisfied();
+	}
+
+	public boolean satisfied() {
 		return value >= threshold;
 	}
 
@@ -85,7 +89,8 @@ public class Constraint {
 		boolean first = true;
 		for (int i = 0; i < inputLabelOccurrence.length; i++) {
 			if (inputLabelOccurrence[i] > 0) {
-				b.append((!first ? " + " : "") + (inputLabelOccurrence[i]>1? inputLabelOccurrence[i]+" ":"") + (colNames == null ? i : colNames[i]));
+				b.append((!first ? " + " : "") + (inputLabelOccurrence[i] > 1 ? inputLabelOccurrence[i] + " " : "")
+						+ (colNames == null ? i : colNames[i]));
 				first = false;
 			}
 		}
@@ -96,7 +101,8 @@ public class Constraint {
 		first = true;
 		for (int i = 0; i < outputLabelOccurrence.length; i++) {
 			if (outputLabelOccurrence[i] > 0) {
-				b.append((!first ? " + " : "") + (outputLabelOccurrence[i]>1? outputLabelOccurrence[i]+" ":"")  + (colNames == null ? i : colNames[i]));
+				b.append((!first ? " + " : "") + (outputLabelOccurrence[i] > 1 ? outputLabelOccurrence[i] + " " : "")
+						+ (colNames == null ? i : colNames[i]));
 				first = false;
 			}
 		}
