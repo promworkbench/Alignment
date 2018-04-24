@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
@@ -103,15 +105,20 @@ public class TraceByTraceAlignment {
 	 * @param timeoutMilliseconds
 	 * @param eventsWithErrors
 	 * @return
+	 * @throws TimeoutException
+	 * @throws ExecutionException
+	 * @throws InterruptedException
 	 */
 	public Future<TraceReplayTask> doReplay(XTrace trace, int traceIndex, int timeoutMilliseconds,
-			long preProcessTimeNanoseconds, short... eventsWithErrors) {
+			long preProcessTimeNanoseconds, short... eventsWithErrors)
+			throws InterruptedException, ExecutionException, TimeoutException {
 
 		TraceReplayTask task = new TraceReplayTask(replayer, parameters, trace, traceIndex, timeoutMilliseconds,
 				parameters.maximumNumberOfStates, preProcessTimeNanoseconds, eventsWithErrors);
 
 		FutureTask<TraceReplayTask> futureTask = new FutureTask<>(task);
 		futureTask.run();
+		futureTask.get(4 * timeoutMilliseconds / 3, TimeUnit.MILLISECONDS);
 		return futureTask;
 	}
 
