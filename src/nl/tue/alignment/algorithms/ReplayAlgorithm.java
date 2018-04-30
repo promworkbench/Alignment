@@ -643,7 +643,7 @@ public abstract class ReplayAlgorithm {
 
 					// set the score to exact score
 					assert !queue.contains(m);
-					setHScore(bm, im, heuristic, true);
+					setHScore(bm, im, HEURISTICINFINITE, true);
 					setClosed(bm, im);
 					closedActions++;
 					return CloseResult.CLOSEDINFEASIBLE;

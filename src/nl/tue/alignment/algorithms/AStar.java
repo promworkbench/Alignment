@@ -453,6 +453,7 @@ public class AStar extends ReplayAlgorithm {
 
 		} else if (hasExactHeuristic(fromBlock, fromIndex) && getHScore(fromBlock, fromIndex) == HEURISTICINFINITE) {
 			// marking from which final state cannot be reached
+			assert false;
 			setHScore(toBlock, toIndex, HEURISTICINFINITE, true);
 			heuristicsDerived++;
 		} else {

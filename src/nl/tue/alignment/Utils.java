@@ -63,7 +63,8 @@ public class Utils {
 		MMCOST("Model move cost of alignment"), //
 		SMCOST("Synchronous move cost of alignment"),//
 		PREPROCESSTIME("Pre-processing time (us)"),//
-		CONSTRAINTSETSIZE("Size of the constraintset");
+		CONSTRAINTSETSIZE("Size of the constraintset"), //
+		RESTARTS("Number of times replay was restarted");
 
 
 		private final String label;

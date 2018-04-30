@@ -145,6 +145,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		}
 		splitpoints = new short[initialBins + 2];
 		splits = initialBins + 1;
+		restarts = 0;
 	}
 
 	private short[] splitpoints;
@@ -335,6 +336,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 	protected double[] varsMainThread;
 	protected int splits;
+	protected int restarts;
 
 	@Override
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
@@ -372,6 +374,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		System.arraycopy(splitpoints, insert, splitpoints, insert + 1, splitpoints.length - insert - 1);
 		splitpoints[insert] = rank;
 		splits++;
+		restarts++;
 		debug.writeMarkingReached(this, marking);
 		debug.writeMarkingReached(this, maxRankMarking, "peripheries=2");
 
@@ -433,8 +436,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 					synchronized (this) {
 						alignmentResult |= Utils.HEURISTICFUNCTIONOVERFLOW;
 					}
-					// continue with maximum heuristic value not equal to infinity.
-					return HEURISTICINFINITE - 1;
+					// continue with infinity.
+					return HEURISTICINFINITE ;
 				}
 
 				// assume precision 1E-9 and round down
@@ -634,6 +637,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			}
 		} else if (hasExactHeuristic(fromBlock, fromIndex) && getHScore(fromBlock, fromIndex) == HEURISTICINFINITE) {
 			// cannot reach final marking
+			assert false;
 			setHScore(toBlock, toIndex, HEURISTICINFINITE, true);
 			heuristicsDerived++;
 		} else {
@@ -671,6 +675,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		super.fillStatistics(alignment);
 		putStatistic(Statistic.HEURISTICTIME, (int) (solveTime / 1000));
 		putStatistic(Statistic.SPLITS, splits);
+		putStatistic(Statistic.RESTARTS, restarts);
 	}
 
 	@Override

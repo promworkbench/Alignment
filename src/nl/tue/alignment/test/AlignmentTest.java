@@ -64,9 +64,9 @@ public class AlignmentTest {
 		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6",
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
 
-		mainFileFolder(Debug.DOT, "alifah");
+		mainFileFolder(Debug.DOT, 1, "alifah");
 		//		mainFileFolder(Debug.STATS, "prDm6");
-		mainFileFolder(Debug.STATS, "prAm6", "prBm6", "prCm6", "prDm6", "prEm6", "prFm6", "prGm6");
+		mainFileFolder(Debug.STATS, 1, "prBm6", "prEm6", "prAm6","prCm6", "prDm6",  "prFm6", "prGm6");
 
 		//April 2018:
 		//		mainFileFolder(Debug.STATS, "test", "sepsis", "bpi12", "prEm6", "prBm6", "prAm6");
@@ -77,7 +77,7 @@ public class AlignmentTest {
 		//		mainFolder(Debug.NONE, "isbpm2013/");
 	}
 
-	public static void mainFolder(Debug debug, String... eval) throws Exception {
+	public static void mainFolder(Debug debug, int timeoutSecondsPerTrace, String... eval) throws Exception {
 
 		for (String folder : eval) {
 
@@ -105,16 +105,16 @@ public class AlignmentTest {
 					log = parser.parse(new File(FOLDER + folder + name + ".xml")).get(0);
 
 					doReplayExperiment(debug, FOLDER + folder + name, net, initialMarking, finalMarking, log,
-							eventClassifier, type, 5);
+							eventClassifier, type, timeoutSecondsPerTrace);
 
 				}
 			}
 		}
 	}
 
-	public static void mainFileFolder(Debug debug, String... names) throws Exception {
+	public static void mainFileFolder(Debug debug, int timeoutSecondsPerTrace, String... names) throws Exception {
 
-		System.out.print("filename,");
+		System.out.print("filename,logsize,");
 		for (Type type : Type.values()) {
 			System.out.print(type + " number timeout,");
 			System.out.print(type + " time,");
@@ -140,12 +140,13 @@ public class AlignmentTest {
 
 			String folder = FOLDER + name + "/" + name;
 			System.out.print(folder + ",");
+			System.out.print(log.size() + ",");
 			for (Type type : Type.values()) {
 				long start = System.nanoTime();
 				int to = -1;
 				try {
 					to = doReplayExperiment(debug, folder, net, initialMarking, finalMarking, log, eventClassifier,
-							type, 5);
+							type, timeoutSecondsPerTrace);
 				} catch (Exception e) {
 					System.err.println("Exception: " + e.getMessage());
 					e.printStackTrace();
