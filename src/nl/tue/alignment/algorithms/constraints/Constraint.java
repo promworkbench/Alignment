@@ -42,7 +42,7 @@ public class Constraint {
 	}
 
 	public void reset() {
-		value = threshold;
+		value = 0;
 	}
 
 	public boolean satisfiedAfterOccurence(short label) {

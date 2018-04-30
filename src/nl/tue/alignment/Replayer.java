@@ -175,12 +175,13 @@ public class Replayer {
 				long start = System.nanoTime();
 				// pre-process the trace
 				constraintSet.reset();
-				for (short e = 0; e < trace.size(); e++) {
+				for (short e = 0; e < trace.size() - 1; e++) {
 					short label = class2id.get(classes.getClassOf(trace.get(e)));
 					if (!constraintSet.satisfiedAfterOccurence(label)) {
-						if (e > 0) {
-							errorEvents.add(e);
-						}
+						//						if (e > 0) {
+						//							errorEvents.add((short) (e));
+						//						}
+						errorEvents.add((short) (e + 1));
 					}
 				}
 				//				System.out.println("Splitpoints:" + errorEvents.toString());

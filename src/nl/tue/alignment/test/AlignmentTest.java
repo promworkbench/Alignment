@@ -62,12 +62,15 @@ public class AlignmentTest {
 		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6",
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
 
-		//April 2018:
-		mainFileFolder(Debug.STATS, "test", "sepsis", "bpi12", "prEm6", "prBm6", "prAm6", "prCm6", "prFm6", "prGm6");
-		mainFileFolder(Debug.STATS, "prDm6", "pr1151_l4_noise", "pr1912_l4_noise");
+//		mainFileFolder(Debug.DOT, "alifah");
+		mainFileFolder(Debug.STATS, "prAm6");
 
-		mainFolder(Debug.NONE, "laura/");//
-		mainFolder(Debug.NONE, "isbpm2013/");
+		//April 2018:
+//		mainFileFolder(Debug.STATS, "test", "sepsis", "bpi12", "prEm6", "prBm6", "prAm6", "prCm6", "prFm6", "prGm6");
+//		mainFileFolder(Debug.STATS, "prDm6", "pr1151_l4_noise", "pr1912_l4_noise");
+//
+//		mainFolder(Debug.NONE, "laura/");//
+//		mainFolder(Debug.NONE, "isbpm2013/");
 	}
 
 	public static void mainFolder(Debug debug, String... eval) throws Exception {
