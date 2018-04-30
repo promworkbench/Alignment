@@ -441,7 +441,8 @@ public class AStar extends ReplayAlgorithm {
 
 	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
 			int toIndex) {
-		if (hasExactHeuristic(fromBlock, fromIndex) && (getLpSolution(from, transition) >= 1)) {
+		if (hasExactHeuristic(fromBlock, fromIndex) && getHScore(fromBlock, fromIndex) != HEURISTICINFINITE
+				&& (getLpSolution(from, transition) >= 1)) {
 			// from Marking has exact heuristic
 			// we can derive an exact heuristic from it
 
@@ -450,7 +451,12 @@ public class AStar extends ReplayAlgorithm {
 			setHScore(toBlock, toIndex, getHScore(fromBlock, fromIndex) - net.getCost(transition), true);
 			heuristicsDerived++;
 
+		} else if (hasExactHeuristic(fromBlock, fromIndex) && getHScore(fromBlock, fromIndex) == HEURISTICINFINITE) {
+			// marking from which final state cannot be reached
+			setHScore(toBlock, toIndex, HEURISTICINFINITE, true);
+			heuristicsDerived++;
 		} else {
+
 			if (isFinal(to)) {
 				setHScore(toBlock, toIndex, 0, true);
 			}

@@ -175,7 +175,7 @@ public class Replayer {
 				long start = System.nanoTime();
 				// pre-process the trace
 				constraintSet.reset();
-				for (short e = 0; e < trace.size() - 1; e++) {
+				for (short e = 0; e < trace.size(); e++) {
 					short label = class2id.get(classes.getClassOf(trace.get(e)));
 					if (!constraintSet.satisfiedAfterOccurence(label)) {
 						//						if (e > 0) {

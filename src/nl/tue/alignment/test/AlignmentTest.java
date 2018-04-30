@@ -31,6 +31,7 @@ import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMap
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
+import lpsolve.LpSolve;
 import nl.tue.alignment.Progress;
 import nl.tue.alignment.Replayer;
 import nl.tue.alignment.ReplayerParameters;
@@ -53,6 +54,7 @@ public class AlignmentTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		LpSolve.lpSolveVersion();
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -62,15 +64,17 @@ public class AlignmentTest {
 		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6",
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
 
-//		mainFileFolder(Debug.DOT, "alifah");
-		mainFileFolder(Debug.STATS, "prAm6");
+		mainFileFolder(Debug.DOT, "alifah");
+		//		mainFileFolder(Debug.STATS, "prDm6");
+		mainFileFolder(Debug.STATS, "prAm6", "prBm6", "prCm6", "prDm6", "prEm6", "prFm6", "prGm6");
 
 		//April 2018:
-//		mainFileFolder(Debug.STATS, "test", "sepsis", "bpi12", "prEm6", "prBm6", "prAm6", "prCm6", "prFm6", "prGm6");
-//		mainFileFolder(Debug.STATS, "prDm6", "pr1151_l4_noise", "pr1912_l4_noise");
-//
-//		mainFolder(Debug.NONE, "laura/");//
-//		mainFolder(Debug.NONE, "isbpm2013/");
+		//		mainFileFolder(Debug.STATS, "test", "sepsis", "bpi12", "prEm6", "prBm6", "prAm6");
+		//		mainFileFolder(Debug.STATS, "prCm6", "prFm6", "prGm6");
+		//		mainFileFolder(Debug.STATS, "prDm6", "pr1151_l4_noise", "pr1912_l4_noise");
+		//
+		//		mainFolder(Debug.NONE, "laura/");//
+		//		mainFolder(Debug.NONE, "isbpm2013/");
 	}
 
 	public static void mainFolder(Debug debug, String... eval) throws Exception {
@@ -101,7 +105,7 @@ public class AlignmentTest {
 					log = parser.parse(new File(FOLDER + folder + name + ".xml")).get(0);
 
 					doReplayExperiment(debug, FOLDER + folder + name, net, initialMarking, finalMarking, log,
-							eventClassifier, type, 15);
+							eventClassifier, type, 5);
 
 				}
 			}
@@ -110,36 +114,54 @@ public class AlignmentTest {
 
 	public static void mainFileFolder(Debug debug, String... names) throws Exception {
 
+		System.out.print("filename,");
 		for (Type type : Type.values()) {
-			for (String name : names) {
-				PetrinetGraph net = constructNet(FOLDER + name + "/" + name + ".pnml");
-				Marking initialMarking = getInitialMarking(net);
-				Marking finalMarking = getFinalMarking(net);
-				XLog log;
-				XEventClassifier eventClassifier;
+			System.out.print(type + " number timeout,");
+			System.out.print(type + " time,");
+		}
+		System.out.println();
 
-				if (new File(FOLDER + name + "/" + name + ".mxml").exists()) {
-					XMxmlParser parser = new XMxmlParser();
-					eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
-					log = parser.parse(new File(FOLDER + name + "/" + name + ".mxml")).get(0);
-				} else {
-					XesXmlParser parser = new XesXmlParser();
-					eventClassifier = new XEventNameClassifier();
-					log = parser.parse(new File(FOLDER + name + "/" + name + ".xes")).get(0);
-				}
+		for (String name : names) {
+			PetrinetGraph net = constructNet(FOLDER + name + "/" + name + ".pnml");
+			Marking initialMarking = getInitialMarking(net);
+			Marking finalMarking = getFinalMarking(net);
+			XLog log;
+			XEventClassifier eventClassifier;
 
+			if (new File(FOLDER + name + "/" + name + ".mxml").exists()) {
+				XMxmlParser parser = new XMxmlParser();
+				eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
+				log = parser.parse(new File(FOLDER + name + "/" + name + ".mxml")).get(0);
+			} else {
+				XesXmlParser parser = new XesXmlParser();
+				eventClassifier = new XEventNameClassifier();
+				log = parser.parse(new File(FOLDER + name + "/" + name + ".xes")).get(0);
+			}
+
+			String folder = FOLDER + name + "/" + name;
+			System.out.print(folder + ",");
+			for (Type type : Type.values()) {
+				long start = System.nanoTime();
+				int to = -1;
 				try {
-					doReplayExperiment(debug, FOLDER + name + "/" + name, net, initialMarking, finalMarking, log,
-							eventClassifier, type, 15);
+					to = doReplayExperiment(debug, folder, net, initialMarking, finalMarking, log, eventClassifier,
+							type, 5);
 				} catch (Exception e) {
 					System.err.println("Exception: " + e.getMessage());
+					e.printStackTrace();
+				} finally {
+					long end = System.nanoTime();
+					System.out.print(to + ",");
+					System.out.print(String.format("%.3f", (end - start) / 1000000.0) + ",");
+
 				}
 
 			}
+			System.out.println();
 		}
 	}
 
-	private static void doReplayExperiment(Debug debug, String folder, PetrinetGraph net, Marking initialMarking,
+	private static int doReplayExperiment(Debug debug, String folder, PetrinetGraph net, Marking initialMarking,
 			Marking finalMarking, XLog log, XEventClassifier eventClassifier, Type type, int timeoutPerTraceInSec)
 			throws FileNotFoundException, InterruptedException, ExecutionException {
 
@@ -150,7 +172,6 @@ public class AlignmentTest {
 
 		int threads;
 		if (debug == Debug.STATS) {
-			System.out.println("Started: " + type + " in " + folder);
 			threads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
 		} else if (debug == Debug.DOT) {
 			threads = 1;
@@ -176,32 +197,33 @@ public class AlignmentTest {
 			case ASTAR :
 				parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug,
 						timeout, maxNumberOfStates, partialOrder);
-				doReplay(debug, folder, "AStar", net, initialMarking, finalMarking, log, mapping, classes, parameters);
-				break;
+				return doReplay(debug, folder, "AStar", net, initialMarking, finalMarking, log, mapping, classes,
+						parameters);
 
 			case INC :
 				parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
 						maxNumberOfStates, partialOrder, false);
-				doReplay(debug, folder, "Incre", net, initialMarking, finalMarking, log, mapping, classes, parameters);
-				break;
+				return doReplay(debug, folder, "Incre", net, initialMarking, finalMarking, log, mapping, classes,
+						parameters);
 
 			case INC_PLUS :
 				parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
 						maxNumberOfStates, partialOrder, true);
-				doReplay(debug, folder, "Incre+", net, initialMarking, finalMarking, log, mapping, classes, parameters);
-				break;
-		}
+				return doReplay(debug, folder, "Incre++", net, initialMarking, finalMarking, log, mapping, classes,
+						parameters);
 
+		}
+		return -1;
 	}
 
-	private static void doReplay(Debug debug, String folder, String postfix, PetrinetGraph net, Marking initialMarking,
+	private static int doReplay(Debug debug, String folder, String postfix, PetrinetGraph net, Marking initialMarking,
 			Marking finalMarking, XLog log, TransEvClassMapping mapping, XEventClasses classes,
 			ReplayerParameters parameters) throws FileNotFoundException, InterruptedException, ExecutionException {
 		PrintStream stream;
 		if (debug == Debug.STATS) {
 			stream = new PrintStream(new File(folder + " " + postfix + ".csv"));
 		} else if (debug == Debug.DOT) {
-			stream = new PrintStream(new File(folder + " " + postfix + ".dot"));
+			stream = new PrintStream(new File(folder + "_" + postfix + ".dot"));
 		} else {
 			stream = System.out;
 		}
@@ -214,9 +236,21 @@ public class AlignmentTest {
 		PNRepResult result = replayer.computePNRepResult(Progress.INVISIBLE, log);
 		long end = System.nanoTime();
 
+		int cost = (int) Double.parseDouble((String) result.getInfo().get(Replayer.MAXMODELMOVECOST));
+		int timeout = 0;
+		double time = 0;
+		int mem = 0;
+		double pretime = 0;
+		for (SyncReplayResult res : result) {
+			cost += res.getTraceIndex().size() * res.getInfo().get(PNRepResult.RAWFITNESSCOST);
+			timeout += res.getTraceIndex().size() * (res.getInfo().get(Replayer.TRACEEXITCODE).intValue() != 1 ? 1 : 0);
+			time += res.getInfo().get(PNRepResult.TIME);
+			pretime += res.getInfo().get(Replayer.PREPROCESSTIME);
+			mem = Math.max(mem, res.getInfo().get(Replayer.MEMORYUSED).intValue());
+		}
+
 		if (stream != System.out) {
-			System.out.println(result.getInfo().toString());
-			System.out.println("Completed: " + postfix + " in " + folder);
+			//			System.out.println(result.getInfo().toString());
 			stream.close();
 		} else {
 
@@ -224,19 +258,6 @@ public class AlignmentTest {
 			System.out.print(postfix + ",");
 			System.out.print((log.size() + 1) + ",");
 
-			int cost = (int) Double.parseDouble((String) result.getInfo().get(Replayer.MAXMODELMOVECOST));
-			int timeout = 0;
-			double time = 0;
-			int mem = 0;
-			double pretime = 0;
-			for (SyncReplayResult res : result) {
-				cost += res.getTraceIndex().size() * res.getInfo().get(PNRepResult.RAWFITNESSCOST);
-				timeout += res.getTraceIndex().size()
-						* (res.getInfo().get(Replayer.TRACEEXITCODE).intValue() != 1 ? 1 : 0);
-				time += res.getInfo().get(PNRepResult.TIME);
-				pretime += res.getInfo().get(Replayer.PREPROCESSTIME);
-				mem = Math.max(mem, res.getInfo().get(Replayer.MEMORYUSED).intValue());
-			}
 			// clocktime
 			System.out.print(String.format("%.3f", (end - start) / 1000000.0) + ",");
 			// cpu time
@@ -253,6 +274,7 @@ public class AlignmentTest {
 			System.out.println();
 			System.out.flush();
 		}
+		return timeout;
 	}
 
 	private static PetrinetGraph constructNet(String netFile) {

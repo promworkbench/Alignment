@@ -39,7 +39,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	protected static final byte FREEBITSFIRSTBYTE = 4;
 
 	// stores the location of the LP solution plus a flag if it is derived or real
-	protected TIntObjectMap<byte[]> lpSolutions = new TIntObjectHashMap<>(16);
+	protected TIntObjectMap<byte[]> lpSolutions = new TIntObjectHashMap<>(16, 0.5f, -1);
 	protected long lpSolutionsSize = 4;
 
 	protected long solveTime = 0;
@@ -85,7 +85,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		if (splitpoints.length > 0) {
 			System.arraycopy(splitpoints, 0, this.splitpoints, 1, splitpoints.length);
 		}
-		this.splitpoints[splitpoints.length + 1] = (short) numRanks;
+		this.splitpoints[splitpoints.length + 1] = (short) (numRanks + 1);
 		splits = splitpoints.length + 1;
 
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
@@ -101,7 +101,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	 */
 	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug) {
 		this(product, moveSorting, useInteger, 0, debug);
-		this.splitpoints = new short[] { 0, (short) numRanks };
+		this.splitpoints = new short[] { 0, (short) (numRanks + 1) };
 
 		//		int inc = Math.max(1, (int) Math.floor((1.0 * numRanks) / initialBins));
 		//		int i = 1;
@@ -542,6 +542,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 		}
 		assert false;
+		throw new RuntimeException("Unreachable Code Reached.");
 
 		//		}
 	}
@@ -616,7 +617,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
 			int toIndex) {
-		if (hasExactHeuristic(fromBlock, fromIndex) && (getLpSolution(from, transition) >= 1)) {
+		if (hasExactHeuristic(fromBlock, fromIndex) && getHScore(fromBlock, fromIndex) != HEURISTICINFINITE
+				&& (getLpSolution(from, transition) >= 1)) {
 			// from Marking has exact heuristic
 			// we can derive an exact heuristic from it
 
@@ -630,6 +632,10 @@ public class AStarLargeLP extends ReplayAlgorithm {
 				maxRankExact = r;
 				maxRankMarking = to;
 			}
+		} else if (hasExactHeuristic(fromBlock, fromIndex) && getHScore(fromBlock, fromIndex) == HEURISTICINFINITE) {
+			// cannot reach final marking
+			setHScore(toBlock, toIndex, HEURISTICINFINITE, true);
+			heuristicsDerived++;
 		} else {
 			if (isFinal(to)) {
 				setHScore(toBlock, toIndex, 0, true);
