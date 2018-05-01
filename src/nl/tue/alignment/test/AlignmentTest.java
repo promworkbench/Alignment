@@ -64,9 +64,9 @@ public class AlignmentTest {
 		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6",
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
 
-		//		mainFileFolder(Debug.DOT, 1, "alifah");
+		//		mainFileFolder(Debug.DOT, 100000, "test");
 		//		mainFileFolder(Debug.DOT, 1, "prAm6");
-		//		mainFileFolder(Debug.STATS, 15, "prCm6");
+//		mainFileFolder(Debug.STATS, 15, "prCm6");
 		//		mainFileFolder(Debug.STATS, 1, "prBm6", "prEm6", "prAm6","prCm6", "prDm6",  "prFm6", "prGm6");
 
 		//April 2018:
@@ -211,7 +211,7 @@ public class AlignmentTest {
 				parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
 						maxNumberOfStates, partialOrder, true);
 				return doReplay(debug, folder, "Incre++", net, initialMarking, finalMarking, log, mapping, classes,
-						parameters);
+							parameters);
 
 		}
 		return -1;

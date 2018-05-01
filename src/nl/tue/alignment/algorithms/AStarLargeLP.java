@@ -224,7 +224,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		repeats = 0;
 		heuristicsComputedInRun = 0;
 		varsMainThread = new double[indexMap.length];
-		tempForSettingSolutionDouble = new double[net.numTransitions()];
+		tempForSettingSolution = new int[net.numTransitions()];
 
 	}
 
@@ -334,15 +334,19 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
 		// find an available solver and block until one is available.
 
-		short rank = (short) (maxRankExact + 2);// marking == 0 ? SyncProduct.NORANK : getLastRankOf(marking);
-		
+		short rank = (short) (maxRankExact + 1);// marking == 0 ? SyncProduct.NORANK : getLastRankOf(marking);
+
 		// the current shortest path explains the events up to and including the event at maxRankExact with exact markings.
 		// a state must exist with an estimated heuristic for the event maxRankExact+1. But the search cannot continue from there.
 		// so, we separate maxRankExact+1 by putting the border at maxRankExact+2.
 		// 
-		int insert = Arrays.binarySearch(splitpoints, rank);
 
-		if (marking == 0 || insert >= 0 || rank > numRanks + 1 || rank == SyncProduct.NORANK) {
+		int insert;
+		//		do {
+		insert = Arrays.binarySearch(splitpoints, ++rank);
+		//		} while (insert >= 0);
+
+		if (marking == 0 || insert >= 0 || rank > splitpoints[splitpoints.length - 1]) {
 			// No event was explained yet, or the last explained event is already a splitpoint.
 			// There's little we can do but continue with the replayer.
 			//			debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
@@ -364,6 +368,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 			return res;
 		} else {
+			//			System.out.print("Expanding splitpoints " + Arrays.toString(splitpoints));
 			lastSplitpoints = splitpoints;
 			insert = -insert - 1;
 			splitpoints = Arrays.copyOf(splitpoints, splitpoints.length + 1);
@@ -373,6 +378,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			restarts++;
 			debug.writeMarkingReached(this, marking);
 			debug.writeMarkingReached(this, maxRankMarking, "peripheries=2");
+			//			System.out.println(" to " + Arrays.toString(splitpoints));
 
 			return RESTART;
 			// Handle this case now.
@@ -557,17 +563,17 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		//		}
 	}
 
-	private double[] tempForSettingSolutionDouble;
+	private int[] tempForSettingSolution;
 
 	protected synchronized void setNewLpSolution(int marking, double[] solutionDouble) {
 		// copy the solution from double array to byte array (rounding down)
 		// and compute the maximum.
-		Arrays.fill(tempForSettingSolutionDouble, 0);
+		Arrays.fill(tempForSettingSolution, 0);
 		byte bits = 1;
 		for (int i = solutionDouble.length; i-- > 0;) {
 			// sum double values, compensating for LpSolve precision.
-			tempForSettingSolutionDouble[indexMap[i]] += solutionDouble[i] + 1E-10;
-			if (tempForSettingSolutionDouble[indexMap[i]] > (1 << bits)) {
+			tempForSettingSolution[indexMap[i]] += (int) (solutionDouble[i] + 1E-7);
+			if (tempForSettingSolution[indexMap[i]] > (1 << (bits - 1))) {
 				bits++;
 			}
 		}
@@ -575,7 +581,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		// to store this solution, we need "bits" bits per transition
 		// plus a header consisting of 8-FREEBITSFIRSTBYTE bits.
 		// this translate to 
-		int bytes = 8 - FREEBITSFIRSTBYTE + (tempForSettingSolutionDouble.length * bits + 4) / 8;
+		int bytes = 8 - FREEBITSFIRSTBYTE + (tempForSettingSolution.length * bits + 4) / 8;
 
 		//		assert getSolution(marking) == null;
 		byte[] solution = new byte[bytes];
@@ -588,11 +594,11 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 		int currentByte = 0;
 		byte currentBit = (1 << (FREEBITSFIRSTBYTE - 1));
-		for (short t = 0; t < tempForSettingSolutionDouble.length; t++) {
+		for (short t = 0; t < tempForSettingSolution.length; t++) {
 			// tempForSettingSolution[i] can be stored in "bits" bits.
 			for (int b = 1 << bits; b > 0; b >>>= 1) {
 				// round the sum down.
-				int val = (int) tempForSettingSolutionDouble[t];
+				int val = tempForSettingSolution[t];
 				// copy the appropriate bit
 				if ((val & b) != 0)
 					solution[currentByte] |= currentBit;
