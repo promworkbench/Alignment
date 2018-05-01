@@ -64,13 +64,14 @@ public class AlignmentTest {
 		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6",
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
 
-		//		mainFileFolder(Debug.DOT, 1, "alifah2");
+		//		mainFileFolder(Debug.DOT, 1, "alifah");
+		//		mainFileFolder(Debug.DOT, 1, "prAm6");
 		//		mainFileFolder(Debug.STATS, 15, "prCm6");
 		//		mainFileFolder(Debug.STATS, 1, "prBm6", "prEm6", "prAm6","prCm6", "prDm6",  "prFm6", "prGm6");
 
 		//April 2018:
 		int timeout = 30;
-		mainFileFolder(Debug.STATS, timeout, "test", "sepsis", "bpi12", "prEm6", "prBm6", "prAm6", "prCm6", "prFm6",
+		mainFileFolder(Debug.STATS, timeout, "test", "prEm6", "sepsis", "bpi12", "prBm6", "prAm6", "prCm6", "prFm6",
 				"prGm6", "prDm6", "pr1151_l4_noise", "pr1912_l4_noise");
 		mainFolder(Debug.NONE, timeout, "laura/");//
 		mainFolder(Debug.NONE, timeout, "isbpm2013/");
@@ -185,7 +186,7 @@ public class AlignmentTest {
 		int timeout = log.size() * timeoutPerTraceInSec * 1000 / 10;
 		int maxNumberOfStates = Integer.MAX_VALUE;
 
-		boolean moveSort = false;
+		boolean moveSort = true;
 		boolean useInt = false;
 		boolean partialOrder = false;
 		boolean preferExact = true;

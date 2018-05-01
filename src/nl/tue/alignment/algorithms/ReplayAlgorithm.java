@@ -550,24 +550,22 @@ public abstract class ReplayAlgorithm {
 						if (tmpG < getGScore(bn, in)) {
 							debug.writeEdgeTraversed(this, m, t, n);
 
-							synchronized (queue) {
-								// found a shorter path to n.
-								setGScore(bn, in, tmpG);
+							// found a shorter path to n.
+							setGScore(bn, in, tmpG);
 
-								// set predecessor
-								setPredecessor(bn, in, m);
-								setPredecessorTransition(bn, in, t);
+							// set predecessor
+							setPredecessor(bn, in, m);
+							setPredecessorTransition(bn, in, t);
 
-								if (!hasExactHeuristic(bn, in)) {
-									// estimate is not exact, so derive a new estimate (note that h cannot decrease here)
-									deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
-								}
-
-								// update position of n in the queue
-								int s = queue.size();
-								addToQueue(n);
-								assert n == newIndex ? queue.size() == s + 1 : queue.size() == s;
+							if (!hasExactHeuristic(bn, in)) {
+								// estimate is not exact, so derive a new estimate (note that h cannot decrease here)
+								deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
 							}
+
+							// update position of n in the queue
+							int s = queue.size();
+							addToQueue(n);
+							assert n == newIndex ? queue.size() == s + 1 : queue.size() == s;
 
 						} else if (!hasExactHeuristic(bn, in)) {
 							// not a new marking
@@ -576,17 +574,15 @@ public abstract class ReplayAlgorithm {
 
 							// G shore might not be an improvement, but see if we can derive the 
 							// H score. 
-							synchronized (queue) {
-								deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
+							deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
 
-								if (hasExactHeuristic(bn, in)) {
-									debug.writeEdgeTraversed(this, m, t, n, "style=dashed,color=gray19");
-									// marking is now exact and was not before. 
-									assert queue.contains(n);
-									int s = queue.size();
-									addToQueue(n);
-									assert queue.size() == s;
-								}
+							if (hasExactHeuristic(bn, in)) {
+								debug.writeEdgeTraversed(this, m, t, n, "style=dashed,color=gray19");
+								// marking is now exact and was not before. 
+								assert queue.contains(n);
+								int s = queue.size();
+								addToQueue(n);
+								assert queue.size() == s;
 							}
 						} else {
 							// not a new marking
@@ -613,15 +609,13 @@ public abstract class ReplayAlgorithm {
 		//		getLockForComputingEstimate(bm, im);
 		//				System.out.println("Main locking " + bm + "," + im);
 		try {
-			synchronized (queue) {
-				if (m != queue.peek()) {
-					// a parallel thread may have demoted m because the heuristic
-					// changed from estimated to exact.
-					return CloseResult.REQUEUED;
-				}
-				m = queue.poll();
-				pollActions++;
+			if (m != queue.peek()) {
+				// a parallel thread may have demoted m because the heuristic
+				// changed from estimated to exact.
+				return CloseResult.REQUEUED;
 			}
+			m = queue.poll();
+			pollActions++;
 
 			if (isFinal(m)) {
 				assert queue.isEmpty() || getFScore(queue.peek()) >= getFScore(m);
@@ -735,10 +729,8 @@ public abstract class ReplayAlgorithm {
 	}
 
 	protected void addToQueue(int marking) {
-		synchronized (queue) {
-			queue.add(marking);
-			queueActions++;
-		}
+		queue.add(marking);
+		queueActions++;
 	}
 
 	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {

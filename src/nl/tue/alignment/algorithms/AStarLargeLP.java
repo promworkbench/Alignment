@@ -103,17 +103,6 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		this(product, moveSorting, useInteger, 0, debug);
 		this.splitpoints = new short[] { 0, (short) (numRanks + 1) };
 
-		//		int inc = Math.max(1, (int) Math.floor((1.0 * numRanks) / initialBins));
-		//		int i = 1;
-		//		for (; i < splitpoints.length && splitpoints[i - 1] < numRanks; i++) {
-		//			splitpoints[i] = (short) (splitpoints[i - 1] + inc);
-		//		}
-		//		splitpoints[i - 1] = (short) numRanks;
-		//		if (i < splitpoints.length) {
-		//			// truncate to size
-		//			splitpoints = Arrays.copyOf(splitpoints, i);
-		//		}
-
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
 
@@ -243,12 +232,11 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			throws LpSolveException {
 		short[] input;
 		short[] output;
-		TShortIterator it;
 		if (rank2LSMove.get(rank) != null) {
-			it = rank2LSMove.get(rank).iterator();
-			while (it.hasNext()) {
+			TShortList list = rank2LSMove.get(rank);
+			for (int idx = list.size(); idx-- > 0;) {
 				Arrays.fill(col, 0);
-				short t = it.next();
+				short t = list.get(idx);
 				input = product.getInput(t);
 				for (int i = 0; i < input.length; i++) {
 					for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
@@ -346,51 +334,49 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
 		// find an available solver and block until one is available.
 
-		short rank = (short) (maxRankExact + 1);// marking == 0 ? SyncProduct.NORANK : getLastRankOf(marking);
+		short rank = (short) (maxRankExact + 2);// marking == 0 ? SyncProduct.NORANK : getLastRankOf(marking);
+		
+		// the current shortest path explains the events up to and including the event at maxRankExact with exact markings.
+		// a state must exist with an estimated heuristic for the event maxRankExact+1. But the search cannot continue from there.
+		// so, we separate maxRankExact+1 by putting the border at maxRankExact+2.
+		// 
+		int insert = Arrays.binarySearch(splitpoints, rank);
 
-		// the current shortest path explains the events up to and including event, but cannot continue
-		// serializing a previous LP solution at this stage. Hence, around 'marking' should be a 
-		// split marking and therefore event+1 needs to be added to the splitpoints.
-		int insert = 1;
-
-		// cap the number of columns to go to the LPSolver on 20000. This avoids too large LPs to be constructed.
-		//		if (solver.getNcolumns() < 20000) {
-
-		do {
-			// find the insertion point
-			insert = Arrays.binarySearch(splitpoints, ++rank);
-			// if event already a splitpoint, add the first larger event.
-		} while (insert >= 0);
-		//		}
-
-		if (marking == 0 || insert > 0 || rank > numRanks + 1 || rank == SyncProduct.NORANK) {
+		if (marking == 0 || insert >= 0 || rank > numRanks + 1 || rank == SyncProduct.NORANK) {
 			// No event was explained yet, or the last explained event is already a splitpoint.
 			// There's little we can do but continue with the replayer.
 			//			debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
 			//			solver.printLp();
 			int res = getExactHeuristic(solver, marking, markingArray, markingBlock, markingIndex, varsMainThread);
 			//			debug.writeDebugInfo(Debug.NORMAL, "End solve: " + (System.currentTimeMillis() - s) / 1000.0 + " ms.");
-			if (!(marking != 0 || (res >= 0 && res < HEURISTICINFINITE)
-					|| (alignmentResult & Utils.TIMEOUTREACHED) == Utils.TIMEOUTREACHED)) {
-				System.out.println(". " + repeats);
-			}
+
 			assert marking != 0 || (res >= 0 && res < HEURISTICINFINITE)
 					|| (alignmentResult & Utils.TIMEOUTREACHED) == Utils.TIMEOUTREACHED;
-			heuristicsComputedInRun++;
-			return res;
-		}
-		lastSplitpoints = splitpoints;
-		insert = -insert - 1;
-		splitpoints = Arrays.copyOf(splitpoints, splitpoints.length + 1);
-		System.arraycopy(splitpoints, insert, splitpoints, insert + 1, splitpoints.length - insert - 1);
-		splitpoints[insert] = rank;
-		splits++;
-		restarts++;
-		debug.writeMarkingReached(this, marking);
-		debug.writeMarkingReached(this, maxRankMarking, "peripheries=2");
 
-		return RESTART;
-		// Handle this case now.
+			heuristicsComputedInRun++;
+
+			short r = getLastRankOf(marking);
+			if (r > maxRankExact) {
+				maxRankExact = r;
+				maxRankMarking = marking;
+				//				System.out.println("Explained event at rank " + r + " exactly.");
+			}
+
+			return res;
+		} else {
+			lastSplitpoints = splitpoints;
+			insert = -insert - 1;
+			splitpoints = Arrays.copyOf(splitpoints, splitpoints.length + 1);
+			System.arraycopy(splitpoints, insert, splitpoints, insert + 1, splitpoints.length - insert - 1);
+			splitpoints[insert] = rank;
+			splits++;
+			restarts++;
+			debug.writeMarkingReached(this, marking);
+			debug.writeMarkingReached(this, maxRankMarking, "peripheries=2");
+
+			return RESTART;
+			// Handle this case now.
+		}
 
 	}
 
@@ -528,7 +514,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	}
 
 	protected synchronized void setDerivedLpSolution(int from, int to, short transition) {
-		assert getSolution(to) == null;
+		//		assert getSolution(to) == null;
 		byte[] solutionFrom = getSolution(from);
 
 		byte[] solution = Arrays.copyOf(solutionFrom, solutionFrom.length);
@@ -591,7 +577,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		// this translate to 
 		int bytes = 8 - FREEBITSFIRSTBYTE + (tempForSettingSolutionDouble.length * bits + 4) / 8;
 
-		assert getSolution(marking) == null;
+		//		assert getSolution(marking) == null;
 		byte[] solution = new byte[bytes];
 
 		// set the computed flag in the first two bits
@@ -641,8 +627,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
 			int toIndex) {
-		if (hasExactHeuristic(fromBlock, fromIndex) && getHScore(fromBlock, fromIndex) != HEURISTICINFINITE
-				&& (getLpSolution(from, transition) >= 1)) {
+		if (hasExactHeuristic(fromBlock, fromIndex) && (getLpSolution(from, transition) >= 1)) {
 			// from Marking has exact heuristic
 			// we can derive an exact heuristic from it
 
@@ -655,24 +640,27 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			if (r > maxRankExact) {
 				maxRankExact = r;
 				maxRankMarking = to;
+				//				System.out.println("Explained event at rank " + r + " exactly.");
 			}
-		} else if (hasExactHeuristic(fromBlock, fromIndex) && getHScore(fromBlock, fromIndex) == HEURISTICINFINITE) {
-			// cannot reach final marking
-			assert false;
-			setHScore(toBlock, toIndex, HEURISTICINFINITE, true);
-			heuristicsDerived++;
 		} else {
 			if (isFinal(to)) {
 				setHScore(toBlock, toIndex, 0, true);
-			}
-			int h = getHScore(fromBlock, fromIndex) - net.getCost(transition);
-			if (h < 0) {
-				h = 0;
-			}
-			if (h > getHScore(toBlock, toIndex)) {
-				// estimated heuristic should not decrease.
-				setHScore(toBlock, toIndex, h, false);
-				heuristicsEstimated++;
+				short r = getLastRankOf(to);
+				if (r > maxRankExact) {
+					maxRankExact = r;
+					maxRankMarking = to;
+					//				System.out.println("Explained event at rank " + r + " exactly.");
+				}
+			} else {
+				int h = getHScore(fromBlock, fromIndex) - net.getCost(transition);
+				if (h < 0) {
+					h = 0;
+				}
+				if (h > getHScore(toBlock, toIndex)) {
+					// estimated heuristic should not decrease.
+					setHScore(toBlock, toIndex, h, false);
+					heuristicsEstimated++;
+				}
 			}
 		}
 
