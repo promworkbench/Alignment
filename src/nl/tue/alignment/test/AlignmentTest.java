@@ -65,15 +65,15 @@ public class AlignmentTest {
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
 
 		//		mainFileFolder(Debug.DOT, 1, "alifah2");
-		mainFileFolder(Debug.STATS, 15, "prCm6");
+		//		mainFileFolder(Debug.STATS, 15, "prCm6");
 		//		mainFileFolder(Debug.STATS, 1, "prBm6", "prEm6", "prAm6","prCm6", "prDm6",  "prFm6", "prGm6");
 
 		//April 2018:
-		//		mainFileFolder(Debug.STATS, 15, "test", "sepsis", "bpi12", "prEm6", "prBm6", "prAm6", "prCm6", "prFm6", "prGm6",
-		//				"prDm6", "pr1151_l4_noise", "pr1912_l4_noise");
-
-		//		mainFolder(Debug.NONE, 15, "laura/");//
-		//		mainFolder(Debug.NONE, 15, "isbpm2013/");
+		int timeout = 30;
+		mainFileFolder(Debug.STATS, timeout, "test", "sepsis", "bpi12", "prEm6", "prBm6", "prAm6", "prCm6", "prFm6",
+				"prGm6", "prDm6", "pr1151_l4_noise", "pr1912_l4_noise");
+		mainFolder(Debug.NONE, timeout, "laura/");//
+		mainFolder(Debug.NONE, timeout, "isbpm2013/");
 	}
 
 	public static void mainFolder(Debug debug, int timeoutSecondsPerTrace, String... eval) throws Exception {
