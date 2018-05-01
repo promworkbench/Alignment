@@ -21,13 +21,13 @@ public abstract class ReplayerParameters {
 	public final boolean preProcessUsingPlaceBasedConstraints;
 
 	private ReplayerParameters(Algorithm algorithm, boolean moveSort, boolean queueSort, boolean preferExact,
-			int multiThread, boolean useInt, Debug debug, int timeoutMilliseconds, int maximumNumberOfStates,
+			int nThreads, boolean useInt, Debug debug, int timeoutMilliseconds, int maximumNumberOfStates,
 			boolean partiallyOrderEvents, boolean preProcessUsingPlaceBasedConstraints, short... initialSplits) {
 		this.algorithm = algorithm;
 		this.moveSort = moveSort;
 		this.queueSort = queueSort;
 		this.preferExact = preferExact;
-		this.nThreads = multiThread;
+		this.nThreads = nThreads;
 		this.useInt = useInt;
 		this.debug = debug;
 		this.timeoutMilliseconds = timeoutMilliseconds;

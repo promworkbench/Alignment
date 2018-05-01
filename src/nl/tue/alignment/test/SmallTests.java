@@ -371,10 +371,7 @@ public class SmallTests {
 
 	public static void main(String[] args) throws LPMatrixException {
 		// INITIALIZE LpSolve for stdout
-		try {
-			LpSolve.makeLp(1, 1).deleteAndRemoveLp();
-		} catch (Exception e) {
-		}
+		LpSolve.lpSolveVersion();
 
 		short[] alignment;
 		//		SyncProduct net = new SyncProductExampleBook();

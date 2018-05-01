@@ -122,6 +122,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 			original = -1;
 		}
 		if (original < 0) {
+			//			System.out.println("Starting trace: " + traceIndex);
 			List<Transition> transitionList = new ArrayList<Transition>();
 			long startSP = System.nanoTime();
 			product = this.replayer.factory.getSyncProduct(trace, transitionList, parameters.partiallyOrderEvents);

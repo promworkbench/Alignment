@@ -238,7 +238,9 @@ public class AStar extends ReplayAlgorithm {
 			}
 
 			solver.defaultBasis();
-			solver.setTimeout(Math.max(1, timeoutAtTimeInMillisecond - System.currentTimeMillis()) / 1000);
+			long remainingTime = timeoutAtTimeInMillisecond - System.currentTimeMillis();
+			// round the remaining time up to the nearest second.
+			solver.setTimeout(Math.max(1000, remainingTime + 999) / 1000);
 			int solverResult = solver.solve();
 			synchronized (this) {
 				heuristicsComputed++;
@@ -257,6 +259,7 @@ public class AStar extends ReplayAlgorithm {
 
 				// compute cost estimate
 				double c = computeCostForVars(vars);
+				assert c >= 0;
 
 				if (c >= HEURISTICINFINITE) {
 					synchronized (this) {
@@ -269,11 +272,16 @@ public class AStar extends ReplayAlgorithm {
 				// assume precision 1E-9 and round down
 				return (int) (c + 1E-9);
 			} else if (solverResult == LpSolve.INFEASIBLE) {
-
+				return HEURISTICINFINITE;
+			} else if (solverResult == LpSolve.TIMEOUT) {
+				assert timeoutAtTimeInMillisecond - System.currentTimeMillis() <= 0;
+				synchronized (this) {
+					alignmentResult |= Utils.TIMEOUTREACHED;
+				}
 				return HEURISTICINFINITE;
 			} else {
 				//					lp.writeLp("D:/temp/alignment/debugLP-Alignment.lp");
-				//System.err.println("Error code from LpSolve solver:" + solverResult);
+				System.err.println("Error code from LpSolve solver:" + solverResult);
 				return HEURISTICINFINITE;
 			}
 

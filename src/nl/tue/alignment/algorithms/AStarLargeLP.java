@@ -169,7 +169,9 @@ public class AStarLargeLP extends ReplayAlgorithm {
 				solver.deleteAndRemoveLp();
 			}
 			coefficients = 0;
-			solver = LpSolve.makeLp(rows, 0);
+			synchronized (LpSolve.class) {
+				solver = LpSolve.makeLp(rows, 0);
+			}
 			solver.setAddRowmode(false);
 
 			double[] col = new double[1 + rows];
@@ -230,6 +232,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			solver.deleteAndRemoveLp();
 			throw new LPMatrixException(e);
 		}
+		repeats = 0;
 		heuristicsComputedInRun = 0;
 		varsMainThread = new double[indexMap.length];
 		tempForSettingSolutionDouble = new double[net.numTransitions()];
@@ -337,6 +340,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	protected double[] varsMainThread;
 	protected int splits;
 	protected int restarts;
+	protected int repeats;
 
 	@Override
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
@@ -359,12 +363,19 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		} while (insert >= 0);
 		//		}
 
-		if (marking == 0 || insert > 0 || rank > numRanks || rank == SyncProduct.NORANK) {
+		if (marking == 0 || insert > 0 || rank > numRanks + 1 || rank == SyncProduct.NORANK) {
 			// No event was explained yet, or the last explained event is already a splitpoint.
 			// There's little we can do but continue with the replayer.
 			//			debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
+			//			solver.printLp();
 			int res = getExactHeuristic(solver, marking, markingArray, markingBlock, markingIndex, varsMainThread);
 			//			debug.writeDebugInfo(Debug.NORMAL, "End solve: " + (System.currentTimeMillis() - s) / 1000.0 + " ms.");
+			if (!(marking != 0 || (res >= 0 && res < HEURISTICINFINITE)
+					|| (alignmentResult & Utils.TIMEOUTREACHED) == Utils.TIMEOUTREACHED)) {
+				System.out.println(". " + repeats);
+			}
+			assert marking != 0 || (res >= 0 && res < HEURISTICINFINITE)
+					|| (alignmentResult & Utils.TIMEOUTREACHED) == Utils.TIMEOUTREACHED;
 			heuristicsComputedInRun++;
 			return res;
 		}
@@ -385,7 +396,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 
 	private int getExactHeuristic(LpSolve solver, int marking, byte[] markingArray, int markingBlock, int markingIndex,
 			double[] vars) {
-
+		repeats++;
 		long start = System.nanoTime();
 		// start from correct right hand side
 		try {
@@ -412,7 +423,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 			solver.defaultBasis();
 			// set timeout in seconds;
 			long remainingTime = timeoutAtTimeInMillisecond - System.currentTimeMillis();
-			solver.setTimeout(Math.max(1, remainingTime) / 1000);
+			// round the remaining time up to the nearest second.
+			solver.setTimeout(Math.max(1000, remainingTime + 999) / 1000);
 			int solverResult = solver.solve();
 			synchronized (this) {
 				heuristicsComputed++;
@@ -436,22 +448,31 @@ public class AStarLargeLP extends ReplayAlgorithm {
 					synchronized (this) {
 						alignmentResult |= Utils.HEURISTICFUNCTIONOVERFLOW;
 					}
-					// continue with infinity.
-					return HEURISTICINFINITE ;
+					// continue with maximum heuristic value not equal to infinity.
+					return HEURISTICINFINITE - 1;
 				}
 
 				// assume precision 1E-9 and round down
 				return (int) (c + 1E-9);
 			} else if (solverResult == LpSolve.INFEASIBLE) {
-
+				return HEURISTICINFINITE;
+			} else if (solverResult == LpSolve.TIMEOUT) {
+				//				System.out.println("Remaining was: "+remainingTime);
+				remainingTime = timeoutAtTimeInMillisecond - System.currentTimeMillis();
+				//				System.out.println("Remaining is:  "+remainingTime);
+				assert remainingTime <= 0;
+				synchronized (this) {
+					alignmentResult |= Utils.TIMEOUTREACHED;
+				}
 				return HEURISTICINFINITE;
 			} else {
 				//					lp.writeLp("D:/temp/alignment/debugLP-Alignment.lp");
-				//System.err.println("Error code from LpSolve solver:" + solverResult);
+				System.err.println("Error code from LpSolve solver:" + solverResult);
 				return HEURISTICINFINITE;
 			}
 
 		} catch (LpSolveException e) {
+			e.printStackTrace();
 			return HEURISTICINFINITE;
 		} finally {
 			synchronized (this) {
