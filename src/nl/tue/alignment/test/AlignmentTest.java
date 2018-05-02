@@ -213,7 +213,7 @@ public class AlignmentTest {
 			//			System.out.println("Started: " + folder);
 			threads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
 		}
-		threads = 1;
+		//		threads = 1;
 
 		// timeout 30 sec per trace minutes
 		int timeout = log.size() * timeoutPerTraceInSec * 1000 / 10;
