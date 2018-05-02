@@ -82,7 +82,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	 */
 	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug) {
 		this(product, moveSorting, useInteger, 0, debug);
-		this.splitpoints = new short[] { 0, (short) (numRanks + 1) };
+		this.splitpoints[1] = (short) (numRanks + 1);
 
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
@@ -159,9 +159,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				c = addLogAndSyncMovesToSolver(col, c, start, (short) (splitpoints[s] - 1), false);
 				start += product.numPlaces();
 			}
-
-			c = addModelMovesToSolver(col, c, start);
-
+	
 			int r;
 			// The first blocks have to result in a marking >= 0 after consumption
 			for (r = 1; r <= rows - product.numPlaces(); r++) {
@@ -224,9 +222,9 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 						coefficients++;
 					}
 				}
+
 				output = product.getOutput(t);
 				for (int i = 0; i < output.length; i++) {
-					//								if (splitpoints[s] - splitpoints[s - 1] > 1) {
 					if (full) {
 						for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
 							col[p] += 1;
@@ -598,4 +596,50 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		lpSolutionsSize -= 12 + 4 + lpSolutions.remove(marking).length; // object size
 		lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer
 	}
+
+	@Override
+	protected void writeEndOfAlignmentStats(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+		if (alignment != null) {
+			debug.print(Debug.STATS, net.getLabel());
+			for (Statistic s : Statistic.values()) {
+				debug.print(Debug.STATS, "," + replayStatistics.get(s));
+			}
+			debug.print(Debug.STATS, "," + Runtime.getRuntime().maxMemory() / 1048576);
+			debug.print(Debug.STATS, "," + Runtime.getRuntime().totalMemory() / 1048576);
+			debug.print(Debug.STATS, "," + Runtime.getRuntime().freeMemory() / 1048576);
+			debug.print(Debug.STATS, "," + toString(splitpoints));
+			debug.println(Debug.STATS);
+		}
+	}
+
+	/**
+	 * Returns a string representation of the contents of the specified array. The
+	 * string representation consists of a list of the array's elements, enclosed in
+	 * square brackets (<tt>"[]"</tt>). Adjacent elements are separated by the
+	 * characters <tt>", "</tt> (a comma followed by a space). Elements are
+	 * converted to strings as by <tt>String.valueOf(short)</tt>. Returns
+	 * <tt>"null"</tt> if <tt>a</tt> is <tt>null</tt>.
+	 *
+	 * @param a
+	 *            the array whose string representation to return
+	 * @return a string representation of <tt>a</tt>
+	 * @since 1.5
+	 */
+	private static String toString(short[] a) {
+		if (a == null)
+			return "null";
+		int iMax = a.length - 1;
+		if (iMax == -1)
+			return "[]";
+
+		StringBuilder b = new StringBuilder();
+		b.append('[');
+		for (int i = 0;; i++) {
+			b.append(a[i]);
+			if (i == iMax)
+				return b.append(']').toString();
+			b.append("; ");
+		}
+	}
+
 }
