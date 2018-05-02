@@ -44,7 +44,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	private int maxRankMarking;
 
 	public AStarLargeLP(SyncProduct product) {
-		this(product, false, false, 0, Debug.NONE);
+		this(product, false, false, Debug.NONE);
 	}
 
 	/**
@@ -61,7 +61,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	 */
 	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug,
 			short[] splitpoints) {
-		this(product, moveSorting, useInteger, splitpoints.length, debug);
+		this(product, moveSorting, useInteger, splitpoints.length + 1, false, debug);
 
 		if (splitpoints.length > 0) {
 			System.arraycopy(splitpoints, 0, this.splitpoints, 1, splitpoints.length);
@@ -81,13 +81,28 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	 * @param debug
 	 */
 	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug) {
-		this(product, moveSorting, useInteger, 0, debug);
+		this(product, moveSorting, useInteger, 1, false, debug);
 		this.splitpoints[1] = (short) (numRanks + 1);
 
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
 
-	private AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, int initialBins, Debug debug) {
+	/**
+	 * 
+	 * @param product
+	 * @param moveSorting
+	 * @param useInteger
+	 * @param initialBins
+	 * @param debug
+	 */
+	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, int initialSplits, Debug debug) {
+		this(product, moveSorting, useInteger, initialSplits + 1, true, debug);
+
+		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
+	}
+
+	private AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, int initialBins,
+			boolean initRandom, Debug debug) {
 		super(product, moveSorting, true, true, debug);
 		this.product = product;
 		this.useInteger = useInteger;
@@ -113,8 +128,25 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			// ensure model is not empty for empty trace
 			numRanks = 1;
 		}
-		splitpoints = new short[initialBins + 2];
-		splits = initialBins + 1;
+
+		if (initRandom) {
+			initialBins = Math.min(numRanks, initialBins);
+			splitpoints = new short[initialBins + 1];
+			if (initialBins > 0) {
+				double inc = (numRanks + 1) / (double) initialBins;
+				double val = inc;
+				for (int i = 1; i < splitpoints.length; i++) {
+					splitpoints[i] = (short) (val + 0.5);
+					val += inc;
+				}
+				// overwrite final value
+				splitpoints[initialBins] = (short) (numRanks + 1);
+			}
+		} else {
+			splitpoints = new short[initialBins + 1];
+		}
+		splits = initialBins - 1;
+
 		restarts = 0;
 	}
 
@@ -159,7 +191,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				c = addLogAndSyncMovesToSolver(col, c, start, (short) (splitpoints[s] - 1), false);
 				start += product.numPlaces();
 			}
-	
+
 			int r;
 			// The first blocks have to result in a marking >= 0 after consumption
 			for (r = 1; r <= rows - product.numPlaces(); r++) {

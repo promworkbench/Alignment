@@ -44,7 +44,21 @@ public class AlignmentTest {
 	public static int iteration = 0;
 
 	public static enum Type {
-		ASTAR, INC, INC_PLUS
+
+		ASTAR(true), //
+		INC0(true), //
+		INC3(true), //
+		INC_PLUS(true);
+
+		private boolean include;
+
+		private Type(boolean include) {
+			this.include = include;
+		}
+
+		public boolean include() {
+			return include;
+		}
 	}
 
 	static {
@@ -64,8 +78,7 @@ public class AlignmentTest {
 		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6",
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
 
-		//		mainFileFolder(Debug.DOT, 100000, "alifah");
-		mainFileFolder(Debug.DOT, 100000, "alifah2");
+		mainFileFolder(Debug.DOT, 100000, "alifah", "test", "alifah2", "test2");
 		//		mainFileFolder(Debug.DOT, 1, "prAm6");
 		//		mainFileFolder(Debug.STATS, 15, "prCm6");
 		//		mainFileFolder(Debug.STATS, 1, "prBm6", "prEm6", "prAm6","prCm6", "prDm6",  "prFm6", "prGm6");
@@ -136,12 +149,14 @@ public class AlignmentTest {
 
 		System.out.print("filename,logsize,");
 		for (Type type : Type.values()) {
-			System.out.print(type + " number timeout,");
-			System.out.print(type + " runtime (ms),");
-			System.out.print(type + " CPU time (ms),");
-			System.out.print(type + " preprocess time (ms),");
-			System.out.print(type + " memory (kb),");
-			System.out.print(type + " cost,");
+			if (type.include()) {
+				System.out.print(type + " number timeout,");
+				System.out.print(type + " runtime (ms),");
+				System.out.print(type + " CPU time (ms),");
+				System.out.print(type + " preprocess time (ms),");
+				System.out.print(type + " memory (kb),");
+				System.out.print(type + " cost,");
+			}
 		}
 		System.out.println();
 
@@ -204,7 +219,7 @@ public class AlignmentTest {
 		int timeout = log.size() * timeoutPerTraceInSec * 1000 / 10;
 		int maxNumberOfStates = Integer.MAX_VALUE;
 
-		boolean moveSort = true;
+		boolean moveSort = false;
 		boolean useInt = false;
 		boolean partialOrder = false;
 		boolean preferExact = true;
@@ -214,22 +229,38 @@ public class AlignmentTest {
 
 		switch (type) {
 			case ASTAR :
-				parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug,
-						timeout, maxNumberOfStates, partialOrder);
-				doReplay(debug, folder, "AStar", net, initialMarking, finalMarking, log, mapping, classes, parameters);
+				if (type.include()) {
+					parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug,
+							timeout, maxNumberOfStates, partialOrder);
+					doReplay(debug, folder, "AStar", net, initialMarking, finalMarking, log, mapping, classes,
+							parameters);
+				}
 				break;
 
-			case INC :
-				parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
-						maxNumberOfStates, partialOrder, false);
-				doReplay(debug, folder, "Incre", net, initialMarking, finalMarking, log, mapping, classes, parameters);
+			case INC0 :
+				if (type.include()) {
+					parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, debug, timeout,
+							maxNumberOfStates, partialOrder, 0);
+					doReplay(debug, folder, "Incre0", net, initialMarking, finalMarking, log, mapping, classes,
+							parameters);
+				}
+				break;
+			case INC3 :
+				if (type.include()) {
+					parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, debug, timeout,
+							maxNumberOfStates, partialOrder, 3);
+					doReplay(debug, folder, "Incre3", net, initialMarking, finalMarking, log, mapping, classes,
+							parameters);
+				}
 				break;
 
 			case INC_PLUS :
-				parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
-						maxNumberOfStates, partialOrder, true);
-				doReplay(debug, folder, "Incre++", net, initialMarking, finalMarking, log, mapping, classes,
-						parameters);
+				if (type.include()) {
+					parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, debug, timeout,
+							maxNumberOfStates, partialOrder, true);
+					doReplay(debug, folder, "Incre++", net, initialMarking, finalMarking, log, mapping, classes,
+							parameters);
+				}
 				break;
 
 		}

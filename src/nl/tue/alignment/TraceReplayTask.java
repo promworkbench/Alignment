@@ -223,9 +223,14 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 			case ASTAR :
 				return new AStar(product, parameters.moveSort, parameters.queueSort, parameters.preferExact, //
 						parameters.useInt, parameters.debug);
-			case ASTARWITHMARKINGSPLIT :
-				return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.debug,
-						eventsWithErrors);
+			case INCREMENTALASTAR :
+				if (parameters.initialSplits > 0 && eventsWithErrors.length == 0) {
+					return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.initialSplits,
+							parameters.debug);
+				} else {
+					return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.debug,
+							eventsWithErrors);
+				}
 			case DIJKSTRA :
 				return new Dijkstra(product, parameters.moveSort, parameters.queueSort, parameters.debug);
 		}

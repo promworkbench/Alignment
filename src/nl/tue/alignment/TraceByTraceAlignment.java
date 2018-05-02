@@ -51,7 +51,7 @@ public class TraceByTraceAlignment {
 	private Marking finalMarking;
 	private XEventClasses classes;
 	private TransEvClassMapping mapping;
-	private ReplayerParameters.AStarWithMarkingSplit parameters;
+	private ReplayerParameters.IncementalAStar parameters;
 	private Replayer replayer;
 
 	/**
@@ -90,7 +90,7 @@ public class TraceByTraceAlignment {
 		// use partial orders (should be false for incremental alignments with pre-set splitpoints)
 		boolean partialOrder = false;
 
-		parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, Debug.NONE, timeout,
+		parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, Debug.NONE, timeout,
 				maxNumberOfStates, partialOrder, false);
 		replayer = new Replayer(parameters, net, initialMarking, finalMarking, classes, mapping, false);
 
