@@ -66,7 +66,7 @@ public class AlignmentTest {
 
 		//		mainFileFolder(Debug.DOT, 100000, "test");
 		//		mainFileFolder(Debug.DOT, 1, "prAm6");
-//		mainFileFolder(Debug.STATS, 15, "prCm6");
+		//		mainFileFolder(Debug.STATS, 15, "prCm6");
 		//		mainFileFolder(Debug.STATS, 1, "prBm6", "prEm6", "prAm6","prCm6", "prDm6",  "prFm6", "prGm6");
 
 		//April 2018:
@@ -79,6 +79,17 @@ public class AlignmentTest {
 
 	public static void mainFolder(Debug debug, int timeoutSecondsPerTrace, String... eval) throws Exception {
 
+		System.out.print("filename,logsize,");
+		for (Type type : Type.values()) {
+			System.out.print(type + " number timeout,");
+			System.out.print(type + " runtime (ms),");
+			System.out.print(type + " CPU time (ms),");
+			System.out.print(type + " preprocess time (ms),");
+			System.out.print(type + " memory (kb),");
+			System.out.print(type + " cost,");
+		}
+		System.out.println();
+
 		for (String folder : eval) {
 
 			String[] names = new File(FOLDER + folder).list(new FilenameFilter() {
@@ -88,26 +99,34 @@ public class AlignmentTest {
 				}
 			});
 
-			System.out.println(
-					"file,algorithm,traces,runtime (ms),CPU time (ms),preprocess time (ms),memory (kb),timeout,cost");
-			for (Type type : Type.values()) {
-				for (String name : names) {
-					name = name.replace(".pnml", "");
+			for (String name : names) {
+				name = name.replace(".pnml", "");
 
-					PetrinetGraph net = constructNet(FOLDER + folder + name + ".pnml");
-					Marking initialMarking = getInitialMarking(net);
-					Marking finalMarking = getFinalMarking(net);
-					XLog log;
-					XEventClassifier eventClassifier;
+				PetrinetGraph net = constructNet(FOLDER + folder + name + ".pnml");
+				Marking initialMarking = getInitialMarking(net);
+				Marking finalMarking = getFinalMarking(net);
+				XLog log;
+				XEventClassifier eventClassifier;
 
-					XMxmlParser parser = new XMxmlParser();
-					eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
-					log = parser.parse(new File(FOLDER + folder + name + ".xml")).get(0);
+				XMxmlParser parser = new XMxmlParser();
+				eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
+				log = parser.parse(new File(FOLDER + folder + name + ".xml")).get(0);
 
-					doReplayExperiment(debug, FOLDER + folder + name, net, initialMarking, finalMarking, log,
-							eventClassifier, type, timeoutSecondsPerTrace);
+				String f = FOLDER + folder + name;
+				System.out.print(folder + ",");
+				System.out.print((log.size() + 1) + ",");
+				for (Type type : Type.values()) {
+					try {
+						doReplayExperiment(debug, f, net, initialMarking, finalMarking, log, eventClassifier, type,
+								timeoutSecondsPerTrace);
+					} catch (Exception e) {
+						System.err.println(e.getMessage());
+						e.printStackTrace();
+					}
 
 				}
+				System.out.flush();
+				System.out.println();
 			}
 		}
 	}
@@ -117,7 +136,11 @@ public class AlignmentTest {
 		System.out.print("filename,logsize,");
 		for (Type type : Type.values()) {
 			System.out.print(type + " number timeout,");
-			System.out.print(type + " time (ms),");
+			System.out.print(type + " runtime (ms),");
+			System.out.print(type + " CPU time (ms),");
+			System.out.print(type + " preprocess time (ms),");
+			System.out.print(type + " memory (kb),");
+			System.out.print(type + " cost,");
 		}
 		System.out.println();
 
@@ -140,29 +163,23 @@ public class AlignmentTest {
 
 			String folder = FOLDER + name + "/" + name;
 			System.out.print(folder + ",");
-			System.out.print(log.size() + ",");
+			System.out.print((log.size() + 1) + ",");
 			for (Type type : Type.values()) {
-				long start = System.nanoTime();
-				int to = -1;
 				try {
-					to = doReplayExperiment(debug, folder, net, initialMarking, finalMarking, log, eventClassifier,
-							type, timeoutSecondsPerTrace);
+					doReplayExperiment(debug, folder, net, initialMarking, finalMarking, log, eventClassifier, type,
+							timeoutSecondsPerTrace);
 				} catch (Exception e) {
 					System.err.println("Exception: " + e.getMessage());
 					e.printStackTrace();
-				} finally {
-					long end = System.nanoTime();
-					System.out.print(to + ",");
-					System.out.print(String.format("%.3f", (end - start) / 1000000.0) + ",");
-
 				}
 
 			}
+			System.out.flush();
 			System.out.println();
 		}
 	}
 
-	private static int doReplayExperiment(Debug debug, String folder, PetrinetGraph net, Marking initialMarking,
+	private static void doReplayExperiment(Debug debug, String folder, PetrinetGraph net, Marking initialMarking,
 			Marking finalMarking, XLog log, XEventClassifier eventClassifier, Type type, int timeoutPerTraceInSec)
 			throws FileNotFoundException, InterruptedException, ExecutionException {
 
@@ -198,26 +215,26 @@ public class AlignmentTest {
 			case ASTAR :
 				parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug,
 						timeout, maxNumberOfStates, partialOrder);
-				return doReplay(debug, folder, "AStar", net, initialMarking, finalMarking, log, mapping, classes,
-						parameters);
+				doReplay(debug, folder, "AStar", net, initialMarking, finalMarking, log, mapping, classes, parameters);
+				break;
 
 			case INC :
 				parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
 						maxNumberOfStates, partialOrder, false);
-				return doReplay(debug, folder, "Incre", net, initialMarking, finalMarking, log, mapping, classes,
-						parameters);
+				doReplay(debug, folder, "Incre", net, initialMarking, finalMarking, log, mapping, classes, parameters);
+				break;
 
 			case INC_PLUS :
 				parameters = new ReplayerParameters.AStarWithMarkingSplit(moveSort, threads, useInt, debug, timeout,
 						maxNumberOfStates, partialOrder, true);
-				return doReplay(debug, folder, "Incre++", net, initialMarking, finalMarking, log, mapping, classes,
-							parameters);
+				doReplay(debug, folder, "Incre++", net, initialMarking, finalMarking, log, mapping, classes,
+						parameters);
+				break;
 
 		}
-		return -1;
 	}
 
-	private static int doReplay(Debug debug, String folder, String postfix, PetrinetGraph net, Marking initialMarking,
+	private static void doReplay(Debug debug, String folder, String postfix, PetrinetGraph net, Marking initialMarking,
 			Marking finalMarking, XLog log, TransEvClassMapping mapping, XEventClasses classes,
 			ReplayerParameters parameters) throws FileNotFoundException, InterruptedException, ExecutionException {
 		PrintStream stream;
@@ -253,29 +270,23 @@ public class AlignmentTest {
 		if (stream != System.out) {
 			//			System.out.println(result.getInfo().toString());
 			stream.close();
-		} else {
-
-			System.out.print(folder + ",");
-			System.out.print(postfix + ",");
-			System.out.print((log.size() + 1) + ",");
-
-			// clocktime
-			System.out.print(String.format("%.3f", (end - start) / 1000000.0) + ",");
-			// cpu time
-			System.out.print(String.format("%.3f", time) + ",");
-			// preprocess time
-			System.out.print(String.format("%.3f", pretime) + ",");
-			// max memory
-			System.out.print(mem + ",");
-			// number timeouts
-			System.out.print(timeout + ",");
-			// total cost.
-			System.out.print(cost + ",");
-
-			System.out.println();
-			System.out.flush();
 		}
-		return timeout;
+
+		// number timeouts
+		System.out.print(timeout + ",");
+		// clocktime
+		System.out.print(String.format("%.3f", (end - start) / 1000000.0) + ",");
+		// cpu time
+		System.out.print(String.format("%.3f", time) + ",");
+		// preprocess time
+		System.out.print(String.format("%.3f", pretime) + ",");
+		// max memory
+		System.out.print(mem + ",");
+		// total cost.
+		System.out.print(cost + ",");
+
+		System.out.flush();
+
 	}
 
 	private static PetrinetGraph constructNet(String netFile) {

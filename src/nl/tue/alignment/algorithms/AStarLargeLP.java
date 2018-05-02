@@ -5,9 +5,7 @@ import java.util.Arrays;
 import gnu.trove.iterator.TShortIterator;
 import gnu.trove.list.TShortList;
 import gnu.trove.list.array.TShortArrayList;
-import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TShortObjectMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.map.hash.TShortObjectHashMap;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
@@ -26,23 +24,8 @@ import nl.tue.astar.util.ilp.LPMatrixException;
  * @author bfvdonge
  * 
  */
-public class AStarLargeLP extends ReplayAlgorithm {
+public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
-	// for each stored solution, the first byte is used for flagging.
-	// the first bit indicates whether the solution is derived
-	// The next three bits store the number of bits per transition (0 implies 1 bit per transition, 7 implies 8 bits per transition)
-	// The rest of the array  then stores the solution
-	protected static final byte COMPUTED = (byte) 0b00000000;
-	protected static final byte DERIVED = (byte) 0b10000000;
-
-	protected static final byte BITPERTRANSMASK = (byte) 0b01110000;
-	protected static final byte FREEBITSFIRSTBYTE = 4;
-
-	// stores the location of the LP solution plus a flag if it is derived or real
-	protected TIntObjectMap<byte[]> lpSolutions = new TIntObjectHashMap<>(16, 0.5f, -1);
-	protected long lpSolutionsSize = 4;
-
-	protected long solveTime = 0;
 	protected int heuristicsComputedInRun = 0;;
 
 	//	protected int numRows;
@@ -50,8 +33,6 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	private short[] indexMap;
 
 	private final TShortObjectMap<TShortList> rank2LSMove = new TShortObjectHashMap<>();
-
-	private LpSolve solver;
 
 	private int numRanks;
 
@@ -482,90 +463,9 @@ public class AStarLargeLP extends ReplayAlgorithm {
 		return c;
 	}
 
-	protected synchronized int getLpSolution(int marking, short transition) {
-		byte[] solution = getSolution(marking);
-		//		if ((solution[0] & STOREDFULL) == STOREDFULL) {
-		// get the bits used per transition
-		int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> FREEBITSFIRSTBYTE);
-		// which is the first bit?
-		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits;
-		// that implies the following byte
-		int fromByte = fromBit >>> 3;
-		// with the following index in byte.
-		fromBit &= 7;
-
-		byte currentBit = (byte) (1 << (7 - fromBit));
-		int value = 0;
-		for (int i = 0; i < bits; i++) {
-			// shift value left
-			value <<= 1;
-
-			// flip the bit
-			if ((solution[fromByte] & currentBit) != 0)
-				value++;
-
-			// rotate bit right 
-			currentBit = (byte) (((currentBit & 0xFF) >>> 1) | (currentBit << 7));
-			// increase byte if needed.
-			if (currentBit < 0)
-				fromByte++;
-
-		}
-
-		return value;
-	}
-
-	protected synchronized boolean isDerivedLpSolution(int marking) {
-		return getSolution(marking) != null && (getSolution(marking)[0] & DERIVED) == DERIVED;
-	}
-
-	protected synchronized void setDerivedLpSolution(int from, int to, short transition) {
-		//		assert getSolution(to) == null;
-		byte[] solutionFrom = getSolution(from);
-
-		byte[] solution = Arrays.copyOf(solutionFrom, solutionFrom.length);
-
-		solution[0] |= DERIVED;
-
-		// get the length of the bits used per transition
-		int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> FREEBITSFIRSTBYTE);
-		// which is the least significant bit?
-		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits + (bits - 1);
-		// that implies the following byte
-		int fromByte = fromBit >>> 3;
-		// with the following index in byte.
-		fromBit &= 7;
-		// most significant bit in fromBit
-		byte lsBit = (byte) (1 << (7 - fromBit));
-
-		// we need to reduce by 1.
-		for (int i = 0; i < bits; i++) {
-			// flip the bit
-			if ((solution[fromByte] & lsBit) != 0) {
-				// first bit that is 1. Flip and terminate
-				solution[fromByte] ^= lsBit;
-				//					assert getLpSolution(to, transition) == getLpSolution(from, transition) - 1;
-				addSolution(to, solution);
-				return;
-			}
-			// flip and continue;
-			solution[fromByte] ^= lsBit;
-			// rotate bit left
-			lsBit = (byte) (((lsBit & 0xFF) >>> 7) | (lsBit << 1));
-			// decrease byte if needed.
-			if (lsBit == 1)
-				fromByte--;
-
-		}
-		assert false;
-		throw new RuntimeException("Unreachable Code Reached.");
-
-		//		}
-	}
-
 	private int[] tempForSettingSolution;
 
-	protected synchronized void setNewLpSolution(int marking, double[] solutionDouble) {
+	protected void setNewLpSolution(int marking, double[] solutionDouble) {
 		// copy the solution from double array to byte array (rounding down)
 		// and compute the maximum.
 		Arrays.fill(tempForSettingSolution, 0);
@@ -577,58 +477,7 @@ public class AStarLargeLP extends ReplayAlgorithm {
 				bits++;
 			}
 		}
-
-		// to store this solution, we need "bits" bits per transition
-		// plus a header consisting of 8-FREEBITSFIRSTBYTE bits.
-		// this translate to 
-		int bytes = 8 - FREEBITSFIRSTBYTE + (tempForSettingSolution.length * bits + 4) / 8;
-
-		//		assert getSolution(marking) == null;
-		byte[] solution = new byte[bytes];
-
-		// set the computed flag in the first two bits
-		solution[0] = COMPUTED;
-		// set the number of bits used in the following 3 bits
-		bits--;
-		solution[0] |= bits << FREEBITSFIRSTBYTE;
-
-		int currentByte = 0;
-		byte currentBit = (1 << (FREEBITSFIRSTBYTE - 1));
-		for (short t = 0; t < tempForSettingSolution.length; t++) {
-			// tempForSettingSolution[i] can be stored in "bits" bits.
-			for (int b = 1 << bits; b > 0; b >>>= 1) {
-				// round the sum down.
-				int val = tempForSettingSolution[t];
-				// copy the appropriate bit
-				if ((val & b) != 0)
-					solution[currentByte] |= currentBit;
-
-				// rotate right
-				currentBit = (byte) ((((currentBit & 0xFF) >>> 1) | (currentBit << 7)));
-				if (currentBit < 0)
-					currentByte++;
-
-			}
-			//			assert getLpSolution(marking, t) == tempForSettingSolution[t];
-		}
-		addSolution(marking, solution);
-	}
-
-	private byte[] getSolution(int marking) {
-		return lpSolutions.get(marking);
-	}
-
-	private void addSolution(int marking, byte[] solution) {
-		lpSolutions.put(marking, solution);
-		lpSolutionsSize += 12 + 4 + solution.length; // object size
-		lpSolutionsSize += 1 + 4 + 8; // used flag + key + value pointer
-	}
-
-	/**
-	 * In ILP version, only one given final marking is the target.
-	 */
-	protected boolean isFinal(int marking) {
-		return equalMarking(marking, net.getFinalMarking());
+		setNewLpSolution(marking, bits, tempForSettingSolution);
 	}
 
 	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
@@ -675,13 +524,8 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	@Override
 	protected long getEstimatedMemorySize() {
 		long val = super.getEstimatedMemorySize();
-		// count space for all computed solutions
-		val += lpSolutionsSize;
-		// count size of matrix
 		// approximate memory for LpSolve
 		val += 8 * coefficients * 2;
-		// count size of solver
-
 		return val;
 	}
 
@@ -749,23 +593,12 @@ public class AStarLargeLP extends ReplayAlgorithm {
 	@Override
 	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {
 		super.processedMarking(marking, blockMarking, indexInBlock);
-		synchronized (this) {
-			if (isDerivedLpSolution(marking)) {
-				debug.writeMarkingReached(this, marking, "color=blue,style=bold");
-			} else {
-				debug.writeMarkingReached(this, marking, "style=bold");
-			}
-			lpSolutionsSize -= 12 + 4 + lpSolutions.remove(marking).length; // object size
-			lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer
+		if (isDerivedLpSolution(marking)) {
+			debug.writeMarkingReached(this, marking, "color=blue,style=bold");
+		} else {
+			debug.writeMarkingReached(this, marking, "style=bold");
 		}
-	}
-
-	@Override
-	protected void terminateIteration(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
-		try {
-			super.terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
-		} finally {
-			solver.deleteAndRemoveLp();
-		}
+		lpSolutionsSize -= 12 + 4 + lpSolutions.remove(marking).length; // object size
+		lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer
 	}
 }
