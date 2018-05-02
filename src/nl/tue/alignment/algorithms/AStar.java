@@ -88,7 +88,6 @@ public class AStar extends AbstractLPBasedAlgorithm {
 		// bytes for solver
 		bytesUsed = matrix.bytesUsed();
 		varsMainThread = new double[net.numTransitions()];
-		tempForSettingSolution = new int[net.numTransitions()];
 		super.initializeIterationInternal();
 	}
 
@@ -149,8 +148,8 @@ public class AStar extends AbstractLPBasedAlgorithm {
 					return HEURISTICINFINITE - 1;
 				}
 
-				// assume precision 1E-9 and round down
-				return (int) (c + 1E-9);
+				// assume precision 1E-7 and round down
+				return (int) (c + 1E-7);
 			} else if (solverResult == LpSolve.INFEASIBLE) {
 				return HEURISTICINFINITE;
 			} else if (solverResult == LpSolve.TIMEOUT) {
@@ -175,21 +174,6 @@ public class AStar extends AbstractLPBasedAlgorithm {
 
 	}
 
-	protected int[] tempForSettingSolution;
-
-	protected void setNewLpSolution(int marking, double[] solutionDouble) {
-		// copy the solution from double array to byte array (rounding down)
-		// and compute the maximum.
-		byte bits = 1;
-		for (int i = solutionDouble.length; i-- > 0;) {
-			tempForSettingSolution[i] = ((int) (solutionDouble[i] + 1E-7));
-			if (tempForSettingSolution[i] > (1 << (bits - 1))) {
-				bits++;
-			}
-		}
-		setNewLpSolution(marking, bits, tempForSettingSolution);
-	}
-	
 	protected double computeCostForVars(double[] vars) {
 		double c = 0;
 		for (short t = net.numTransitions(); t-- > 0;) {
@@ -197,7 +181,6 @@ public class AStar extends AbstractLPBasedAlgorithm {
 		}
 		return c;
 	}
-
 
 	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
 			int toIndex) {

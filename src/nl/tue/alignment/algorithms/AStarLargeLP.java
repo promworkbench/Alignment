@@ -205,7 +205,6 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		repeats = 0;
 		heuristicsComputedInRun = 0;
 		varsMainThread = new double[indexMap.length];
-		tempForSettingSolution = new int[net.numTransitions()];
 
 	}
 
@@ -425,8 +424,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 					return HEURISTICINFINITE - 1;
 				}
 
-				// assume precision 1E-9 and round down
-				return (int) (c + 1E-9);
+				// assume precision 1E-7 and round down
+				return (int) (c + 1E-7);
 			} else if (solverResult == LpSolve.INFEASIBLE) {
 				return HEURISTICINFINITE;
 			} else if (solverResult == LpSolve.TIMEOUT) {
@@ -463,17 +462,15 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		return c;
 	}
 
-	private int[] tempForSettingSolution;
-
+	@Override
 	protected void setNewLpSolution(int marking, double[] solutionDouble) {
 		// copy the solution from double array to byte array (rounding down)
 		// and compute the maximum.
 		Arrays.fill(tempForSettingSolution, 0);
 		byte bits = 1;
-		for (int i = solutionDouble.length; i-- > 0;) {
-			// sum double values, compensating for LpSolve precision.
-			tempForSettingSolution[indexMap[i]] += (int) (solutionDouble[i] + 1E-7);
-			if (tempForSettingSolution[indexMap[i]] > (1 << (bits - 1))) {
+		for (short i = (short) solutionDouble.length; i-- > 0;) {
+			tempForSettingSolution[translate(indexMap[i])] += ((int) (solutionDouble[i] + 1E-7));
+			if (tempForSettingSolution[translate(indexMap[i])] > (1 << (bits - 1))) {
 				bits++;
 			}
 		}

@@ -24,7 +24,7 @@ public class SmallTests {
 	public static class SyncProductExampleBook extends SyncProductImpl {
 
 		public SyncProductExampleBook() {
-			super("Book Example",
+			super("Book Example", (short) 10,
 					new String[] { "As,-", "Aa,-", "Fa,-", "Sso,-", "Ro,-", "Co,-", "t,-", "Da1,-", "Do,-", "Da2,-",
 							"Ao,-", "Aaa,-", "As,As", "Aa,Aa", "Sso,Sso", "Ro,Ro", "Ao,Ao", "Aaa,Aaa1", "Aaa,Aaa2",
 							"-,As", "-,Aa", "-,Sso", "-,Ro", "-,Ao", "-,Aaa1", "-,Aaa2" }, //
@@ -34,6 +34,8 @@ public class SmallTests {
 							6 }, //
 					new byte[] { MM, MM, MM, MM, MM, MM, TM, MM, MM, MM, MM, MM, SM, SM, SM, SM, SM, SM, SM, LM, LM, LM,
 							LM, LM, LM, LM }, //
+					new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, /**/ 19, 20, 21, 22, 23, 24, 24, /**/ 12, 13, 14, 15,
+							16, 17, 17 }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1 }//
 			);
 			setInput(0, 0);
@@ -111,13 +113,14 @@ public class SmallTests {
 	public static class NastySyncProductExample extends SyncProductImpl {
 
 		public NastySyncProductExample() {
-			super("Nasty Example",
+			super("Nasty Example", (short) 12,
 					new String[] { "A,-", "B,-", "C,-", "D,-", "E,-", "F,-", "G,-", "H,-", "I,-", "J,-", "K,-", "L,-",
 							"K,K", "L,L", "-,L", "-,K" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
 							"p13", "p14" }, //
 					new short[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 0, 1 }, //
 					new byte[] { MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, SM, SM, LM, LM }, //
+					new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, /**/ 34, 35, /**/ 23, 22 }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1 }//
 			);
 			setInput(0, 0);
@@ -173,209 +176,209 @@ public class SmallTests {
 		}
 	}
 
-	public static class LoopExample extends SyncProductImpl {
-
-		public LoopExample() {
-			super("Loop Example",
-					new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
-							"E,E", "F,F", "G,-", "G,G", "-,X" }, //
-					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
-					new short[] { -1, -1, -1, 1, 2, 3, 2, 3, -1, -1, 4, 5, 4, 5, -1, 1, 0 }, //
-					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, MM, SM, LM }, //
-					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1 }//
-			);
-
-			setInput(0, 0);
-			setOutput(0, 1);
-
-			setInput(1, 1);
-			setOutput(1, 2);
-
-			setInput(2, 2);
-			setOutput(2, 3);
-
-			setInput(3, 12);
-			setOutput(3, 5);
-
-			setInput(16, 4);
-			setOutput(16, 12);
-
-			setInput(4, 5);
-			setOutput(4, 6);
-
-			setInput(5, 6);
-			setOutput(5, 7);
-
-			setInput(6, 2, 5);
-			setOutput(6, 3, 6);
-
-			setInput(7, 1, 6);
-			setOutput(7, 2, 7);
-
-			setInput(8, 3);
-			setOutput(8, 8);
-
-			setInput(9, 8);
-			setOutput(9, 9);
-
-			setInput(10, 7);
-			setOutput(10, 10);
-
-			setInput(11, 10);
-			setOutput(11, 11);
-
-			setInput(12, 8, 7);
-			setOutput(12, 9, 10);
-
-			setInput(13, 3, 10);
-			setOutput(13, 8, 11);
-
-			setInput(14, 8);
-			setOutput(14, 8);
-
-			setInput(15, 12, 8);
-			setOutput(15, 5, 8);
-
-			setInitialMarking(0, 4);
-			setFinalMarking(9, 11);
-		}
-	}
-
-	public static class LoopExample2 extends SyncProductImpl {
-
-		public LoopExample2() {
-			super("Loop Example 2",
-					new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
-							"E,E", "F,F", "G,-", "G,G", "tau" }, //
-					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
-					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4, -1, 0, -1 }, //
-					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, MM, SM, TM }, //
-					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0 }//
-			);
-			setInput(0, 0);
-			setOutput(0, 1);
-
-			setInput(1, 1);
-			setOutput(1, 2);
-
-			setInput(2, 2);
-			setOutput(2, 3);
-
-			setInput(3, 4);
-			setOutput(3, 5);
-
-			setInput(4, 5);
-			setOutput(4, 6);
-
-			setInput(5, 6);
-			setOutput(5, 7);
-
-			setInput(6, 2, 5);
-			setOutput(6, 3, 6);
-
-			setInput(7, 1, 6);
-			setOutput(7, 2, 7);
-
-			setInput(8, 3);
-			setOutput(8, 8);
-
-			setInput(9, 8);
-			setOutput(9, 9);
-
-			setInput(10, 7);
-			setOutput(10, 10);
-
-			setInput(11, 10);
-			setOutput(11, 11);
-
-			setInput(12, 8, 7);
-			setOutput(12, 9, 10);
-
-			setInput(13, 3, 10);
-			setOutput(13, 8, 11);
-
-			setInput(14, 8);
-			setOutput(14, 12);
-
-			setInput(16, 12);
-			setOutput(16, 8);
-
-			setInput(15, 4, 8);
-			setOutput(15, 5, 12);
-
-			setInitialMarking(0, 4);
-			setFinalMarking(9, 11);
-		}
-	}
-
-	public static class TwoSwapsExample extends SyncProductImpl {
-
-		public TwoSwapsExample() {
-			super("Two Swaps Example",
-					new String[] { "A,-", "D,-", "C,-", "-,B", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
-							"E,E", "F,F", "-,G" }, //
-					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
-					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4, 5 }, //
-					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, LM }, //
-					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1 }//
-			);
-			setInput(0, 0);
-			setOutput(0, 1);
-
-			setInput(1, 1);
-			setOutput(1, 2);
-
-			setInput(2, 2);
-			setOutput(2, 3);
-
-			setInput(3, 4);
-			setOutput(3, 5);
-
-			setInput(4, 5);
-			setOutput(4, 6);
-
-			setInput(5, 6);
-			setOutput(5, 7);
-
-			setInput(6, 2, 5);
-			setOutput(6, 3, 6);
-
-			setInput(7, 1, 6);
-			setOutput(7, 2, 7);
-
-			setInput(8, 3);
-			setOutput(8, 8);
-
-			setInput(9, 8);
-			setOutput(9, 9);
-
-			setInput(10, 7);
-			setOutput(10, 10);
-
-			setInput(11, 10);
-			setOutput(11, 11);
-
-			setInput(12, 8, 7);
-			setOutput(12, 9, 10);
-
-			setInput(13, 3, 10);
-			setOutput(13, 8, 11);
-
-			setInput(14, 11);
-			setOutput(14, 12);
-
-			setInitialMarking(0, 4);
-			setFinalMarking(9, 12);
-		}
-	}
-
+	//	public static class LoopExample extends SyncProductImpl {
+	//
+	//		public LoopExample() {
+	//			super("Loop Example",
+	//					new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
+	//							"E,E", "F,F", "G,-", "G,G", "-,X" }, //
+	//					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
+	//					new short[] { -1, -1, -1, 1, 2, 3, 2, 3, -1, -1, 4, 5, 4, 5, -1, 1, 0 }, //
+	//					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, MM, SM, LM }, //
+	//					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1 }//
+	//			);
+	//
+	//			setInput(0, 0);
+	//			setOutput(0, 1);
+	//
+	//			setInput(1, 1);
+	//			setOutput(1, 2);
+	//
+	//			setInput(2, 2);
+	//			setOutput(2, 3);
+	//
+	//			setInput(3, 12);
+	//			setOutput(3, 5);
+	//
+	//			setInput(16, 4);
+	//			setOutput(16, 12);
+	//
+	//			setInput(4, 5);
+	//			setOutput(4, 6);
+	//
+	//			setInput(5, 6);
+	//			setOutput(5, 7);
+	//
+	//			setInput(6, 2, 5);
+	//			setOutput(6, 3, 6);
+	//
+	//			setInput(7, 1, 6);
+	//			setOutput(7, 2, 7);
+	//
+	//			setInput(8, 3);
+	//			setOutput(8, 8);
+	//
+	//			setInput(9, 8);
+	//			setOutput(9, 9);
+	//
+	//			setInput(10, 7);
+	//			setOutput(10, 10);
+	//
+	//			setInput(11, 10);
+	//			setOutput(11, 11);
+	//
+	//			setInput(12, 8, 7);
+	//			setOutput(12, 9, 10);
+	//
+	//			setInput(13, 3, 10);
+	//			setOutput(13, 8, 11);
+	//
+	//			setInput(14, 8);
+	//			setOutput(14, 8);
+	//
+	//			setInput(15, 12, 8);
+	//			setOutput(15, 5, 8);
+	//
+	//			setInitialMarking(0, 4);
+	//			setFinalMarking(9, 11);
+	//		}
+	//	}
+	//
+	//	public static class LoopExample2 extends SyncProductImpl {
+	//
+	//		public LoopExample2() {
+	//			super("Loop Example 2",
+	//					new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
+	//							"E,E", "F,F", "G,-", "G,G", "tau" }, //
+	//					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
+	//					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4, -1, 0, -1 }, //
+	//					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, MM, SM, TM }, //
+	//					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0 }//
+	//			);
+	//			setInput(0, 0);
+	//			setOutput(0, 1);
+	//
+	//			setInput(1, 1);
+	//			setOutput(1, 2);
+	//
+	//			setInput(2, 2);
+	//			setOutput(2, 3);
+	//
+	//			setInput(3, 4);
+	//			setOutput(3, 5);
+	//
+	//			setInput(4, 5);
+	//			setOutput(4, 6);
+	//
+	//			setInput(5, 6);
+	//			setOutput(5, 7);
+	//
+	//			setInput(6, 2, 5);
+	//			setOutput(6, 3, 6);
+	//
+	//			setInput(7, 1, 6);
+	//			setOutput(7, 2, 7);
+	//
+	//			setInput(8, 3);
+	//			setOutput(8, 8);
+	//
+	//			setInput(9, 8);
+	//			setOutput(9, 9);
+	//
+	//			setInput(10, 7);
+	//			setOutput(10, 10);
+	//
+	//			setInput(11, 10);
+	//			setOutput(11, 11);
+	//
+	//			setInput(12, 8, 7);
+	//			setOutput(12, 9, 10);
+	//
+	//			setInput(13, 3, 10);
+	//			setOutput(13, 8, 11);
+	//
+	//			setInput(14, 8);
+	//			setOutput(14, 12);
+	//
+	//			setInput(16, 12);
+	//			setOutput(16, 8);
+	//
+	//			setInput(15, 4, 8);
+	//			setOutput(15, 5, 12);
+	//
+	//			setInitialMarking(0, 4);
+	//			setFinalMarking(9, 11);
+	//		}
+	//	}
+	//
+	//	public static class TwoSwapsExample extends SyncProductImpl {
+	//
+	//		public TwoSwapsExample() {
+	//			super("Two Swaps Example",
+	//					new String[] { "A,-", "D,-", "C,-", "-,B", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
+	//							"E,E", "F,F", "-,G" }, //
+	//					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
+	//					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4, 5 }, //
+	//					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, LM }, //
+	//					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1 }//
+	//			);
+	//			setInput(0, 0);
+	//			setOutput(0, 1);
+	//
+	//			setInput(1, 1);
+	//			setOutput(1, 2);
+	//
+	//			setInput(2, 2);
+	//			setOutput(2, 3);
+	//
+	//			setInput(3, 4);
+	//			setOutput(3, 5);
+	//
+	//			setInput(4, 5);
+	//			setOutput(4, 6);
+	//
+	//			setInput(5, 6);
+	//			setOutput(5, 7);
+	//
+	//			setInput(6, 2, 5);
+	//			setOutput(6, 3, 6);
+	//
+	//			setInput(7, 1, 6);
+	//			setOutput(7, 2, 7);
+	//
+	//			setInput(8, 3);
+	//			setOutput(8, 8);
+	//
+	//			setInput(9, 8);
+	//			setOutput(9, 9);
+	//
+	//			setInput(10, 7);
+	//			setOutput(10, 10);
+	//
+	//			setInput(11, 10);
+	//			setOutput(11, 11);
+	//
+	//			setInput(12, 8, 7);
+	//			setOutput(12, 9, 10);
+	//
+	//			setInput(13, 3, 10);
+	//			setOutput(13, 8, 11);
+	//
+	//			setInput(14, 11);
+	//			setOutput(14, 12);
+	//
+	//			setInitialMarking(0, 4);
+	//			setFinalMarking(9, 12);
+	//		}
+	//	}
+	//
 	public static void main(String[] args) throws LPMatrixException {
 		// INITIALIZE LpSolve for stdout
 		LpSolve.lpSolveVersion();
 
 		short[] alignment;
 		//		SyncProduct net = new SyncProductExampleBook();
-		SyncProduct net = new TwoSwapsExample();
+		SyncProduct net = new NastySyncProductExample();
 
 		alignment = testSingleGraph(net, Debug.DOT);
 		Utils.toDot(net, System.out);

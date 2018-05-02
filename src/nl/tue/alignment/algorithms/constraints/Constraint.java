@@ -106,8 +106,10 @@ public class Constraint {
 				first = false;
 			}
 		}
-		if (threshold != 0) {
-			b.append(" " + threshold);
+		if (first) {
+			b.append(threshold);
+		} else if (threshold != 0) {
+			b.append(threshold);
 		}
 		return b.toString();
 	}

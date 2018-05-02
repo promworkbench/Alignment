@@ -26,6 +26,9 @@ public class ConstraintSet {
 	private Set<Constraint> constraints = new HashSet<>();
 	private String[] colNames;
 
+	private static final String TAU = "tau";
+	private static final String VISIBLE = "??";
+
 	public ConstraintSet(Petrinet net, Marking initialMarking, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
 			TransEvClassMapping map) {
 
@@ -37,12 +40,14 @@ public class ConstraintSet {
 		int columns = ts + cs + 1;
 
 		short[][] matrix = new short[rows][columns];
+		int[] firstNonZero = new int[rows];
+		Arrays.fill(firstNonZero, columns);
 		colNames = new String[columns];
+		colNames[columns - 1] = "marking";
 
 		TObjectShortMap<Place> p2id = new TObjectShortHashMap<>(net.getPlaces().size(), 0.7f, (short) -1);
 		TObjectShortMap<Transition> t2id = new TObjectShortHashMap<>(net.getTransitions().size(), 0.7f, (short) -1);
 
-		// purely for consistent sorting
 		for (Transition t : net.getTransitions()) {
 			t2id.put(t, (short) t2id.size());
 		}
@@ -58,16 +63,28 @@ public class ConstraintSet {
 					t = (short) (t2id.size() - 1);
 				}
 				XEventClass clazz = map.get(edge.getTarget());
-				short c = clazz == null || ((Transition) edge.getTarget()).isInvisible() ? -1 : c2id.get(clazz);
+				short c;
+				if (clazz == null) {
+					c = -1;
+					if (((Transition) edge.getTarget()).isInvisible()) {
+						colNames[t] = TAU;
+					} else {
+						colNames[t] = VISIBLE;
+					}
+				} else {
+					c = c2id.get(clazz);
+				}
 
 				// p --> t[c]
 				if (c >= 0) {
 					// t is mapped to c.
 					matrix[c][t] = 1;
 					matrix[c][ts + c] = -1;
+					firstNonZero[c] = firstNonZero[c] > t ? t : firstNonZero[c];
 					// t occurs less than c
 					matrix[cs + t][t] = -1;
 					matrix[cs + t][ts + c] = 1;
+					firstNonZero[cs + t] = firstNonZero[cs + t] > t ? t : firstNonZero[cs + t];
 					colNames[t] = clazz.toString().replace("+complete", "");
 					colNames[ts + c] = clazz.toString().replace("+complete", "");
 				}
@@ -75,6 +92,7 @@ public class ConstraintSet {
 				matrix[cs + ts + p][t] -= 1;
 				// initial marking
 				matrix[cs + ts + p][ts + cs] = (short) -initialMarking.occurrences(edge.getSource());
+				firstNonZero[cs + ts + p] = firstNonZero[cs + ts + p] > t ? t : firstNonZero[cs + ts + p];
 
 			} else {
 				short p = p2id.putIfAbsent((Place) edge.getTarget(), (short) p2id.size());
@@ -86,16 +104,27 @@ public class ConstraintSet {
 					t = (short) (t2id.size() - 1);
 				}
 				XEventClass clazz = map.get(edge.getSource());
-				short c = clazz == null || ((Transition) edge.getSource()).isInvisible() ? -1 : c2id.get(clazz);
-				// t[c] --> p
+				short c;
+				if (clazz == null) {
+					c = -1;
+					if (((Transition) edge.getSource()).isInvisible()) {
+						colNames[t] = TAU;
+					} else {
+						colNames[t] = VISIBLE;
+					}
+				} else {
+					c = c2id.get(clazz);
+				}
 
 				if (c >= 0) {
 					// t is mapped to c.
 					matrix[c][t] = 1;
 					matrix[c][ts + c] = -1;
+					firstNonZero[c] = firstNonZero[c] > t ? t : firstNonZero[c];
 					// t occurs less than c
 					matrix[cs + t][t] = -1;
 					matrix[cs + t][ts + c] = 1;
+					firstNonZero[cs + t] = firstNonZero[cs + t] > t ? t : firstNonZero[cs + t];
 					colNames[t] = clazz.toString().replace("+complete", "");
 					colNames[ts + c] = clazz.toString().replace("+complete", "");
 				}
@@ -103,13 +132,32 @@ public class ConstraintSet {
 				matrix[cs + ts + p][t] += 1;
 				// initial marking
 				matrix[cs + ts + p][ts + cs] = (short) -initialMarking.occurrences(edge.getTarget());
+				firstNonZero[cs + ts + p] = firstNonZero[cs + ts + p] > t ? t : firstNonZero[cs + ts + p];
 
 			}
 
 		}
 
-		//		System.out.println("Before:");
-		//		printMatrix(matrix);
+//		System.out.println("Before:");
+//		printMatrix(matrix);
+
+		// swap rows cs+ts..cs+ts+ps to make the matrix triangular.
+		for (int r = cs + ts; r < rows; r++) {
+			for (int r2 = r + 1; r2 < rows; r2++) {
+				if (firstNonZero[r2] < firstNonZero[r] || (firstNonZero[r2] == firstNonZero[r]
+						&& firstNonZero[r] < columns && matrix[r2][firstNonZero[r]] < matrix[r][firstNonZero[r]])) {
+					// swap rows
+					short[] row = matrix[r2];
+					matrix[r2] = matrix[r];
+					matrix[r] = row;
+					int first = firstNonZero[r2];
+					firstNonZero[r2] = firstNonZero[r];
+					firstNonZero[r] = first;
+				}
+			}
+		}
+//		System.out.println("Sorted:");
+//		printMatrix(matrix);
 
 		int[] first1 = new int[cs];
 		for (int r = 0; r < cs; r++) {
@@ -144,6 +192,13 @@ public class ConstraintSet {
 				//					System.out.println("Row " + r);
 				//				}
 				if (matrix[r][c] > 0) {
+
+					if (colNames[c] == VISIBLE) {
+						// mapped transition that has no corresponding event in the log.
+						// set value of 0. 
+						matrix[r][c] = 0;
+						done = true;
+					}
 
 					// element at row r > 0
 					// reduce by subtracting and element from row 0..cs-1
@@ -210,6 +265,13 @@ public class ConstraintSet {
 					}
 
 				} else if (matrix[r][c] < 0) {
+
+					if (colNames[c] == VISIBLE) {
+						// mapped transition that has no corresponding event in the log.
+						// set value of 0. 
+						matrix[r][c] = 0;
+						done = true;
+					}
 
 					// element at row r < 0
 					// reduce by adding and element from row 0..cs-1
@@ -291,6 +353,7 @@ public class ConstraintSet {
 		}
 
 		//		System.out.println("Found " + constraints.size() + " constraints.");
+		//		System.out.println(this.toString());
 
 	}
 
@@ -350,4 +413,7 @@ public class ConstraintSet {
 		return constraints.size();
 	}
 
+	public String toString() {
+		return constraints.toString();
+	}
 }

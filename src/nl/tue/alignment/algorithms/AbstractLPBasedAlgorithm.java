@@ -26,11 +26,49 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	protected int bytesUsed;
 	protected long solveTime = 0;
 
-	public AbstractLPBasedAlgorithm(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact,
+	/**
+	 * In the abstract LP Based algorithm, the translation is made from transitions
+	 * to moveIDs using the net's getMove() methods.
+	 * 
+	 * @param net
+	 * @param moveSorting
+	 * @param queueSorting
+	 * @param preferExact
+	 * @param debug
+	 */
+	public AbstractLPBasedAlgorithm(SyncProduct net, boolean moveSorting, boolean queueSorting, boolean preferExact,
 			Debug debug) {
-		super(product, moveSorting, queueSorting, preferExact, debug);
+		super(net, moveSorting, queueSorting, preferExact, debug);
+		tempForSettingSolution = new int[net.numModelMoves() + 2 * net.numEventClasses()];
 	}
 
+	protected int[] tempForSettingSolution;
+
+	protected void setNewLpSolution(int marking, double[] solutionDouble) {
+		// copy the solution from double array to byte array (rounding down)
+		// and compute the maximum.
+		Arrays.fill(tempForSettingSolution, 0);
+		byte bits = 1;
+		for (short i = (short) solutionDouble.length; i-- > 0;) {
+			tempForSettingSolution[translate(i)] += ((int) (solutionDouble[i] + 1E-7));
+			if (tempForSettingSolution[translate(i)] > (1 << (bits - 1))) {
+				bits++;
+			}
+		}
+		setNewLpSolution(marking, bits, tempForSettingSolution);
+	}
+
+	protected int translate(short transition) {
+		return net.getMoveOf(transition);
+	}
+
+	/**
+	 * Stores the solution vector. This vector should be on the move level!
+	 * 
+	 * @param marking
+	 * @param bits
+	 * @param solutionInt
+	 */
 	protected void setNewLpSolution(int marking, int bits, int[] solutionInt) {
 
 		// to store this solution, we need "bits" bits per transition
@@ -67,12 +105,14 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	}
 
 	protected int getLpSolution(int marking, short transition) {
+		int move = translate(transition);
+
 		byte[] solution = getSolution(marking);
 		//		if ((solution[0] & STOREDFULL) == STOREDFULL) {
 		// get the bits used per transition
 		int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> FREEBITSFIRSTBYTE);
 		// which is the first bit?
-		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits;
+		int fromBit = 8 - FREEBITSFIRSTBYTE + move * bits;
 		// that implies the following byte
 		int fromByte = fromBit >>> 3;
 		// with the following index in byte.
@@ -108,6 +148,8 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	}
 
 	protected void setDerivedLpSolution(int from, int to, short transition) {
+		int move = translate(transition);
+
 		assert getSolution(to) == null;
 		byte[] solutionFrom = getSolution(from);
 
@@ -118,7 +160,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 		// get the length of the bits used per transition
 		int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> FREEBITSFIRSTBYTE);
 		// which is the least significant bit?
-		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits + (bits - 1);
+		int fromBit = 8 - FREEBITSFIRSTBYTE + move * bits + (bits - 1);
 		// that implies the following byte
 		int fromByte = fromBit >>> 3;
 		// with the following index in byte.

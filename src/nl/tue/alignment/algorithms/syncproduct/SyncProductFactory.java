@@ -20,6 +20,7 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Transition
 import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 
+import gnu.trove.iterator.TObjectShortIterator;
 import gnu.trove.iterator.TShortIterator;
 import gnu.trove.list.TByteList;
 import gnu.trove.list.TIntList;
@@ -139,7 +140,7 @@ public class SyncProductFactory {
 	private final TByteList t2type;
 	private final Transition[] t2transition;
 
-	private final int classCount;
+	private final short classCount;
 	private final int[] c2lmCost;
 	private final TShortObjectMap<TShortSet> c2t;
 
@@ -149,6 +150,7 @@ public class SyncProductFactory {
 	private final byte[] finMarking;
 	private final XEventClasses classes;
 	private final TObjectShortMap<XEventClass> c2id;
+	private final TIntList t2move;
 
 	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
 			TransEvClassMapping map, Marking initialMarking, Marking finalMarking) {
@@ -200,7 +202,19 @@ public class SyncProductFactory {
 
 		this.c2id = c2id;
 		this.classes = classes;
-		this.classCount = classes.size();
+
+		// find the highest class number
+		short mx = 0;
+		TObjectShortIterator<XEventClass> its = c2id.iterator();
+		while (its.hasNext()) {
+			its.advance();
+			if (mx < its.value()) {
+				mx = its.value();
+			}
+		}
+		mx++;
+
+		this.classCount = mx;
 		c2lmCost = new int[classCount];
 		c2t = new TShortObjectHashMap<>(this.classCount);
 		for (XEventClass clazz : classes.getClasses()) {
@@ -216,6 +230,7 @@ public class SyncProductFactory {
 		t2input = new ArrayList<>(transitions * 2);
 		t2output = new ArrayList<>(transitions * 2);
 		t2transition = new Transition[transitions];
+		t2move = new TIntArrayList(transitions + 2 * classCount);
 
 		places = (short) net.getPlaces().size();
 		p2name = new StringList(places * 2);
@@ -229,6 +244,7 @@ public class SyncProductFactory {
 			Transition t = it.next();
 			t2id.put(t, (short) t2name.size());
 			t2transition[t2name.size()] = t;
+			t2move.add((short) t2name.size());
 
 			// update mapping from event class to transitions
 			XEventClass clazz = map.get(t);
@@ -342,6 +358,7 @@ public class SyncProductFactory {
 			t2mmCost.add(c2lmCost[cid]);
 			t2eid.add(e);
 			t2type.add(SyncProduct.LOG_MOVE);
+			t2move.add((transitions + cid));
 
 			TShortSet set = c2t.get(cid);
 			if (set != null) {
@@ -353,6 +370,7 @@ public class SyncProductFactory {
 					t2mmCost.add(t2smCost.get(t));
 					t2eid.add(e);
 					t2type.add(SyncProduct.SYNC_MOVE);
+					t2move.add((transitions + classCount + cid));
 				}
 			}
 		}
@@ -361,10 +379,12 @@ public class SyncProductFactory {
 		}
 
 		SyncProductImpl product = new SyncProductImpl(trace.getLabel(), //label
+				this.classCount, // number of classes
 				t2name.asArray(), //transition labels
 				p2name.asArray(), // place labels
 				t2eid.toArray(), //event numbers
 				t2type.toArray(), //types
+				t2move.toArray(), //moves
 				t2mmCost.toArray());
 
 		short t = 0;
@@ -415,6 +435,7 @@ public class SyncProductFactory {
 		t2mmCost.remove(transitions, t2mmCost.size() - transitions);
 		t2eid.remove(transitions, t2eid.size() - transitions);
 		t2type.remove(transitions, t2type.size() - transitions);
+		t2move.remove(transitions, t2move.size() - transitions);
 
 		return product;
 	}
@@ -458,6 +479,7 @@ public class SyncProductFactory {
 			t2mmCost.add(c2lmCost[cid]);
 			t2eid.add(e);
 			t2type.add(SyncProduct.LOG_MOVE);
+			t2move.add(cid);
 
 			TShortSet set = c2t.get(cid);
 			if (set != null) {
@@ -469,6 +491,7 @@ public class SyncProductFactory {
 					t2mmCost.add(t2smCost.get(t));
 					t2eid.add(e);
 					t2type.add(SyncProduct.SYNC_MOVE);
+					t2move.add((short) (classCount + cid));
 				}
 			}
 
@@ -477,11 +500,13 @@ public class SyncProductFactory {
 		short[] ranks = new short[t2eid.size()];
 		Arrays.fill(ranks, SyncProduct.NORANK);
 		SyncProductImpl product = new SyncProductImpl(trace.getLabel(), //label
+				this.classCount, //number of event classes
 				t2name.asArray(), //transition labels
 				p2name.asArray(), // place labels
 				t2eid.toArray(), //event numbers
 				ranks, // ranks
 				t2type.toArray(), //types
+				t2move.toArray(), //moves
 				t2mmCost.toArray());
 
 		short t = 0;
@@ -565,6 +590,7 @@ public class SyncProductFactory {
 		t2mmCost.remove(transitions, t2mmCost.size() - transitions);
 		t2eid.remove(transitions, t2eid.size() - transitions);
 		t2type.remove(transitions, t2type.size() - transitions);
+		t2move.remove(transitions, t2move.size() - transitions);
 
 		return product;
 	}

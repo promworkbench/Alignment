@@ -30,18 +30,25 @@ public class SyncProductImpl implements SyncProduct {
 
 	private final short numEvents;
 
-	public SyncProductImpl(String label, String[] transitions, String[] places, short[] eventNumbers, byte[] types,
-			int[] cost) {
-		this(label, transitions, places, eventNumbers, eventNumbers, types, cost);
+	private final int[] moves;
+
+	private final short numClasses;
+
+	private final short numModelMoves;
+
+	public SyncProductImpl(String label, short numClasses, String[] transitions, String[] places, short[] eventNumbers,
+			byte[] types, int[] moves, int[] cost) {
+		this(label, numClasses, transitions, places, eventNumbers, eventNumbers, types, moves, cost);
 	}
 
-	public SyncProductImpl(String label, String[] transitions, String[] places, short[] eventNumbers, short[] ranks,
-			byte[] types, int[] cost) {
+	public SyncProductImpl(String label, short numClasses, String[] transitions, String[] places, short[] eventNumbers,
+			short[] ranks, byte[] types, int[] moves, int[] cost) {
 		this.eventNumbers = eventNumbers;
 		this.label = label;
 		this.transitions = transitions;
 		this.places = places;
 		this.types = types;
+		this.moves = moves;
 		this.cost = cost;
 		this.ranks = ranks;
 
@@ -52,6 +59,15 @@ public class SyncProductImpl implements SyncProduct {
 			}
 		}
 		this.numEvents = mx;
+
+		mx = 0;
+		for (int e = 0; e < moves.length; e++) {
+			if (types[e] == MODEL_MOVE || types[e] == TAU_MOVE) {
+				mx++;
+			}
+		}
+		this.numClasses = numClasses;
+		this.numModelMoves = mx;
 
 		input = new short[numTransitions()][];
 		output = new short[numTransitions()][];
@@ -186,9 +202,9 @@ public class SyncProductImpl implements SyncProduct {
 	 * 
 	 * for prefix alignments: check only if a specific place is marked.
 	 * 
-	 * For examples: place 18 marked with a single token return (marking[18 / 8]
-	 * & (Utils.FLAG >>> (18 % 8))) != 0 && (marking[bm + 18 / 8] & (Utils.FLAG
-	 * >>> (18 % 8))) == 0;
+	 * For examples: place 18 marked with a single token return (marking[18 / 8] &
+	 * (Utils.FLAG >>> (18 % 8))) != 0 && (marking[bm + 18 / 8] & (Utils.FLAG >>>
+	 * (18 % 8))) == 0;
 	 */
 	public boolean isFinalMarking(byte[] marking) {
 		// for full alignments:
@@ -222,6 +238,18 @@ public class SyncProductImpl implements SyncProduct {
 
 	public void setRankOf(short transition, short rank) {
 		ranks[transition] = rank;
+	}
+
+	public int getMoveOf(short transition) {
+		return moves[transition];
+	}
+
+	public short numEventClasses() {
+		return numClasses;
+	}
+
+	public int numModelMoves() {
+		return numModelMoves;
 	}
 
 }

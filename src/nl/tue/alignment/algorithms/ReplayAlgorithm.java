@@ -334,7 +334,7 @@ public abstract class ReplayAlgorithm {
 		this(product, moveSorting, queueSorting, preferExact, Debug.NONE);
 	}
 
-	public ReplayAlgorithm(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact,
+	public ReplayAlgorithm(SyncProduct net, boolean moveSorting, boolean queueSorting, boolean preferExact,
 			Debug debug) {
 		this.queueSorting = queueSorting;
 		this.preferExact = preferExact;
@@ -342,8 +342,8 @@ public abstract class ReplayAlgorithm {
 		this.debug = debug;
 		startConstructor = System.nanoTime();
 
-		this.numPlaces = product.numPlaces();
-		this.net = product;
+		this.numPlaces = net.numPlaces();
+		this.net = net;
 		this.moveSorting = moveSorting;
 
 		this.blockSize = Utils.DEFAULTBLOCKSIZE;
@@ -357,9 +357,9 @@ public abstract class ReplayAlgorithm {
 		this.blockBit = i;
 
 		// Array used internally for firing transitions.
-		firingMarking = new byte[product.numPlaces()];
-		hashCodeMarking = new byte[product.numPlaces()];
-		equalMarking = new byte[product.numPlaces()];
+		firingMarking = new byte[net.numPlaces()];
+		hashCodeMarking = new byte[net.numPlaces()];
+		equalMarking = new byte[net.numPlaces()];
 
 		replayStatistics = new TObjectIntHashMap<>(20);
 
