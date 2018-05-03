@@ -52,6 +52,7 @@ public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 			boolean b1 = algorithm.hasExactHeuristic(marking1);
 			boolean b2 = algorithm.hasExactHeuristic(marking2);
 			if (b1 != b2) {
+				// if marking 1 has an exact heuristic and marking 2 does not, prefer marking 1.
 				return b1;
 			}
 		}
@@ -62,6 +63,7 @@ public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 		c2 = algorithm.getLastRankOf(marking2);
 		if (c1 != c2) {
 			// more events explained;
+			// if marking 1 explains more events (reaches a higher rank) prefer marking 1 over marking 2.
 			return c1 > c2;
 		}
 
@@ -73,8 +75,8 @@ public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 			return false;
 		}
 
-		// fifth order, use the predecessor transition.
-		return false;
+		// prefer the later reached marking
+		return marking2 > marking1;
 	}
 
 	//	private int getLastEventNumber(int marking) {

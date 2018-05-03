@@ -58,7 +58,7 @@ public class SyncProductImpl implements SyncProduct {
 				mx = eventNumbers[e];
 			}
 		}
-		this.numEvents = mx;
+		this.numEvents = (short) (mx + 1);
 
 		mx = 0;
 		for (int e = 0; e < moves.length; e++) {

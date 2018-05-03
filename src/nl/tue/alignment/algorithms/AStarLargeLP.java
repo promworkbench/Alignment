@@ -2,8 +2,8 @@ package nl.tue.alignment.algorithms;
 
 import java.util.Arrays;
 
+import gnu.trove.TShortCollection;
 import gnu.trove.iterator.TShortIterator;
-import gnu.trove.list.TShortList;
 import gnu.trove.list.array.TShortArrayList;
 import gnu.trove.map.TShortObjectMap;
 import gnu.trove.map.hash.TShortObjectHashMap;
@@ -26,13 +26,13 @@ import nl.tue.astar.util.ilp.LPMatrixException;
  */
 public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
-	protected int heuristicsComputedInRun = 0;;
+	protected int heuristicsComputedInRun = 0;
 
 	//	protected int numRows;
 	//	protected int numCols;
 	private short[] indexMap;
 
-	private final TShortObjectMap<TShortList> rank2LSMove = new TShortObjectHashMap<>();
+	private final TShortObjectMap<TShortCollection> rank2LSMove = new TShortObjectHashMap<>();
 
 	private int numRanks;
 
@@ -109,7 +109,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 		rank2LSMove.put(SyncProduct.NORANK, new TShortArrayList(10));
 		numRanks = -1;
-		TShortList set;
+		TShortCollection set;
 		for (short t = 0; t < product.numTransitions(); t++) {
 			short r = product.getRankOf(t);
 			set = rank2LSMove.get(r);
@@ -172,6 +172,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			}
 			coefficients = 0;
 			synchronized (LpSolve.class) {
+				// reserve a row for randomsum to be minimized.
 				solver = LpSolve.makeLp(rows, 0);
 			}
 			solver.setAddRowmode(false);
@@ -181,14 +182,16 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 			int start = 1;
 			for (int s = 1; s < splitpoints.length; s++) {
-				// add model moves in this block (if any)
-				c = addModelMovesToSolver(col, c, start);
 
 				//add log and sync moves in this block.
 				for (short e = splitpoints[s - 1]; e < splitpoints[s] - 1; e++) {
 					c = addLogAndSyncMovesToSolver(col, c, start, e, true);
 				}
 				c = addLogAndSyncMovesToSolver(col, c, start, (short) (splitpoints[s] - 1), false);
+
+				// add model moves in this block (if any)
+				c = addModelMovesToSolver(col, c, start);
+
 				start += product.numPlaces();
 			}
 
@@ -205,6 +208,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 						- product.getInitialMarking()[(r - 1) % product.numPlaces()]);
 				coefficients++;
 			}
+
 			solver.setMinim();
 			solver.setVerbose(0);
 
@@ -232,9 +236,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			solver.deleteAndRemoveLp();
 			throw new LPMatrixException(e);
 		}
-		repeats = 0;
 		heuristicsComputedInRun = 0;
-		varsMainThread = new double[indexMap.length];
+		varsMainThread = new double[indexMap.length + 1];
 
 	}
 
@@ -243,10 +246,14 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		short[] input;
 		short[] output;
 		if (rank2LSMove.get(rank) != null) {
-			TShortList list = rank2LSMove.get(rank);
-			for (int idx = list.size(); idx-- > 0;) {
+			TShortCollection list = rank2LSMove.get(rank);
+
+			TShortIterator it = list.iterator();
+			while (it.hasNext()) {
+				//			for (int idx = 0; idx < list.size(); idx++) {
+				//				short t = list.get(idx);
+				short t = it.next();
 				Arrays.fill(col, 0);
-				short t = list.get(idx);
 				input = product.getInput(t);
 				for (int i = 0; i < input.length; i++) {
 					for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
@@ -338,7 +345,6 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	protected double[] varsMainThread;
 	protected int splits;
 	protected int restarts;
-	protected int repeats;
 
 	@Override
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
@@ -351,16 +357,18 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		// so, we separate maxRankExact+1 by putting the border at maxRankExact+2.
 		// 
 
-		int insert;
-		//		do {
-		insert = Arrays.binarySearch(splitpoints, ++rank);
-		//		} while (insert >= 0);
+		int insert = 0;
+		if (marking > 0) {
+			// when stuck, force another rank to be added to the splitpoints. This ensures a new LpSolution.
+			insert = Arrays.binarySearch(splitpoints, ++rank);
+		}
 
 		if (marking == 0 || insert >= 0 || rank > splitpoints[splitpoints.length - 1]) {
 			// No event was explained yet, or the last explained event is already a splitpoint.
 			// There's little we can do but continue with the replayer.
 			//			debug.writeDebugInfo(Debug.NORMAL, "Solve call started");
 			//			solver.printLp();
+
 			int res = getExactHeuristic(solver, marking, markingArray, markingBlock, markingIndex, varsMainThread);
 			//			debug.writeDebugInfo(Debug.NORMAL, "End solve: " + (System.currentTimeMillis() - s) / 1000.0 + " ms.");
 
@@ -398,7 +406,6 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 	private int getExactHeuristic(LpSolve solver, int marking, byte[] markingArray, int markingBlock, int markingIndex,
 			double[] vars) {
-		repeats++;
 		long start = System.nanoTime();
 		// start from correct right hand side
 		try {
@@ -498,7 +505,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		// and compute the maximum.
 		Arrays.fill(tempForSettingSolution, 0);
 		byte bits = 1;
-		for (short i = (short) solutionDouble.length; i-- > 0;) {
+		for (int i = solutionDouble.length; i-- > 0;) {
 			tempForSettingSolution[translate(indexMap[i])] += ((int) (solutionDouble[i] + 1E-7));
 			if (tempForSettingSolution[translate(indexMap[i])] > (1 << (bits - 1))) {
 				bits++;

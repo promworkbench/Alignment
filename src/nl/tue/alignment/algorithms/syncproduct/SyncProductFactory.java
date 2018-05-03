@@ -230,7 +230,7 @@ public class SyncProductFactory {
 		t2input = new ArrayList<>(transitions * 2);
 		t2output = new ArrayList<>(transitions * 2);
 		t2transition = new Transition[transitions];
-		t2move = new TIntArrayList(transitions + 2 * classCount);
+		t2move = new TIntArrayList(transitions * 2);
 
 		places = (short) net.getPlaces().size();
 		p2name = new StringList(places * 2);
@@ -358,7 +358,7 @@ public class SyncProductFactory {
 			t2mmCost.add(c2lmCost[cid]);
 			t2eid.add(e);
 			t2type.add(SyncProduct.LOG_MOVE);
-			t2move.add((transitions + cid));
+			t2move.add(transitions + e);
 
 			TShortSet set = c2t.get(cid);
 			if (set != null) {
@@ -370,7 +370,7 @@ public class SyncProductFactory {
 					t2mmCost.add(t2smCost.get(t));
 					t2eid.add(e);
 					t2type.add(SyncProduct.SYNC_MOVE);
-					t2move.add((transitions + classCount + cid));
+					t2move.add(transitions + trace.getSize() + t);
 				}
 			}
 		}
@@ -479,7 +479,7 @@ public class SyncProductFactory {
 			t2mmCost.add(c2lmCost[cid]);
 			t2eid.add(e);
 			t2type.add(SyncProduct.LOG_MOVE);
-			t2move.add(cid);
+			t2move.add(transitions + e);
 
 			TShortSet set = c2t.get(cid);
 			if (set != null) {
@@ -491,7 +491,7 @@ public class SyncProductFactory {
 					t2mmCost.add(t2smCost.get(t));
 					t2eid.add(e);
 					t2type.add(SyncProduct.SYNC_MOVE);
-					t2move.add((short) (classCount + cid));
+					t2move.add((short) (transitions + trace.getSize() + t));
 				}
 			}
 

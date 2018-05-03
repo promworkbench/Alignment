@@ -79,14 +79,14 @@ public class AlignmentTest {
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
 
 		mainFileFolder(Debug.DOT, 100000, "alifah", "test", "alifah2", "test2");
-		//		mainFileFolder(Debug.DOT, 1, "prAm6");
+		//		mainFileFolder(Debug.STATS, 30, "pr1151_l4_noise");
 		//		mainFileFolder(Debug.STATS, 15, "prCm6");
 		//		mainFileFolder(Debug.STATS, 1, "prBm6", "prEm6", "prAm6","prCm6", "prDm6",  "prFm6", "prGm6");
 
 		//April 2018:
 		int timeout = 30;
-		mainFileFolder(Debug.STATS, timeout, "test", "sepsis", "bpi12", "prEm6", "prBm6", "prAm6", "prCm6", "prFm6",
-				"prGm6", "prDm6", "pr1151_l4_noise", "pr1912_l4_noise");
+		mainFileFolder(Debug.STATS, timeout, "test", "sepsis", "bpi12", "prEm6",
+				"prBm6", "prAm6", "prCm6", "prFm6", "prGm6", "prDm6", "pr1151_l4_noise", "pr1912_l4_noise");
 		mainFolder(Debug.NONE, timeout, "laura/");//
 		mainFolder(Debug.NONE, timeout, "isbpm2013/");
 	}
@@ -215,7 +215,7 @@ public class AlignmentTest {
 		}
 		//		threads = 1;
 
-		// timeout 30 sec per trace minutes
+		// timeout  per trace 
 		int timeout = log.size() * timeoutPerTraceInSec * 1000 / 10;
 		int maxNumberOfStates = Integer.MAX_VALUE;
 

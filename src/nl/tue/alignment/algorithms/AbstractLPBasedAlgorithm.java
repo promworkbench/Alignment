@@ -16,8 +16,8 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	protected static final byte COMPUTED = (byte) 0b00000000;
 	protected static final byte DERIVED = (byte) 0b10000000;
 
-	protected static final byte BITPERTRANSMASK = (byte) 0b01110000;
-	protected static final byte FREEBITSFIRSTBYTE = 4;
+	protected static final byte BITPERTRANSMASK = (byte) 0b01111000;
+	protected static final byte FREEBITSFIRSTBYTE = 3;
 
 	// stores the location of the LP solution plus a flag if it is derived or real
 	protected TIntObjectMap<byte[]> lpSolutions = new TIntObjectHashMap<>(16);
@@ -25,6 +25,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	protected LpSolve solver;
 	protected int bytesUsed;
 	protected long solveTime = 0;
+	boolean useTranslate = true;
 
 	/**
 	 * In the abstract LP Based algorithm, the translation is made from transitions
@@ -39,7 +40,11 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	public AbstractLPBasedAlgorithm(SyncProduct net, boolean moveSorting, boolean queueSorting, boolean preferExact,
 			Debug debug) {
 		super(net, moveSorting, queueSorting, preferExact, debug);
-		tempForSettingSolution = new int[net.numModelMoves() + 2 * net.numEventClasses()];
+		if (useTranslate) {
+			tempForSettingSolution = new int[2 * net.numModelMoves() + net.numEvents()];
+		} else {
+			tempForSettingSolution = new int[net.numTransitions()];
+		}
 	}
 
 	protected int[] tempForSettingSolution;
@@ -59,7 +64,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	}
 
 	protected int translate(short transition) {
-		return net.getMoveOf(transition);
+		return useTranslate ? net.getMoveOf(transition) : transition;
 	}
 
 	/**
@@ -76,7 +81,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 		// this translate to 
 		int bytes = 8 - FREEBITSFIRSTBYTE + (solutionInt.length * bits + 4) / 8;
 
-		assert getSolution(marking) == null;
+		//		assert getSolution(marking) == null;
 		byte[] solution = new byte[bytes];
 
 		// set the computed flag in the first two bits
@@ -102,6 +107,9 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 			}
 		}
 		addSolution(marking, solution);
+		//		for (short i = 0; i < net.numTransitions(); i++) {
+		//			assert (solutionInt[translate(i)] == getLpSolution(marking, i)) : "Error in " + i;
+		//		}
 	}
 
 	protected int getLpSolution(int marking, short transition) {
@@ -150,7 +158,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	protected void setDerivedLpSolution(int from, int to, short transition) {
 		int move = translate(transition);
 
-		assert getSolution(to) == null;
+		//		assert getSolution(to) == null;
 		byte[] solutionFrom = getSolution(from);
 
 		byte[] solution = Arrays.copyOf(solutionFrom, solutionFrom.length);
@@ -174,8 +182,8 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 			if ((solution[fromByte] & lsBit) != 0) {
 				// first bit that is 1. Flip and terminate
 				solution[fromByte] ^= lsBit;
-				//					assert getLpSolution(to, transition) == getLpSolution(from, transition) - 1;
 				addSolution(to, solution);
+				//				assert getLpSolution(to, transition) == getLpSolution(from, transition) - 1;
 				return;
 			}
 			// flip and continue;
