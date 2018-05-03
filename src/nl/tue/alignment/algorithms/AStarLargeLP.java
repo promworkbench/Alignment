@@ -237,7 +237,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			throw new LPMatrixException(e);
 		}
 		heuristicsComputedInRun = 0;
-		varsMainThread = new double[indexMap.length + 1];
+		varsMainThread = new double[indexMap.length];
 
 	}
 

@@ -25,7 +25,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	protected LpSolve solver;
 	protected int bytesUsed;
 	protected long solveTime = 0;
-	boolean useTranslate = true;
+	boolean useTranslate = false;
 
 	/**
 	 * In the abstract LP Based algorithm, the translation is made from transitions
