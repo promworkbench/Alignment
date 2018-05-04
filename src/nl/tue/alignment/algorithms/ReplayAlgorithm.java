@@ -1,10 +1,11 @@
 package nl.tue.alignment.algorithms;
 
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
+
 import java.io.PrintStream;
 import java.util.Arrays;
 
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
 import nl.tue.alignment.Progress;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
@@ -771,11 +772,11 @@ public abstract class ReplayAlgorithm {
 		if (alignment != null) {
 			debug.print(Debug.STATS, net.getLabel());
 			for (Statistic s : Statistic.values()) {
-				debug.print(Debug.STATS, "," + replayStatistics.get(s));
+				debug.print(Debug.STATS, Utils.SEP + replayStatistics.get(s));
 			}
-			debug.print(Debug.STATS, "," + Runtime.getRuntime().maxMemory() / 1048576);
-			debug.print(Debug.STATS, "," + Runtime.getRuntime().totalMemory() / 1048576);
-			debug.print(Debug.STATS, "," + Runtime.getRuntime().freeMemory() / 1048576);
+			debug.print(Debug.STATS, Utils.SEP + Runtime.getRuntime().maxMemory() / 1048576);
+			debug.print(Debug.STATS, Utils.SEP + Runtime.getRuntime().totalMemory() / 1048576);
+			debug.print(Debug.STATS, Utils.SEP + Runtime.getRuntime().freeMemory() / 1048576);
 			debug.println(Debug.STATS);
 		}
 	}

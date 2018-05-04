@@ -1,16 +1,18 @@
 package nl.tue.alignment;
 
-import java.io.PrintStream;
-
 import gnu.trove.iterator.TShortIterator;
 import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.set.TShortSet;
 import gnu.trove.set.hash.TShortHashSet;
+
+import java.io.PrintStream;
+
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
 public class Utils {
 
+	public static final String SEP = ";";
 	public static int OPTIMALALIGNMENT = 1;
 	public static int FAILEDALIGNMENT = 2;
 	public static int ENABLINGBLOCKEDBYOUTPUT = 4;
@@ -20,8 +22,9 @@ public class Utils {
 	public static int STATELIMITREACHED = 64;
 
 	/**
-	 * Default block size determines how many bytes are reserved top store markings.
-	 * Whenever a block is full, a new block of this size is allocated.
+	 * Default block size determines how many bytes are reserved top store
+	 * markings. Whenever a block is full, a new block of this size is
+	 * allocated.
 	 */
 	public static int DEFAULTBLOCKSIZE = 1024;
 
@@ -61,11 +64,10 @@ public class Utils {
 		SPLITS("Number of splits when splitting marking"), //
 		LMCOST("Log move cost of alignment"), //
 		MMCOST("Model move cost of alignment"), //
-		SMCOST("Synchronous move cost of alignment"),//
-		PREPROCESSTIME("Pre-processing time (us)"),//
+		SMCOST("Synchronous move cost of alignment"), //
+		PREPROCESSTIME("Pre-processing time (us)"), //
 		CONSTRAINTSETSIZE("Size of the constraintset"), //
 		RESTARTS("Number of times replay was restarted");
-
 
 		private final String label;
 

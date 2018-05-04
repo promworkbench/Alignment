@@ -1,9 +1,10 @@
 package nl.tue.alignment.algorithms;
 
-import java.util.Arrays;
-
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
+
+import java.util.Arrays;
+
 import lpsolve.LpSolve;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
@@ -25,7 +26,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	protected LpSolve solver;
 	protected int bytesUsed;
 	protected long solveTime = 0;
-	boolean useTranslate = false;
+	public static boolean useTranslate = true;
 
 	/**
 	 * In the abstract LP Based algorithm, the translation is made from transitions

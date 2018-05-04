@@ -1,12 +1,13 @@
 package nl.tue.alignment.algorithms;
 
-import java.util.Arrays;
-
 import gnu.trove.TShortCollection;
 import gnu.trove.iterator.TShortIterator;
 import gnu.trove.list.array.TShortArrayList;
 import gnu.trove.map.TShortObjectMap;
 import gnu.trove.map.hash.TShortObjectHashMap;
+
+import java.util.Arrays;
+
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import nl.tue.alignment.Utils;
@@ -641,12 +642,12 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		if (alignment != null) {
 			debug.print(Debug.STATS, net.getLabel());
 			for (Statistic s : Statistic.values()) {
-				debug.print(Debug.STATS, "," + replayStatistics.get(s));
+				debug.print(Debug.STATS, Utils.SEP + replayStatistics.get(s));
 			}
-			debug.print(Debug.STATS, "," + Runtime.getRuntime().maxMemory() / 1048576);
-			debug.print(Debug.STATS, "," + Runtime.getRuntime().totalMemory() / 1048576);
-			debug.print(Debug.STATS, "," + Runtime.getRuntime().freeMemory() / 1048576);
-			debug.print(Debug.STATS, "," + toString(splitpoints));
+			debug.print(Debug.STATS,Utils.SEP+ Runtime.getRuntime().maxMemory() / 1048576);
+			debug.print(Debug.STATS, Utils.SEP + Runtime.getRuntime().totalMemory() / 1048576);
+			debug.print(Debug.STATS, Utils.SEP + Runtime.getRuntime().freeMemory() / 1048576);
+			debug.print(Debug.STATS, Utils.SEP + toString(splitpoints));
 			debug.println(Debug.STATS);
 		}
 	}

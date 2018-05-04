@@ -1,5 +1,13 @@
 package nl.tue.alignment;
 
+import gnu.trove.list.TShortList;
+import gnu.trove.list.array.TShortArrayList;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.TObjectShortMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -9,6 +17,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
+import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
+import nl.tue.alignment.Utils.Statistic;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
+import nl.tue.alignment.algorithms.constraints.ConstraintSet;
+import nl.tue.alignment.algorithms.syncproduct.SyncProductFactory;
+import nl.tue.astar.Trace;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
@@ -22,20 +37,6 @@ import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMap
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 import org.processmining.plugins.petrinet.replayresult.PNRepResultImpl;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
-
-import gnu.trove.list.TShortList;
-import gnu.trove.list.array.TShortArrayList;
-import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.TObjectShortMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
-import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
-import nl.tue.alignment.Utils.Statistic;
-import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
-import nl.tue.alignment.algorithms.constraints.ConstraintSet;
-import nl.tue.alignment.algorithms.syncproduct.SyncProductFactory;
-import nl.tue.astar.Trace;
 
 public class Replayer {
 
@@ -257,14 +258,6 @@ public class Replayer {
 
 	private boolean isCancelled() {
 		return getProgress().isCancelled();
-	}
-
-	private int getTraceCost(XTrace trace) {
-		int cost = 0;
-		for (XEvent e : trace) {
-			cost += costLM != null && costLM.containsKey(classes.getClassOf(e)) ? costLM.get(classes.getClassOf(e)) : 1;
-		}
-		return cost;
 	}
 
 	int getCostLM(XEventClass classOf) {

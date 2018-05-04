@@ -35,12 +35,15 @@ import lpsolve.LpSolve;
 import nl.tue.alignment.Progress;
 import nl.tue.alignment.Replayer;
 import nl.tue.alignment.ReplayerParameters;
+import nl.tue.alignment.Utils;
+import nl.tue.alignment.algorithms.AbstractLPBasedAlgorithm;
 import nl.tue.alignment.algorithms.ReplayAlgorithm;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 
 public class AlignmentTest {
 
-	private static final String FOLDER = "c:/temp/alignment/";
+	private static String FOLDER = "c:/temp/alignment/";
+	private static String SEP = Utils.SEP;
 	public static int iteration = 0;
 
 	public static enum Type {
@@ -78,29 +81,31 @@ public class AlignmentTest {
 		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6",
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
 
-		mainFileFolder(Debug.DOT, 100000, "alifah", "test", "alifah2", "test2");
+		//		mainFileFolder(Debug.DOT, 100000, "alifah", "test", "alifah2", "test2");
 		//		mainFileFolder(Debug.STATS, 30, "pr1151_l4_noise");
 		//		mainFileFolder(Debug.STATS, 15, "prCm6");
 		//		mainFileFolder(Debug.STATS, 1, "prBm6", "prEm6", "prAm6","prCm6", "prDm6",  "prFm6", "prGm6");
 
+		AbstractLPBasedAlgorithm.useTranslate = false;
 		//April 2018:
 		int timeout = 30;
-		mainFileFolder(Debug.STATS, timeout, "test", "sepsis", "bpi12", "prEm6",
-				"prBm6", "prAm6", "prCm6", "prFm6", "prGm6", "prDm6", "pr1151_l4_noise", "pr1912_l4_noise");
+		mainFileFolder(Debug.STATS, timeout, "test", "sepsis", "bpi12", "prEm6", "prBm6", "prAm6", "prCm6", "prFm6",
+				"prGm6", "prDm6", "pr1151_l4_noise", "pr1912_l4_noise");
 		mainFolder(Debug.NONE, timeout, "laura/");//
 		mainFolder(Debug.NONE, timeout, "isbpm2013/");
+
 	}
 
 	public static void mainFolder(Debug debug, int timeoutSecondsPerTrace, String... eval) throws Exception {
 
-		System.out.print("filename,logsize,");
+		System.out.print("filename" + SEP + "logsize" + SEP);
 		for (Type type : Type.values()) {
-			System.out.print(type + " number timeout,");
-			System.out.print(type + " runtime (ms),");
-			System.out.print(type + " CPU time (ms),");
-			System.out.print(type + " preprocess time (ms),");
-			System.out.print(type + " memory (kb),");
-			System.out.print(type + " cost,");
+			System.out.print(type + " number timeout" + SEP);
+			System.out.print(type + " runtime (ms)" + SEP);
+			System.out.print(type + " CPU time (ms)" + SEP);
+			System.out.print(type + " preprocess time (ms)" + SEP);
+			System.out.print(type + " memory (kb)" + SEP);
+			System.out.print(type + " cost" + SEP);
 		}
 		System.out.println();
 
@@ -127,8 +132,8 @@ public class AlignmentTest {
 				log = parser.parse(new File(FOLDER + folder + name + ".xml")).get(0);
 
 				String f = FOLDER + folder + name;
-				System.out.print(folder + ",");
-				System.out.print((log.size() + 1) + ",");
+				System.out.print(f + SEP);
+				System.out.print((log.size() + 1) + SEP);
 				for (Type type : Type.values()) {
 					try {
 						doReplayExperiment(debug, f, net, initialMarking, finalMarking, log, eventClassifier, type,
@@ -147,39 +152,39 @@ public class AlignmentTest {
 
 	public static void mainFileFolder(Debug debug, int timeoutSecondsPerTrace, String... names) throws Exception {
 
-		System.out.print("filename,logsize,");
+		System.out.print("filename" + SEP + "logsize" + SEP);
 		for (Type type : Type.values()) {
 			if (type.include()) {
-				System.out.print(type + " number timeout,");
-				System.out.print(type + " runtime (ms),");
-				System.out.print(type + " CPU time (ms),");
-				System.out.print(type + " preprocess time (ms),");
-				System.out.print(type + " memory (kb),");
-				System.out.print(type + " cost,");
+				System.out.print(type + " number timeout" + SEP);
+				System.out.print(type + " runtime (ms)" + SEP);
+				System.out.print(type + " CPU time (ms)" + SEP);
+				System.out.print(type + " preprocess time (ms)" + SEP);
+				System.out.print(type + " memory (kb)" + SEP);
+				System.out.print(type + " cost" + SEP);
 			}
 		}
 		System.out.println();
 
 		for (String name : names) {
-			PetrinetGraph net = constructNet(FOLDER + name + "/" + name + ".pnml");
+			String folder = FOLDER + name + "/" + name;
+			PetrinetGraph net = constructNet(folder + ".pnml");
 			Marking initialMarking = getInitialMarking(net);
 			Marking finalMarking = getFinalMarking(net);
 			XLog log;
 			XEventClassifier eventClassifier;
 
-			if (new File(FOLDER + name + "/" + name + ".mxml").exists()) {
+			if (new File(folder + ".mxml").exists()) {
 				XMxmlParser parser = new XMxmlParser();
 				eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
-				log = parser.parse(new File(FOLDER + name + "/" + name + ".mxml")).get(0);
+				log = parser.parse(new File(folder + ".mxml")).get(0);
 			} else {
 				XesXmlParser parser = new XesXmlParser();
 				eventClassifier = new XEventNameClassifier();
-				log = parser.parse(new File(FOLDER + name + "/" + name + ".xes")).get(0);
+				log = parser.parse(new File(folder + ".xes")).get(0);
 			}
 
-			String folder = FOLDER + name + "/" + name;
-			System.out.print(folder + ",");
-			System.out.print((log.size() + 1) + ",");
+			System.out.print(folder + SEP);
+			System.out.print((log.size() + 1) + SEP);
 			for (Type type : Type.values()) {
 				try {
 					doReplayExperiment(debug, folder, net, initialMarking, finalMarking, log, eventClassifier, type,
@@ -305,17 +310,17 @@ public class AlignmentTest {
 		}
 
 		// number timeouts
-		System.out.print(timeout + ",");
+		System.out.print(timeout + SEP);
 		// clocktime
-		System.out.print(String.format("%.3f", (end - start) / 1000000.0) + ",");
+		System.out.print(String.format("%.3f", (end - start) / 1000000.0) + SEP);
 		// cpu time
-		System.out.print(String.format("%.3f", time) + ",");
+		System.out.print(String.format("%.3f", time) + SEP);
 		// preprocess time
-		System.out.print(String.format("%.3f", pretime) + ",");
+		System.out.print(String.format("%.3f", pretime) + SEP);
 		// max memory
-		System.out.print(mem + ",");
+		System.out.print(mem + SEP);
 		// total cost.
-		System.out.print(cost + ",");
+		System.out.print(cost + SEP);
 
 		System.out.flush();
 
@@ -347,8 +352,8 @@ public class AlignmentTest {
 		Map<org.jbpt.petri.Transition, Transition> t2t = new HashMap<org.jbpt.petri.Transition, Transition>();
 		for (org.jbpt.petri.Transition t : sys.getTransitions()) {
 			Transition tt = net.addTransition(t.getLabel());
-			if (t.isSilent() || t.getLabel().startsWith("tau") || t.getLabel().equals("t2") || t.getLabel().equals("t8")
-					|| t.getLabel().equals("complete")) {
+			if (t.isSilent() || t.getLabel().startsWith("tau") || t.getLabel().equals("t2")
+					|| t.getLabel().equals("t8") || t.getLabel().equals("complete")) {
 				tt.setInvisible(true);
 			}
 			t2t.put(t, tt);
