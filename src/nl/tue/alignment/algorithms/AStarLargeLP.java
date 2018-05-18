@@ -162,7 +162,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		maxRankExact = SyncProduct.NORANK;
 		maxRankMarking = 0;
 
-		rows = (splitpoints.length) * product.numPlaces();
+		// only if intermediate splitpoint present, more rows are needed
+		rows = (splitpoints.length - 1) * product.numPlaces();
 
 		indexMap = new short[(splitpoints.length - 1) * modelMoves + product.numTransitions()];
 
