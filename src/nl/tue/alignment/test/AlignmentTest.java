@@ -46,6 +46,8 @@ import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 
 public class AlignmentTest {
 
+	private static final int THREADS = 1;//Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
+
 	private static String FOLDER = "d:/temp/alignment/";
 	private static String SEP = Utils.SEP;
 	public static int iteration = 0;
@@ -98,7 +100,12 @@ public class AlignmentTest {
 		AbstractLPBasedAlgorithm.useTranslate = false;
 		//April 2018:
 		int timeout = 60;
-		//		mainFileFolder(Debug.STATS, timeout, "test");
+		//Initialize internal structures...
+		mainFileFolder(Debug.NONE, timeout, "d53_rad1");
+		mainFileFolder(Debug.STATS, timeout, "d53_rad1");
+		
+		System.exit(0);
+		
 		//
 		mainFileFolder(Debug.STATS, timeout, "prCm6", "prBm6", "prAm6");
 		mainFileFolder(Debug.STATS, timeout, "prEm6", "prFm6", "prGm6", "prDm6"); // Planner runs out of memory
@@ -107,8 +114,9 @@ public class AlignmentTest {
 
 		mainFolder(Debug.NONE, timeout, "laura/");//
 		mainFolder(Debug.NONE, timeout, "isbpm2013/");
-		//		mainFileFolder(Debug.NONE, timeout, "test", "d53_rad1", "d62_rad1", "d63_rad1", "d64_rad1", //
-		//				"d53_rad1_10_noise", "d62_rad1_10_noise");
+
+		mainFileFolder(Debug.NONE, timeout, "d53_rad1", "d62_rad1", "d63_rad1", "d64_rad1", //
+				"d53_rad1_10_noise", "d62_rad1_10_noise");
 		mainFileFolder(Debug.NONE, timeout, "test", "d63_rad1_10_noise", "d64_rad1_10_noise", //
 				"d53_rad1_20_noise", "d62_rad1_20_noise", "d63_rad1_20_noise", "d64_rad1_20_noise", //
 				"d53_rad1_30_noise", "d62_rad1_30_noise", "d63_rad1_30_noise", "d64_rad1_30_noise");
@@ -243,14 +251,12 @@ public class AlignmentTest {
 
 		int threads;
 		if (debug == Debug.STATS) {
-			threads = 1;//Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
+			threads = THREADS;
 		} else if (debug == Debug.DOT) {
 			threads = 1;
 		} else {
-			threads = 1;//Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
-			//			System.out.println("Started: " + folder);
+			threads = THREADS;
 		}
-		//		threads = 1;
 
 		// timeout  per trace 
 		int timeout = log.size() * timeoutPerTraceInSec * 1000 / 10;

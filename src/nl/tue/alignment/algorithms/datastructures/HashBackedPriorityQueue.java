@@ -85,7 +85,7 @@ public class HashBackedPriorityQueue implements Queue {
 		return size() == 0;
 	}
 
-	public synchronized int hashCode() {
+	public int hashCode() {
 		return locationMap.hashCode();
 	}
 
@@ -97,11 +97,11 @@ public class HashBackedPriorityQueue implements Queue {
 		return this.maxCost;
 	}
 
-	public synchronized boolean contains(int marking) {
+	public boolean contains(int marking) {
 		return (locationMap.get(marking) != NEV);
 	}
 
-	public synchronized boolean checkInv() {
+	public boolean checkInv() {
 		return checkInv(0);
 	}
 
@@ -127,7 +127,7 @@ public class HashBackedPriorityQueue implements Queue {
 		}
 	}
 
-	public synchronized int peek() {
+	public int peek() {
 		if (size == 0)
 			return NEV;
 		return queue[0];
@@ -137,7 +137,7 @@ public class HashBackedPriorityQueue implements Queue {
 		return size;
 	}
 
-	public synchronized int poll() {
+	public int poll() {
 		if (size == 0)
 			return NEV;
 		int s = --size;
@@ -165,7 +165,7 @@ public class HashBackedPriorityQueue implements Queue {
 		return queue[location];
 	}
 
-	public synchronized String toString() {
+	public String toString() {
 		return Arrays.toString(queue);
 	}
 
@@ -180,7 +180,7 @@ public class HashBackedPriorityQueue implements Queue {
 	 * @throws NullPointerException
 	 *             if the specified element is null
 	 */
-	public synchronized boolean add(int marking) {
+	public boolean add(int marking) {
 		if (algorithm.getFScore(marking) > maxCost) {
 			return false;
 		}

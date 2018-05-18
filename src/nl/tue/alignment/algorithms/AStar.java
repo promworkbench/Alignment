@@ -121,9 +121,7 @@ public class AStar extends AbstractLPBasedAlgorithm {
 			// round the remaining time up to the nearest second.
 			solver.setTimeout(Math.max(1000, remainingTime + 999) / 1000);
 			int solverResult = solver.solve();
-			synchronized (this) {
-				heuristicsComputed++;
-			}
+			heuristicsComputed++;
 
 			//			if (solverResult == LpSolve.INFEASIBLE || solverResult == LpSolve.NUMFAILURE) {
 			//				// BVD: LpSolve has the tendency to give false infeasible or numfailure answers. 
@@ -141,9 +139,8 @@ public class AStar extends AbstractLPBasedAlgorithm {
 				assert c >= 0;
 
 				if (c >= HEURISTICINFINITE) {
-					synchronized (this) {
-						alignmentResult |= Utils.HEURISTICFUNCTIONOVERFLOW;
-					}
+					alignmentResult |= Utils.HEURISTICFUNCTIONOVERFLOW;
+
 					// continue with maximum heuristic value not equal to infinity.
 					return HEURISTICINFINITE - 1;
 				}
@@ -154,9 +151,7 @@ public class AStar extends AbstractLPBasedAlgorithm {
 				return HEURISTICINFINITE;
 			} else if (solverResult == LpSolve.TIMEOUT) {
 				assert timeoutAtTimeInMillisecond - System.currentTimeMillis() <= 0;
-				synchronized (this) {
-					alignmentResult |= Utils.TIMEOUTREACHED;
-				}
+				alignmentResult |= Utils.TIMEOUTREACHED;
 				return HEURISTICINFINITE;
 			} else {
 				//					lp.writeLp("D:/temp/alignment/debugLP-Alignment.lp");
@@ -167,9 +162,8 @@ public class AStar extends AbstractLPBasedAlgorithm {
 		} catch (LpSolveException e) {
 			return HEURISTICINFINITE;
 		} finally {
-			synchronized (this) {
-				solveTime += System.nanoTime() - start;
-			}
+			long st = System.nanoTime() - start;
+			solveTime += st;
 		}
 
 	}
@@ -262,7 +256,7 @@ public class AStar extends AbstractLPBasedAlgorithm {
 	@Override
 	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {
 		super.processedMarking(marking, blockMarking, indexInBlock);
-		synchronized (this) {
+		{
 			if (isDerivedLpSolution(marking)) {
 				debug.writeMarkingReached(this, marking, "color=blue,style=bold");
 			} else {

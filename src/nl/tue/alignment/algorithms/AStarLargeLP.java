@@ -435,9 +435,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			// round the remaining time up to the nearest second.
 			solver.setTimeout(Math.max(1000, remainingTime + 999) / 1000);
 			int solverResult = solver.solve();
-			synchronized (this) {
-				heuristicsComputed++;
-			}
+			heuristicsComputed++;
 
 			//			if (solverResult == LpSolve.INFEASIBLE || solverResult == LpSolve.NUMFAILURE) {
 			//				// BVD: LpSolve has the tendency to give false infeasible or numfailure answers. 
@@ -454,9 +452,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				double c = computeCostForVars(vars);
 
 				if (c >= HEURISTICINFINITE) {
-					synchronized (this) {
-						alignmentResult |= Utils.HEURISTICFUNCTIONOVERFLOW;
-					}
+					alignmentResult |= Utils.HEURISTICFUNCTIONOVERFLOW;
+
 					// continue with maximum heuristic value not equal to infinity.
 					return HEURISTICINFINITE - 1;
 				}
@@ -470,9 +467,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				remainingTime = timeoutAtTimeInMillisecond - System.currentTimeMillis();
 				//				System.out.println("Remaining is:  "+remainingTime);
 				assert remainingTime <= 0;
-				synchronized (this) {
-					alignmentResult |= Utils.TIMEOUTREACHED;
-				}
+				alignmentResult |= Utils.TIMEOUTREACHED;
+
 				return HEURISTICINFINITE;
 			} else {
 				//					lp.writeLp("D:/temp/alignment/debugLP-Alignment.lp");
@@ -484,9 +480,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			e.printStackTrace();
 			return HEURISTICINFINITE;
 		} finally {
-			synchronized (this) {
-				solveTime += System.nanoTime() - start;
-			}
+			solveTime += System.nanoTime() - start;
+
 		}
 
 	}
@@ -643,7 +638,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			for (Statistic s : Statistic.values()) {
 				debug.print(Debug.STATS, Utils.SEP + replayStatistics.get(s));
 			}
-			debug.print(Debug.STATS,Utils.SEP+ Runtime.getRuntime().maxMemory() / 1048576);
+			debug.print(Debug.STATS, Utils.SEP + Runtime.getRuntime().maxMemory() / 1048576);
 			debug.print(Debug.STATS, Utils.SEP + Runtime.getRuntime().totalMemory() / 1048576);
 			debug.print(Debug.STATS, Utils.SEP + Runtime.getRuntime().freeMemory() / 1048576);
 			debug.print(Debug.STATS, Utils.SEP + toString(splitpoints));

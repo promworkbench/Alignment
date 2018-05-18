@@ -49,7 +49,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 	private short[] alignment;
 	private int maximumNumberOfStates;
 	private short[] eventsWithErrors;
-	private long preProcessTimeNanoseconds;
+	private final long preProcessTimeNanoseconds;
 	private final int timeoutMilliseconds;
 	private boolean mergeDuplicateTraces;
 
@@ -124,10 +124,14 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		if (original < 0) {
 			//			System.out.println("Starting trace: " + traceIndex);
 			List<Transition> transitionList = new ArrayList<Transition>();
-			long startSP = System.nanoTime();
-			product = this.replayer.factory.getSyncProduct(trace, transitionList, parameters.partiallyOrderEvents);
-			long endSP = System.nanoTime();
-			preProcessTimeNanoseconds += endSP - startSP;
+			long pt;
+			synchronized (this.replayer.factory) {
+				long startSP = System.nanoTime();
+				product = this.replayer.factory.getSyncProduct(trace, transitionList, parameters.partiallyOrderEvents);
+				long endSP = System.nanoTime();
+				// compute the pre-process time based on the fixed overhead, plus time for this replayer...
+				pt = preProcessTimeNanoseconds + (endSP - startSP);
+			}
 
 			if (product != null) {
 				if (parameters.debug == Debug.DOT) {
@@ -136,7 +140,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 
 				algorithm = getAlgorithm(product);
 
-				algorithm.putStatistic(Statistic.PREPROCESSTIME, (int) (preProcessTimeNanoseconds / 1000));
+				algorithm.putStatistic(Statistic.PREPROCESSTIME, (int) (pt / 1000));
 				algorithm.putStatistic(Statistic.CONSTRAINTSETSIZE, replayer.getConstraintSetSize());
 
 				alignment = algorithm.run(this.replayer.getProgress(), timeoutMilliseconds, maximumNumberOfStates);

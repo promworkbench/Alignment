@@ -1,11 +1,10 @@
 package nl.tue.alignment.algorithms;
 
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
-
 import java.io.PrintStream;
 import java.util.Arrays;
 
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import nl.tue.alignment.Progress;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
@@ -82,7 +81,7 @@ public abstract class ReplayAlgorithm {
 
 		DOT {
 			@Override
-			public synchronized void writeMarkingReached(ReplayAlgorithm algorithm, int marking, String extra) {
+			public void writeMarkingReached(ReplayAlgorithm algorithm, int marking, String extra) {
 				int heur = algorithm.getHScore(marking);
 				StringBuilder b = new StringBuilder();
 				b.append("i" + algorithm.iteration);
@@ -166,23 +165,22 @@ public abstract class ReplayAlgorithm {
 		private static String EMPTY = "";
 		private static PrintStream output = System.out;
 
-		public synchronized void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition,
-				int toMarking, String extra) {
+		public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition, int toMarking,
+				String extra) {
 		}
 
-		public synchronized void writeMarkingReached(ReplayAlgorithm algorithm, int marking, String extra) {
+		public void writeMarkingReached(ReplayAlgorithm algorithm, int marking, String extra) {
 		}
 
-		public synchronized void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition,
-				int toMarking) {
+		public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition, int toMarking) {
 			this.writeEdgeTraversed(algorithm, fromMarking, transition, toMarking, EMPTY);
 		}
 
-		public synchronized void writeMarkingReached(ReplayAlgorithm algorithm, int marking) {
+		public void writeMarkingReached(ReplayAlgorithm algorithm, int marking) {
 			this.writeMarkingReached(algorithm, marking, EMPTY);
 		}
 
-		public synchronized void println(Debug db, String s) {
+		public void println(Debug db, String s) {
 			if (this == db) {
 				synchronized (output) {
 					output.println(s);
@@ -190,7 +188,7 @@ public abstract class ReplayAlgorithm {
 			}
 		}
 
-		public synchronized void println(Debug db) {
+		public void println(Debug db) {
 			if (this == db) {
 				synchronized (output) {
 					output.println();
@@ -198,7 +196,7 @@ public abstract class ReplayAlgorithm {
 			}
 		}
 
-		public synchronized void print(Debug db, String s) {
+		public void print(Debug db, String s) {
 			if (this == db) {
 				synchronized (output) {
 					output.print(s);
@@ -491,10 +489,10 @@ public abstract class ReplayAlgorithm {
 				} // end While
 				alignmentResult &= ~Utils.OPTIMALALIGNMENT;
 				alignmentResult |= Utils.FAILEDALIGNMENT;
-				runTime = (int) ((System.nanoTime() - startTime) / 1000);
 				if (!queue.isEmpty()) {
 					alignment = handleFinalMarkingReached(startTime, queue.peek());
 				} else {
+					runTime = (int) ((System.nanoTime() - startTime) / 1000);
 					alignment = new short[0];
 				}
 				return alignment;
@@ -817,17 +815,17 @@ public abstract class ReplayAlgorithm {
 	}
 
 	protected void terminateIteration(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
-		synchronized (debug.getOutputStream()) {
-			if (alignment != null) {
-				fillStatistics(alignment);
-			}
-			if (debug == Debug.DOT) {
-				writeEndOfAlignmentDot(alignment, markingsReachedInRun, closedActionsInRun);
-			}
-			if (debug == Debug.NORMAL) {
-				writeEndOfAlignmentNormal(alignment, markingsReachedInRun, closedActionsInRun);
-			}
-			if (debug == Debug.STATS) {
+		if (alignment != null) {
+			fillStatistics(alignment);
+		}
+		if (debug == Debug.DOT) {
+			writeEndOfAlignmentDot(alignment, markingsReachedInRun, closedActionsInRun);
+		}
+		if (debug == Debug.NORMAL) {
+			writeEndOfAlignmentNormal(alignment, markingsReachedInRun, closedActionsInRun);
+		}
+		if (debug == Debug.STATS) {
+			synchronized (debug.getOutputStream()) {
 				writeEndOfAlignmentStats(alignment, markingsReachedInRun, closedActionsInRun);
 			}
 		}
