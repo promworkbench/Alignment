@@ -1,10 +1,9 @@
 package nl.tue.alignment.algorithms;
 
-import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
-
 import java.util.Arrays;
 
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
 import lpsolve.LpSolve;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
@@ -23,6 +22,8 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	// stores the location of the LP solution plus a flag if it is derived or real
 	protected TIntObjectMap<byte[]> lpSolutions = new TIntObjectHashMap<>(16);
 	protected long lpSolutionsSize = 4;
+	protected long bytesLpSolutionsSize = 4;
+	
 	protected LpSolve solver;
 	protected int bytesUsed;
 	protected long solveTime = 0;
@@ -204,6 +205,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 		lpSolutions.put(marking, solution);
 		lpSolutionsSize += 12 + 4 + solution.length; // object size
 		lpSolutionsSize += 1 + 4 + 8; // used flag + key + value pointer
+		bytesLpSolutionsSize = Math.max(bytesLpSolutionsSize , lpSolutionsSize);
 	}
 
 	protected abstract double computeCostForVars(double[] vars);
@@ -212,7 +214,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	protected long getEstimatedMemorySize() {
 		long val = super.getEstimatedMemorySize();
 		// count space for all computed solutions
-		val += lpSolutionsSize;
+		val += bytesLpSolutionsSize;
 		// count size of matrix
 		val += bytesUsed;
 		return val;
