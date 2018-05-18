@@ -2,8 +2,8 @@ package nl.tue.alignment.algorithms;
 
 import java.util.Arrays;
 
-import gnu.trove.TShortCollection;
 import gnu.trove.iterator.TShortIterator;
+import gnu.trove.list.TShortList;
 import gnu.trove.list.array.TShortArrayList;
 import gnu.trove.map.TShortObjectMap;
 import gnu.trove.map.hash.TShortObjectHashMap;
@@ -32,7 +32,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	//	protected int numCols;
 	private short[] indexMap;
 
-	private final TShortObjectMap<TShortCollection> rank2LSMove = new TShortObjectHashMap<>();
+	private final TShortObjectMap<TShortList> rank2LSMove = new TShortObjectHashMap<>();
 
 	private int numRanks;
 
@@ -109,7 +109,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 		rank2LSMove.put(SyncProduct.NORANK, new TShortArrayList(10));
 		numRanks = -1;
-		TShortCollection set;
+		TShortList set;
 		for (short t = 0; t < product.numTransitions(); t++) {
 			short r = product.getRankOf(t);
 			set = rank2LSMove.get(r);
@@ -183,14 +183,16 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			int start = 1;
 			for (int s = 1; s < splitpoints.length; s++) {
 
-				//add log and sync moves in this block.
+				// add model moves in this block (if any)
+				c = addModelMovesToSolver(col, c, start);
+
+				//add log and sync moves in this block for all non-final ranks in the block.
 				for (short e = splitpoints[s - 1]; e < splitpoints[s] - 1; e++) {
 					c = addLogAndSyncMovesToSolver(col, c, start, e, true);
 				}
-				c = addLogAndSyncMovesToSolver(col, c, start, (short) (splitpoints[s] - 1), false);
-
-				// add model moves in this block (if any)
-				c = addModelMovesToSolver(col, c, start);
+				//add log and sync moves in this block for final rank in the block, or full if last splitpoint
+				c = addLogAndSyncMovesToSolver(col, c, start, (short) (splitpoints[s] - 1),
+						s == splitpoints.length - 1);
 
 				start += product.numPlaces();
 			}
@@ -246,13 +248,15 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		short[] input;
 		short[] output;
 		if (rank2LSMove.get(rank) != null) {
-			TShortCollection list = rank2LSMove.get(rank);
+			TShortList list = rank2LSMove.get(rank);
 
-			TShortIterator it = list.iterator();
-			while (it.hasNext()) {
-				//			for (int idx = 0; idx < list.size(); idx++) {
-				//				short t = list.get(idx);
-				short t = it.next();
+			//			TShortIterator it = list.iterator();
+			//			while (it.hasNext()) {
+			//				short t = it.next();
+
+			for (int idx = 0; idx < list.size(); idx++) {
+				short t = list.get(idx);
+
 				Arrays.fill(col, 0);
 				input = product.getInput(t);
 				for (int i = 0; i < input.length; i++) {
