@@ -191,8 +191,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 					c = addLogAndSyncMovesToSolver(col, c, start, e, true);
 				}
 				//add log and sync moves in this block for final rank in the block, or full if last splitpoint
-				c = addLogAndSyncMovesToSolver(col, c, start, (short) (splitpoints[s] - 1),
-						s == splitpoints.length - 1);
+				c = addLogAndSyncMovesToSolver(col, c, start, (short) (splitpoints[s] - 1), false);
 
 				start += product.numPlaces();
 			}
@@ -245,17 +244,17 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 	protected int addLogAndSyncMovesToSolver(double[] col, int c, int start, short rank, boolean full)
 			throws LpSolveException {
-		short[] input;
-		short[] output;
 		if (rank2LSMove.get(rank) != null) {
+			short[] input;
+			short[] output;
 			TShortList list = rank2LSMove.get(rank);
 
-			//			TShortIterator it = list.iterator();
-			//			while (it.hasNext()) {
-			//				short t = it.next();
+			TShortIterator it = list.iterator();
+			while (it.hasNext()) {
+				short t = it.next();
 
-			for (int idx = 0; idx < list.size(); idx++) {
-				short t = list.get(idx);
+				//			for (int idx = 0; idx < list.size(); idx++) {
+				//				short t = list.get(idx);
 
 				Arrays.fill(col, 0);
 				input = product.getInput(t);
