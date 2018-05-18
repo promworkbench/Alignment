@@ -1,13 +1,5 @@
 package nl.tue.alignment;
 
-import gnu.trove.list.TShortList;
-import gnu.trove.list.array.TShortArrayList;
-import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.TObjectShortMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -17,13 +9,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
-import nl.tue.alignment.Utils.Statistic;
-import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
-import nl.tue.alignment.algorithms.constraints.ConstraintSet;
-import nl.tue.alignment.algorithms.syncproduct.SyncProductFactory;
-import nl.tue.astar.Trace;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
@@ -38,12 +23,27 @@ import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 import org.processmining.plugins.petrinet.replayresult.PNRepResultImpl;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
+import gnu.trove.list.TShortList;
+import gnu.trove.list.array.TShortArrayList;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.TObjectShortMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
+import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
+import nl.tue.alignment.Utils.Statistic;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
+import nl.tue.alignment.algorithms.constraints.ConstraintSet;
+import nl.tue.alignment.algorithms.syncproduct.SyncProductFactory;
+import nl.tue.astar.Trace;
+
 public class Replayer {
 
 	public static final String MAXMODELMOVECOST = "Model move cost empty trace";
 	public static final String TRACEEXITCODE = "Exit code of alignment for trace";
 	public static final String MEMORYUSED = "Approximate memory used (kb)";
 	public static final String PREPROCESSTIME = "Pre-processing time (ms)";
+	public static final String HEURISTICSCOMPUTED = "Number of LPs solved";
 
 	final TObjectIntMap<Trace> trace2FirstIdenticalTrace;
 

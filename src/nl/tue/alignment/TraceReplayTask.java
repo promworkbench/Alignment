@@ -214,6 +214,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		srr.addInfo(Replayer.TRACEEXITCODE, new Double(statistics.get(Statistic.EXITCODE)));
 		srr.addInfo(Replayer.MEMORYUSED, new Double(statistics.get(Statistic.MEMORYUSED)));
 		srr.addInfo(Replayer.PREPROCESSTIME, (statistics.get(Statistic.PREPROCESSTIME)) / 1000.0);
+		srr.addInfo(Replayer.HEURISTICSCOMPUTED, (double) statistics.get(Statistic.HEURISTICSCOMPUTED));
 		srr.setReliable(statistics.get(Statistic.EXITCODE) == Utils.OPTIMALALIGNMENT);
 		return srr;
 	}
