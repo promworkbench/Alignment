@@ -27,10 +27,6 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetFactory;
 import org.processmining.models.semantics.petrinet.Marking;
-import org.processmining.planningbasedalignment.plugins.planningbasedalignment.PlanningBasedAlignmentPlugin;
-import org.processmining.planningbasedalignment.plugins.planningbasedalignment.models.PlannerSearchStrategy;
-import org.processmining.planningbasedalignment.plugins.planningbasedalignment.models.PlanningBasedReplayResult;
-import org.processmining.planningbasedalignment.plugins.planningbasedalignment.parameters.PlanningBasedAlignmentParameters;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
@@ -46,9 +42,9 @@ import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 
 public class AlignmentTest {
 
-	private static final int THREADS = 1;//Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
+	private static final int THREADS = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
 
-	private static String FOLDER = "d:/temp/alignment/";
+	private static String FOLDER = "c:/temp/alignment/";
 	private static String SEP = Utils.SEP;
 	public static int iteration = 0;
 	public static FrameContext frame = new FrameContext();
@@ -83,6 +79,7 @@ public class AlignmentTest {
 	}
 
 	public static void main(String[] args) throws Exception {
+		AbstractLPBasedAlgorithm.useTranslate = false;
 		if (Type.PLANNING.include()) {
 			frame.setVisible(true);
 		}
@@ -92,20 +89,22 @@ public class AlignmentTest {
 		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6",
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
 
-		//		mainFileFolder(Debug.DOT, 100000, "alifah", "test", "alifah2", "test2");
+		mainFileFolder(Debug.DOT, 100000,  "test");
+//		mainFileFolder(Debug.NONE, 30, "prCm6");
 		//		mainFileFolder(Debug.STATS, 30, "pr1151_l4_noise");
 		//		mainFileFolder(Debug.STATS, 15, "prCm6");
 		//		mainFileFolder(Debug.STATS, 1, "prBm6", "prEm6", "prAm6","prCm6", "prDm6",  "prFm6", "prGm6");
 
-		AbstractLPBasedAlgorithm.useTranslate = false;
+		System.exit(0);
+
 		//April 2018:
 		int timeout = 60;
 		//Initialize internal structures...
 		mainFileFolder(Debug.NONE, timeout, "d53_rad1");
 		mainFileFolder(Debug.STATS, timeout, "d53_rad1");
-		
+
 		System.exit(0);
-		
+
 		//
 		mainFileFolder(Debug.STATS, timeout, "prCm6", "prBm6", "prAm6");
 		mainFileFolder(Debug.STATS, timeout, "prEm6", "prFm6", "prGm6", "prDm6"); // Planner runs out of memory
@@ -307,36 +306,36 @@ public class AlignmentTest {
 				break;
 
 			case PLANNING :
-				if (type.include()) {
-					PlanningBasedAlignmentParameters planParameters = new PlanningBasedAlignmentParameters();
-					planParameters.setInitialMarking(initialMarking);
-					planParameters.setFinalMarking(finalMarking);
-					Map<XEventClass, Integer> movesOnLogCosts = new HashMap<>();
-					for (XEventClass ec : classes.getClasses()) {
-						movesOnLogCosts.put(ec, 1);
-					}
-
-					// experiments use default costs
-					planParameters.setMovesOnLogCosts(movesOnLogCosts);
-					Map<Transition, Integer> movesOnModelCosts = new HashMap<>();
-					Map<Transition, Integer> synchronousMovesCosts = new HashMap<>();
-					for (Transition t : net.getTransitions()) {
-						movesOnModelCosts.put(t, t.isInvisible() ? new Integer(0) : new Integer(1));
-						synchronousMovesCosts.put(t, 0);
-					}
-
-					planParameters.setMovesOnModelCosts(movesOnModelCosts);
-					planParameters.setSynchronousMovesCosts(synchronousMovesCosts);
-					planParameters.setPlannerSearchStrategy(PlannerSearchStrategy.BLIND_A_STAR);
-					planParameters.setTracesInterval(new int[] { 1, log.size() });
-					planParameters.setTracesLengthBounds(new int[] { 0, Integer.MAX_VALUE });
-
-					planParameters.setTransitionsEventsMapping(mapping);
-					planParameters.setPartiallyOrderedEvents(false);
-
-					doReplayPlanning(debug, folder, "Planning", net, initialMarking, finalMarking, log, mapping,
-							classes, planParameters);
-				}
+				//				if (type.include()) {
+				//					PlanningBasedAlignmentParameters planParameters = new PlanningBasedAlignmentParameters();
+				//					planParameters.setInitialMarking(initialMarking);
+				//					planParameters.setFinalMarking(finalMarking);
+				//					Map<XEventClass, Integer> movesOnLogCosts = new HashMap<>();
+				//					for (XEventClass ec : classes.getClasses()) {
+				//						movesOnLogCosts.put(ec, 1);
+				//					}
+				//
+				//					// experiments use default costs
+				//					planParameters.setMovesOnLogCosts(movesOnLogCosts);
+				//					Map<Transition, Integer> movesOnModelCosts = new HashMap<>();
+				//					Map<Transition, Integer> synchronousMovesCosts = new HashMap<>();
+				//					for (Transition t : net.getTransitions()) {
+				//						movesOnModelCosts.put(t, t.isInvisible() ? new Integer(0) : new Integer(1));
+				//						synchronousMovesCosts.put(t, 0);
+				//					}
+				//
+				//					planParameters.setMovesOnModelCosts(movesOnModelCosts);
+				//					planParameters.setSynchronousMovesCosts(synchronousMovesCosts);
+				//					planParameters.setPlannerSearchStrategy(PlannerSearchStrategy.BLIND_A_STAR);
+				//					planParameters.setTracesInterval(new int[] { 1, log.size() });
+				//					planParameters.setTracesLengthBounds(new int[] { 0, Integer.MAX_VALUE });
+				//
+				//					planParameters.setTransitionsEventsMapping(mapping);
+				//					planParameters.setPartiallyOrderedEvents(false);
+				//
+				//					doReplayPlanning(debug, folder, "Planning", net, initialMarking, finalMarking, log, mapping,
+				//							classes, planParameters);
+				//				}
 				break;
 
 		}
@@ -401,62 +400,62 @@ public class AlignmentTest {
 
 	}
 
-	private static void doReplayPlanning(Debug debug, String folder, String postfix, Petrinet net,
-			Marking initialMarking, Marking finalMarking, XLog log, TransEvClassMapping mapping, XEventClasses classes,
-			PlanningBasedAlignmentParameters parameters)
-			throws FileNotFoundException, InterruptedException, ExecutionException {
-
-		PrintStream stream;
-		if (debug == Debug.STATS) {
-			stream = new PrintStream(new File(folder + " " + postfix + ".csv"));
-		} else if (debug == Debug.DOT) {
-			stream = new PrintStream(new File(folder + "_" + postfix + ".dot"));
-		} else {
-			stream = System.out;
-		}
-		ReplayAlgorithm.Debug.setOutputStream(stream);
-
-		long start = System.nanoTime();
-
-		PlanningBasedAlignmentPlugin plugin = new PlanningBasedAlignmentPlugin();
-		PlanningBasedReplayResult result = plugin.align(frame, new File("E:/"), log, net, parameters);
-
-		long end = System.nanoTime();
-
-		//		int cost = (int) Double.parseDouble((String) result.getInfo().get(Replayer.MAXMODELMOVECOST));
-		//		int timeout = 0;
-		//		double time = 0;
-		//		int mem = 0;
-		//		double pretime = 0;
-		//		for (SyncReplayResult res : result) {
-		//			cost += res.getTraceIndex().size() * res.getInfo().get(PNRepResult.RAWFITNESSCOST);
-		//			timeout += res.getTraceIndex().size() * (res.getInfo().get(Replayer.TRACEEXITCODE).intValue() != 1 ? 1 : 0);
-		//			time += res.getInfo().get(PNRepResult.TIME);
-		//			pretime += res.getInfo().get(Replayer.PREPROCESSTIME);
-		//			mem = Math.max(mem, res.getInfo().get(Replayer.MEMORYUSED).intValue());
-		//		}
-		//
-		//		if (stream != System.out) {
-		//			//			System.out.println(result.getInfo().toString());
-		//			stream.close();
-		//		}
-		//
-		//		// number timeouts
-		//		System.out.print(timeout + SEP);
-		// clocktime
-		//		System.out.print(String.format("%.3f", (end - start) / 1000000.0) + SEP);
-		//		// cpu time
-		//		System.out.print(String.format("%.3f", time) + SEP);
-		//		// preprocess time
-		//		System.out.print(String.format("%.3f", pretime) + SEP);
-		//		// max memory
-		//		System.out.print(mem + SEP);
-		//		// total cost.
-		//		System.out.print(cost + SEP);
-		//
-		System.out.flush();
-
-	}
+	//	private static void doReplayPlanning(Debug debug, String folder, String postfix, Petrinet net,
+	//			Marking initialMarking, Marking finalMarking, XLog log, TransEvClassMapping mapping, XEventClasses classes,
+	//			PlanningBasedAlignmentParameters parameters)
+	//			throws FileNotFoundException, InterruptedException, ExecutionException {
+	//
+	//		PrintStream stream;
+	//		if (debug == Debug.STATS) {
+	//			stream = new PrintStream(new File(folder + " " + postfix + ".csv"));
+	//		} else if (debug == Debug.DOT) {
+	//			stream = new PrintStream(new File(folder + "_" + postfix + ".dot"));
+	//		} else {
+	//			stream = System.out;
+	//		}
+	//		ReplayAlgorithm.Debug.setOutputStream(stream);
+	//
+	//		long start = System.nanoTime();
+	//
+	//		PlanningBasedAlignmentPlugin plugin = new PlanningBasedAlignmentPlugin();
+	//		PlanningBasedReplayResult result = plugin.align(frame, new File("E:/"), log, net, parameters);
+	//
+	//		long end = System.nanoTime();
+	//
+	//		//		int cost = (int) Double.parseDouble((String) result.getInfo().get(Replayer.MAXMODELMOVECOST));
+	//		//		int timeout = 0;
+	//		//		double time = 0;
+	//		//		int mem = 0;
+	//		//		double pretime = 0;
+	//		//		for (SyncReplayResult res : result) {
+	//		//			cost += res.getTraceIndex().size() * res.getInfo().get(PNRepResult.RAWFITNESSCOST);
+	//		//			timeout += res.getTraceIndex().size() * (res.getInfo().get(Replayer.TRACEEXITCODE).intValue() != 1 ? 1 : 0);
+	//		//			time += res.getInfo().get(PNRepResult.TIME);
+	//		//			pretime += res.getInfo().get(Replayer.PREPROCESSTIME);
+	//		//			mem = Math.max(mem, res.getInfo().get(Replayer.MEMORYUSED).intValue());
+	//		//		}
+	//		//
+	//		//		if (stream != System.out) {
+	//		//			//			System.out.println(result.getInfo().toString());
+	//		//			stream.close();
+	//		//		}
+	//		//
+	//		//		// number timeouts
+	//		//		System.out.print(timeout + SEP);
+	//		// clocktime
+	//		//		System.out.print(String.format("%.3f", (end - start) / 1000000.0) + SEP);
+	//		//		// cpu time
+	//		//		System.out.print(String.format("%.3f", time) + SEP);
+	//		//		// preprocess time
+	//		//		System.out.print(String.format("%.3f", pretime) + SEP);
+	//		//		// max memory
+	//		//		System.out.print(mem + SEP);
+	//		//		// total cost.
+	//		//		System.out.print(cost + SEP);
+	//		//
+	//		System.out.flush();
+	//
+	//	}
 
 	private static Petrinet constructNet(String netFile) {
 		PNMLSerializer PNML = new PNMLSerializer();
