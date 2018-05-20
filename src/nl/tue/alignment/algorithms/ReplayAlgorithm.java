@@ -897,7 +897,7 @@ public abstract class ReplayAlgorithm {
 			}
 			short[] output = net.getOutput(transition);
 			for (int i = output.length; i-- > 0;) {
-				if (marking[output[i]] > 2) {
+				if (marking[output[i]] > Byte.MAX_VALUE - 1 || marking[output[i]] < 0) {
 					alignmentResult |= Utils.ENABLINGBLOCKEDBYOUTPUT;
 					return false;
 				}

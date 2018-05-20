@@ -85,6 +85,13 @@ public class AStar extends AbstractLPBasedAlgorithm {
 	protected void initializeIteration() throws LPMatrixException {
 		//		try {
 		solver = matrix.toSolver();
+
+		//		try {
+		//			solver.setBFPFromPath("bfp_etaPFI");
+		//		} catch (Exception e) {
+		//			// Gracefully ignore...
+		//		}
+
 		// bytes for solver
 		bytesUsed = matrix.bytesUsed();
 		varsMainThread = new double[net.numTransitions()];

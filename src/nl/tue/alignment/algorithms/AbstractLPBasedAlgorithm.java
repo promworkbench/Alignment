@@ -18,9 +18,20 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 
 	protected static final byte BITPERTRANSMASK = (byte) 0b01111000;
 	protected static final byte FREEBITSFIRSTBYTE = 3;
+	protected int maxMapCapacity = 16;
 
 	// stores the location of the LP solution plus a flag if it is derived or real
-	protected TIntObjectMap<byte[]> lpSolutions = new TIntObjectHashMap<>(16);
+	protected TIntObjectMap<byte[]> lpSolutions = new TIntObjectHashMap<byte[]>(maxMapCapacity) {
+		@Override
+		protected void rehash(int newCapacity) {
+
+			super.rehash(newCapacity);
+			if (newCapacity > maxMapCapacity) {
+				maxMapCapacity = newCapacity;
+			}
+		}
+
+	};
 	protected long lpSolutionsSize = 4;
 	protected long bytesLpSolutionsSize = 4;
 	
@@ -204,7 +215,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	private void addSolution(int marking, byte[] solution) {
 		lpSolutions.put(marking, solution);
 		lpSolutionsSize += 12 + 4 + solution.length; // object size
-		lpSolutionsSize += 1 + 4 + 8; // used flag + key + value pointer
+		//		lpSolutionsSize += 1 + 4 + 8; // used flag + key + value pointer
 		bytesLpSolutionsSize = Math.max(bytesLpSolutionsSize , lpSolutionsSize);
 	}
 
@@ -215,6 +226,8 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 		long val = super.getEstimatedMemorySize();
 		// count space for all computed solutions
 		val += bytesLpSolutionsSize;
+		// count space for map
+		val += maxMapCapacity * (1 + 4 + 8);
 		// count size of matrix
 		val += bytesUsed;
 		return val;

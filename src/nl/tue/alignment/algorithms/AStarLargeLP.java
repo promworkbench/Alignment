@@ -227,6 +227,12 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			solver.setBasiscrash(LpSolve.CRASH_NOTHING);
 			solver.setSimplextype(LpSolve.SIMPLEX_DUAL_PRIMAL);
 
+			//			try {
+			//				solver.setBFPFromPath("bfp_etaPFI");
+			//			} catch (Exception e) {
+			//				// Gracefully ignore...
+			//			}
+
 			//			int res = solver.solve();
 			//			double[] vars = new double[indexMap.length];
 			//			solver.getVariables(vars);
