@@ -215,8 +215,6 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	private void addSolution(int marking, byte[] solution) {
 		lpSolutions.put(marking, solution);
 		lpSolutionsSize += 12 + 4 + solution.length; // object size
-		//		lpSolutionsSize += 1 + 4 + 8; // used flag + key + value pointer
-		bytesLpSolutionsSize = Math.max(bytesLpSolutionsSize , lpSolutionsSize);
 	}
 
 	protected abstract double computeCostForVars(double[] vars);
