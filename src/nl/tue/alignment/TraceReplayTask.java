@@ -27,7 +27,7 @@ import nl.tue.astar.util.ilp.LPMatrixException;
 
 public class TraceReplayTask implements Callable<TraceReplayTask> {
 
-	enum TraceReplayResult {
+	public static enum TraceReplayResult {
 		FAILED, DUPLICATE, SUCCESS
 	}
 
@@ -143,7 +143,8 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 				algorithm.putStatistic(Statistic.PREPROCESSTIME, (int) (pt / 1000));
 				algorithm.putStatistic(Statistic.CONSTRAINTSETSIZE, replayer.getConstraintSetSize());
 
-				alignment = algorithm.run(this.replayer.getProgress(), timeoutMilliseconds, maximumNumberOfStates);
+				alignment = algorithm.run(this.replayer.getProgress(), timeoutMilliseconds, maximumNumberOfStates,
+						parameters.costUpperBound);
 
 				if (parameters.debug == Debug.DOT) {
 					Utils.toDot(product, alignment, ReplayAlgorithm.Debug.getOutputStream());

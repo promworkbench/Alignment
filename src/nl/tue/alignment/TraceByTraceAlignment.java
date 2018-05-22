@@ -89,9 +89,11 @@ public class TraceByTraceAlignment {
 		boolean useInt = false;
 		// use partial orders (should be false for incremental alignments with pre-set splitpoints)
 		boolean partialOrder = false;
-
+		// upper bound for costs.
+		int costUpperBound = Integer.MAX_VALUE;
+		
 		parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, Debug.NONE, timeout,
-				maxNumberOfStates, partialOrder, false);
+				maxNumberOfStates, costUpperBound , partialOrder, false);
 		replayer = new Replayer(parameters, net, initialMarking, finalMarking, classes, mapping, false);
 
 	}

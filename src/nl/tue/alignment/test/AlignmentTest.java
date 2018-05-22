@@ -42,7 +42,7 @@ import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 
 public class AlignmentTest {
 
-	private static final int THREADS = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
+	private static final int THREADS = Math.max(1, Runtime.getRuntime().availableProcessors() / 4);
 
 	private static String FOLDER = "c:/temp/alignment/";
 	private static String SEP = Utils.SEP;
@@ -54,7 +54,7 @@ public class AlignmentTest {
 		ASTAR(true), //
 		INC0(true), //
 		INC3(false), //
-		INC_PLUS(false), //
+		INC_PLUS(true), //
 		PLANNING(false);
 
 		private boolean include;
@@ -88,21 +88,19 @@ public class AlignmentTest {
 		//		mainFileFolder(Debug.STATS, "test");//"pr1151_l4_noise","pr1912_l4_noise");
 		//		mainFileFolder(Debug.STATS, "pr1151_l4_noise", "pr1912_l4_noise", "temp", "sepsis", "prCm6", "prDm6", "prEm6",
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
+		//		mainFileFolder(Debug.STATS, 15, "road_fines");
 
-		mainFileFolder(Debug.DOT, 100000,  "test");
-//		mainFileFolder(Debug.NONE, 30, "prCm6");
+		mainFileFolder(Debug.DOT, 100000, "test");
+		//		mainFileFolder(Debug.NONE, 30, "prCm6");
 		//		mainFileFolder(Debug.STATS, 30, "pr1151_l4_noise");
 		//		mainFileFolder(Debug.STATS, 15, "prCm6");
-		//		mainFileFolder(Debug.STATS, 1, "prBm6", "prEm6", "prAm6","prCm6", "prDm6",  "prFm6", "prGm6");
 
-		System.exit(0);
+		//		mainFileFolder(Debug.STATS, 30, "prAm6", "prBm6", "prEm6", "prCm6", "prDm6", "prFm6", "prGm6");
 
 		//April 2018:
 		int timeout = 60;
 		//Initialize internal structures...
 		mainFileFolder(Debug.NONE, timeout, "d53_rad1");
-		mainFileFolder(Debug.STATS, timeout, "d53_rad1");
-
 		System.exit(0);
 
 		//
@@ -273,7 +271,7 @@ public class AlignmentTest {
 			case ASTAR :
 				if (type.include()) {
 					parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug,
-							timeout, maxNumberOfStates, partialOrder);
+							timeout, maxNumberOfStates, Integer.MAX_VALUE, partialOrder);
 					doReplay(debug, folder, "AStar", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
 				}
@@ -282,7 +280,7 @@ public class AlignmentTest {
 			case INC0 :
 				if (type.include()) {
 					parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, debug, timeout,
-							maxNumberOfStates, partialOrder, 0);
+							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, 0);
 					doReplay(debug, folder, "Incre0", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
 				}
@@ -290,7 +288,7 @@ public class AlignmentTest {
 			case INC3 :
 				if (type.include()) {
 					parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, debug, timeout,
-							maxNumberOfStates, partialOrder, 3);
+							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, 3);
 					doReplay(debug, folder, "Incre3", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
 				}
@@ -299,7 +297,7 @@ public class AlignmentTest {
 			case INC_PLUS :
 				if (type.include()) {
 					parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, debug, timeout,
-							maxNumberOfStates, partialOrder, true);
+							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, true);
 					doReplay(debug, folder, "Incre++", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
 				}
@@ -549,6 +547,14 @@ public class AlignmentTest {
 				String id = evClass.getId();
 
 				if (t.getLabel().equals(id)) {
+					mapping.put(t, evClass);
+					mapped = true;
+					break;
+				} else if (id.equals(t.getLabel() + "+complete")) {
+					mapping.put(t, evClass);
+					mapped = true;
+					break;
+				} else if (id.equals(t.getLabel() + "+")) {
 					mapping.put(t, evClass);
 					mapped = true;
 					break;

@@ -414,7 +414,8 @@ public abstract class ReplayAlgorithm {
 		return val;
 	}
 
-	public short[] run(Progress progress, int timeoutMilliseconds, int maximumNumberOfStates) throws LPMatrixException {
+	public short[] run(Progress progress, int timeoutMilliseconds, int maximumNumberOfStates, int costUpperLimit)
+			throws LPMatrixException {
 		if (maximumNumberOfStates <= 0) {
 			this.maximumNumberOfStates = Integer.MAX_VALUE;
 		} else {
@@ -431,10 +432,10 @@ public abstract class ReplayAlgorithm {
 		iteration = -1;
 
 		return runReplayAlgorithm(progress, System.nanoTime(),
-				timeoutMilliseconds <= 0 ? Integer.MAX_VALUE : timeoutMilliseconds);
+				timeoutMilliseconds <= 0 ? Integer.MAX_VALUE : timeoutMilliseconds, costUpperLimit);
 	}
 
-	protected short[] runReplayAlgorithm(Progress progress, long startTime, int timeoutMilliseconds)
+	protected short[] runReplayAlgorithm(Progress progress, long startTime, int timeoutMilliseconds, int costUpperBound)
 			throws LPMatrixException {
 
 		//		short[] trans = new short[net.numTransitions()];
@@ -449,6 +450,7 @@ public abstract class ReplayAlgorithm {
 			int markingsReachedInRun = 1;
 			int closedActionsInRun = 0;
 			short[] alignment = null;
+			int f_Score = -1;
 			try {
 				initializeIteration();
 				debug.println(Debug.DOT, "subgraph cluster_" + iteration);
@@ -468,6 +470,13 @@ public abstract class ReplayAlgorithm {
 					int m = queue.peek();
 					int bm = m >>> blockBit;
 					int im = m & blockMask;
+
+					f_Score = getFScore(bm, im);
+
+					// check cost upper limit
+					if (f_Score > costUpperBound) {
+						break queueLoop;
+					}
 
 					switch (closeOrUpdateMarking(m, marking_m, bm, im)) {
 						case FINALMARKINGFOUND :
@@ -502,6 +511,9 @@ public abstract class ReplayAlgorithm {
 				}
 				if (markingsReachedInRun >= maximumNumberOfStates) {
 					alignmentResult |= Utils.STATELIMITREACHED;
+				}
+				if (f_Score > costUpperBound) {
+					alignmentResult |= Utils.COSTLIMITREACHED;
 				}
 				terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
 			}

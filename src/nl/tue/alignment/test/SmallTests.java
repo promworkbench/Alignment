@@ -429,7 +429,7 @@ public class SmallTests {
 		}
 
 		try {
-			return algorithm.run(Progress.INVISIBLE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+			return algorithm.run(Progress.INVISIBLE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
 		} catch (LPMatrixException e) {
 			e.printStackTrace();
 		}
