@@ -1,5 +1,8 @@
 package nl.tue.alignment.test;
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -7,12 +10,21 @@ import java.util.concurrent.Future;
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
 import org.deckfour.xes.classification.XEventClassifier;
+import org.deckfour.xes.classification.XEventNameClassifier;
+import org.deckfour.xes.in.XMxmlParser;
+import org.deckfour.xes.in.XesXmlParser;
 import org.deckfour.xes.info.XLogInfo;
 import org.deckfour.xes.info.XLogInfoFactory;
+import org.deckfour.xes.info.impl.XLogInfoImpl;
 import org.deckfour.xes.model.XLog;
+import org.jbpt.petri.Flow;
+import org.jbpt.petri.NetSystem;
+import org.jbpt.petri.io.PNMLSerializer;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
+import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetFactory;
 import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
@@ -24,6 +36,36 @@ import nl.tue.alignment.Utils;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 
 public class BasicCodeSnippet {
+
+	public static void main() throws Exception {
+		String petrinetFile = "file";
+		String logFile = "log";
+
+		Petrinet net = constructNet(petrinetFile + ".pnml");
+		Marking initialMarking = getInitialMarking(net);
+		Marking finalMarking = getFinalMarking(net);
+
+		XLog log;
+		XEventClassifier eventClassifier;
+
+		if (new File(logFile + ".mxml").exists()) {
+			XMxmlParser parser = new XMxmlParser();
+			eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
+			log = parser.parse(new File(logFile + ".mxml")).get(0);
+		} else {
+			XesXmlParser parser = new XesXmlParser();
+			eventClassifier = new XEventNameClassifier();
+			log = parser.parse(new File(logFile + ".xes")).get(0);
+		}
+
+		XEventClass dummyEvClass = new XEventClass("DUMMY", 99999);
+		TransEvClassMapping mapping = constructMappingBasedOnLabelEquality(net, log, dummyEvClass, eventClassifier);
+		XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
+		XEventClasses classes = summary.getEventClasses();
+
+		doReplay(log, net, initialMarking, finalMarking, classes, mapping);
+
+	}
 
 	public static void doReplay(XLog log, Petrinet net, Marking initialMarking, Marking finalMarking,
 			XEventClasses classes, TransEvClassMapping mapping) {
@@ -110,6 +152,8 @@ public class BasicCodeSnippet {
 			}
 
 		}
+		System.out.println("Fitting:     " + fitting);
+		System.out.println("Non-fitting: " + nonfitting);
 
 	}
 
@@ -139,4 +183,85 @@ public class BasicCodeSnippet {
 
 		return mapping;
 	}
+
+	public static Petrinet constructNet(String netFile) {
+		PNMLSerializer PNML = new PNMLSerializer();
+		NetSystem sys = PNML.parse(netFile);
+
+		//System.err.println(sys.getMarkedPlaces());
+
+		//		int pi, ti;
+		//		pi = ti = 1;
+		//		for (org.jbpt.petri.Place p : sys.getPlaces())
+		//			p.setName("p" + pi++);
+		//		for (org.jbpt.petri.Transition t : sys.getTransitions())
+		//				t.setName("t" + ti++);
+
+		Petrinet net = PetrinetFactory.newPetrinet(netFile);
+
+		// places
+		Map<org.jbpt.petri.Place, Place> p2p = new HashMap<org.jbpt.petri.Place, Place>();
+		for (org.jbpt.petri.Place p : sys.getPlaces()) {
+			Place pp = net.addPlace(p.toString());
+			p2p.put(p, pp);
+		}
+
+		// transitions
+		Map<org.jbpt.petri.Transition, Transition> t2t = new HashMap<org.jbpt.petri.Transition, Transition>();
+		for (org.jbpt.petri.Transition t : sys.getTransitions()) {
+			Transition tt = net.addTransition(t.getLabel());
+			if (t.isSilent() || t.getLabel().startsWith("tau") || t.getLabel().equals("t2") || t.getLabel().equals("t8")
+					|| t.getLabel().equals("complete")) {
+				tt.setInvisible(true);
+			}
+			t2t.put(t, tt);
+		}
+
+		// flow
+		for (Flow f : sys.getFlow()) {
+			if (f.getSource() instanceof org.jbpt.petri.Place) {
+				net.addArc(p2p.get(f.getSource()), t2t.get(f.getTarget()));
+			} else {
+				net.addArc(t2t.get(f.getSource()), p2p.get(f.getTarget()));
+			}
+		}
+
+		// add unique start node
+		if (sys.getSourceNodes().isEmpty()) {
+			Place i = net.addPlace("START_P");
+			Transition t = net.addTransition("");
+			t.setInvisible(true);
+			net.addArc(i, t);
+
+			for (org.jbpt.petri.Place p : sys.getMarkedPlaces()) {
+				net.addArc(t, p2p.get(p));
+			}
+
+		}
+
+		return net;
+	}
+
+	private static Marking getFinalMarking(PetrinetGraph net) {
+		Marking finalMarking = new Marking();
+
+		for (Place p : net.getPlaces()) {
+			if (net.getOutEdges(p).isEmpty())
+				finalMarking.add(p);
+		}
+
+		return finalMarking;
+	}
+
+	private static Marking getInitialMarking(PetrinetGraph net) {
+		Marking initMarking = new Marking();
+
+		for (Place p : net.getPlaces()) {
+			if (net.getInEdges(p).isEmpty())
+				initMarking.add(p);
+		}
+
+		return initMarking;
+	}
+
 }
