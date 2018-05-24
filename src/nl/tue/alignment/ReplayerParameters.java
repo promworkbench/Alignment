@@ -43,17 +43,18 @@ public abstract class ReplayerParameters {
 
 	public final static class Default extends ReplayerParameters {
 		public Default() {
-			super(Algorithm.INCREMENTALASTAR, true, true, true,Math.max(1, Runtime.getRuntime().availableProcessors() / 4) , false, Debug.NONE, Integer.MAX_VALUE,
+			super(Algorithm.INCREMENTALASTAR, false, true, true,
+					Math.max(1, Runtime.getRuntime().availableProcessors() / 4), false, Debug.NONE, Integer.MAX_VALUE,
 					Integer.MAX_VALUE, Integer.MAX_VALUE, false, true, 0);
 		}
 
 		public Default(int nThreads, Debug debug) {
-			super(Algorithm.INCREMENTALASTAR, true, true, true, nThreads, false, debug, Integer.MAX_VALUE,
+			super(Algorithm.INCREMENTALASTAR, false, true, true, nThreads, false, debug, Integer.MAX_VALUE,
 					Integer.MAX_VALUE, Integer.MAX_VALUE, false, false, 0);
 		}
 
 		public Default(int nThreads, int costUpperBound, Debug debug) {
-			super(Algorithm.INCREMENTALASTAR, true, true, true, nThreads, false, debug, Integer.MAX_VALUE,
+			super(Algorithm.INCREMENTALASTAR, false, true, true, nThreads, false, debug, Integer.MAX_VALUE,
 					Integer.MAX_VALUE, costUpperBound, false, false, 0);
 		}
 
