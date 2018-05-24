@@ -9,7 +9,7 @@ class ReplayAlgorithmDataStore {
 	// The g__pt array is organized as follows
 	private static final long GMASK /* ..... 31 */ = 0b1111111111111111111111111111111000000000000000000000000000000000L;
 	// Free:                                  2    = 0b0000000000000000000000000000000110000000000000000000000000000000L
-	private static final int GSHIFT /*          */ = 33;
+	private static final int GSHIFT /*          */ = Long.numberOfTrailingZeros(GMASK);
 	private static final long PTMASK /* .... 31 */ = 0b0000000000000000000000000000000001111111111111111111111111111111L;
 
 	// The e_h_c_p array is organized as follows
@@ -17,7 +17,7 @@ class ReplayAlgorithmDataStore {
 	private static final long HMASK /* ..... 31 */ = 0b0111111111111111111111111111111100000000000000000000000000000000L;
 	private static final long CLOSEDMASK /* . 1 */ = 0b0000000000000000000000000000000010000000000000000000000000000000L;
 	private static final long PMASK /* ..... 31 */ = 0b0000000000000000000000000000000001111111111111111111111111111111L;
-	private static final int HSHIFT /*          */ = 32;
+	private static final int HSHIFT /*          */ = Long.numberOfTrailingZeros(HMASK);;
 
 	protected static int HEURISTICINFINITE /*   */ = Integer.MAX_VALUE;
 	protected static final int NOPREDECESSOR /* */ = (int) PMASK;
