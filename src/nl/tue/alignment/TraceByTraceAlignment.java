@@ -91,9 +91,9 @@ public class TraceByTraceAlignment {
 		boolean partialOrder = false;
 		// upper bound for costs.
 		int costUpperBound = Integer.MAX_VALUE;
-		
+
 		parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, Debug.NONE, timeout,
-				maxNumberOfStates, costUpperBound , partialOrder, false);
+				maxNumberOfStates, costUpperBound, partialOrder, false);
 		replayer = new Replayer(parameters, net, initialMarking, finalMarking, classes, mapping, false);
 
 	}
@@ -112,7 +112,7 @@ public class TraceByTraceAlignment {
 	 * @throws InterruptedException
 	 */
 	public Future<TraceReplayTask> doReplay(XTrace trace, int traceIndex, int timeoutMilliseconds,
-			long preProcessTimeNanoseconds, short... eventsWithErrors)
+			long preProcessTimeNanoseconds, int... eventsWithErrors)
 			throws InterruptedException, ExecutionException, TimeoutException {
 
 		TraceReplayTask task = new TraceReplayTask(replayer, parameters, trace, traceIndex, timeoutMilliseconds,

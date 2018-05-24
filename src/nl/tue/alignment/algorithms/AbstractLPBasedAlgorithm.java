@@ -67,7 +67,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 		// and compute the maximum.
 		Arrays.fill(tempForSettingSolution, 0);
 		byte bits = 1;
-		for (short i = (short) solutionDouble.length; i-- > 0;) {
+		for (int i =  solutionDouble.length; i-- > 0;) {
 			tempForSettingSolution[translate(i)] += ((int) (solutionDouble[i] + 1E-7));
 			if (tempForSettingSolution[translate(i)] > (1 << (bits - 1))) {
 				bits++;
@@ -76,7 +76,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 		setNewLpSolution(marking, bits, tempForSettingSolution);
 	}
 
-	protected int translate(short transition) {
+	protected int translate(int transition) {
 		return useTranslate ? net.getMoveOf(transition) : transition;
 	}
 
@@ -105,7 +105,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 
 		int currentByte = 0;
 		byte currentBit = (1 << (FREEBITSFIRSTBYTE - 1));
-		for (short t = 0; t < solutionInt.length; t++) {
+		for (int t = 0; t < solutionInt.length; t++) {
 			// tempForSettingSolution[i] can be stored in "bits" bits.
 			for (int b = 1 << bits; b > 0; b >>>= 1) {
 				// copy the appropriate bit
@@ -120,12 +120,12 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 			}
 		}
 		addSolution(marking, solution);
-		//		for (short i = 0; i < net.numTransitions(); i++) {
+		//		for (int i = 0; i < net.numTransitions(); i++) {
 		//			assert (solutionInt[translate(i)] == getLpSolution(marking, i)) : "Error in " + i;
 		//		}
 	}
 
-	protected int getLpSolution(int marking, short transition) {
+	protected int getLpSolution(int marking, int transition) {
 		int move = translate(transition);
 
 		byte[] solution = getSolution(marking);
@@ -168,7 +168,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 		return getSolution(marking) != null && (getSolution(marking)[0] & DERIVED) == DERIVED;
 	}
 
-	protected void setDerivedLpSolution(int from, int to, short transition) {
+	protected void setDerivedLpSolution(int from, int to, int transition) {
 		int move = translate(transition);
 
 		//		assert getSolution(to) == null;
@@ -240,7 +240,7 @@ public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
 	}
 
 	@Override
-	protected void terminateIteration(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+	protected void terminateIteration(int[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		try {
 			super.terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
 		} finally {

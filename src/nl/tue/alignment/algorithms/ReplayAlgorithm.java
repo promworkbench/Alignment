@@ -62,7 +62,7 @@ import nl.tue.astar.util.ilp.LPMatrixException;
  * value of h (Unsigned, assumed maximum is 16777214, since 16777215 stands for infinite).
  * 
  * The ptl relation is composed of the 8 low bits from ptl_g and the 7 high bits from pth_h. 
- * Combined with a highest bit equal to 0 they form a short value which is interpreted signed, 
+ * Combined with a highest bit equal to 0 they form a int value which is interpreted signed, 
  * i.e. maximum 32767.
  * 
  * The array c_p uses the highest bit to indicate that a marking is in the closed set. The
@@ -116,7 +116,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 			}
 
 			@Override
-			public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition, int toMarking,
+			public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, int transition, int toMarking,
 					String extra) {
 				StringBuilder b = new StringBuilder();
 				b.append("i" + algorithm.iteration);
@@ -165,14 +165,14 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		private static String EMPTY = "";
 		private static PrintStream output = System.out;
 
-		public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition, int toMarking,
+		public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, int transition, int toMarking,
 				String extra) {
 		}
 
 		public void writeMarkingReached(ReplayAlgorithm algorithm, int marking, String extra) {
 		}
 
-		public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, short transition, int toMarking) {
+		public void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, int transition, int toMarking) {
 			this.writeEdgeTraversed(algorithm, fromMarking, transition, toMarking, EMPTY);
 		}
 
@@ -264,7 +264,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 	protected int iteration;
 
 	protected long startConstructor;
-	protected short numPlaces;
+	protected int numPlaces;
 	private boolean queueSorting;
 	//	private boolean multiThreading;
 	protected long timeoutAtTimeInMillisecond;
@@ -301,7 +301,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		return replayStatistics;
 	}
 
-	protected void fillStatistics(short[] alignment) {
+	protected void fillStatistics(int[] alignment) {
 		replayStatistics.put(Utils.Statistic.POLLACTIONS, pollActions);
 		replayStatistics.put(Utils.Statistic.CLOSEDACTIONS, closedActions);
 		replayStatistics.put(Utils.Statistic.QUEUEACTIONS, queueActions);
@@ -344,7 +344,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		return val;
 	}
 
-	public short[] run(Progress progress, int timeoutMilliseconds, int maximumNumberOfStates, int costUpperLimit)
+	public int[] run(Progress progress, int timeoutMilliseconds, int maximumNumberOfStates, int costUpperLimit)
 			throws LPMatrixException {
 		if (maximumNumberOfStates <= 0) {
 			this.maximumNumberOfStates = Integer.MAX_VALUE;
@@ -365,11 +365,11 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 				timeoutMilliseconds <= 0 ? Integer.MAX_VALUE : timeoutMilliseconds, costUpperLimit);
 	}
 
-	protected short[] runReplayAlgorithm(Progress progress, long startTime, int timeoutMilliseconds, int costUpperBound)
+	protected int[] runReplayAlgorithm(Progress progress, long startTime, int timeoutMilliseconds, int costUpperBound)
 			throws LPMatrixException {
 
-		//		short[] trans = new short[net.numTransitions()];
-		//		for (short t = net.numTransitions(); t-- > 0;) {
+		//		int[] trans = new int[net.numTransitions()];
+		//		for (int t = net.numTransitions(); t-- > 0;) {
 		//			trans[t] = t;
 		//		}
 		//		Utils.shuffleArray(trans, new Random());
@@ -379,7 +379,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		restartLoop: do {
 			int markingsReachedInRun = 1;
 			int closedActionsInRun = 0;
-			short[] alignment = null;
+			int[] alignment = null;
 			int f_Score = -1;
 			try {
 				initializeIteration();
@@ -432,7 +432,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 					alignment = handleFinalMarkingReached(startTime, queue.peek());
 				} else {
 					runTime = (int) ((System.nanoTime() - startTime) / 1000);
-					alignment = new short[0];
+					alignment = new int[0];
 				}
 				return alignment;
 			} finally {
@@ -455,9 +455,9 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 	protected int expandMarking(int m, byte[] marking_m, int bm, int im) {
 		int markingsReachedInExpand = 0;
 		// iterate over all transitions
-		for (short t = 0; t < net.numTransitions() && (System.currentTimeMillis() < timeoutAtTimeInMillisecond); t++) {
-			//				for (short t = net.numTransitions(); t-- > 0;) {
-			//				for (short t : trans) {
+		for (int t = 0; t < net.numTransitions() && (System.currentTimeMillis() < timeoutAtTimeInMillisecond); t++) {
+			//				for (int t = net.numTransitions(); t-- > 0;) {
+			//				for (int t : trans) {
 
 			// check for enabling
 			if (isEnabled(marking_m, t, bm, im)) {
@@ -491,7 +491,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 						if (tmpG < getGScore(bn, in)) {
 							debug.writeEdgeTraversed(this, m, t, n);
 
-							// found a shorter path to n.
+							// found a inter path to n.
 							setGScore(bn, in, tmpG);
 
 							// set predecessor
@@ -647,7 +647,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		int i = pos & blockMask;
 		// set predecessor to null
 		setPredecessor(b, i, NOPREDECESSOR);
-		setPredecessorTransition(b, i, (short) 0);
+		setPredecessorTransition(b, i, 0);
 		setGScore(b, i, 0);
 
 		int heuristic;
@@ -674,21 +674,21 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		// skip. Can be used by subclasses to handle
 	}
 
-	protected short[] handleFinalMarkingReached(long startTime, int marking) {
+	protected int[] handleFinalMarkingReached(long startTime, int marking) {
 		// Final marking reached.
 		int n = getPredecessor(marking);
 		int m2 = marking;
-		short t;
+		int t;
 		while (n != NOPREDECESSOR) {
 			t = getPredecessorTransition(m2);
 
-			debug.writeEdgeTraversed(this, n, (short) -1, m2, "color=red");
+			debug.writeEdgeTraversed(this, n, -1, m2, "color=red");
 			alignmentLength++;
 			alignmentCost += net.getCost(t);
 			m2 = n;
 			n = getPredecessor(n);
 		}
-		short[] alignment = new short[alignmentLength];
+		int[] alignment = new int[alignmentLength];
 		n = getPredecessor(marking);
 		m2 = marking;
 		int l = alignmentLength;
@@ -704,7 +704,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		return alignment;
 	}
 
-	protected void writeEndOfAlignmentStats(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+	protected void writeEndOfAlignmentStats(int[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		if (alignment != null) {
 			debug.print(Debug.STATS, net.getLabel());
 			for (Statistic s : Statistic.values()) {
@@ -717,7 +717,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		}
 	}
 
-	protected void writeEndOfAlignmentNormal(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+	protected void writeEndOfAlignmentNormal(int[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		if (alignment != null) {
 			for (Statistic s : Statistic.values()) {
 				debug.println(Debug.NORMAL, s + ": " + replayStatistics.get(s));
@@ -725,7 +725,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		}
 	}
 
-	protected void writeEndOfAlignmentDot(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+	protected void writeEndOfAlignmentDot(int[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		// close the graph
 
 		for (int m = 0; m < markingsReachedInRun; m++) {
@@ -752,7 +752,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		}
 	}
 
-	protected void terminateIteration(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+	protected void terminateIteration(int[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		if (alignment != null) {
 			fillStatistics(alignment);
 		}
@@ -769,7 +769,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		}
 	}
 
-	protected abstract void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to,
+	protected abstract void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, int transition, int to,
 			int toBlock, int toIndex);
 
 	protected abstract boolean isFinal(int marking);
@@ -777,11 +777,11 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 	// Used internally in firing.
 	private transient final byte[] firingMarking;
 
-	protected byte[] fire(byte[] fromMarking, short transition, int block, int index) {
+	protected byte[] fire(byte[] fromMarking, int transition, int block, int index) {
 		// fire transition t in marking stored at block, index
 		// First consumption:
-		short[] input = net.getInput(transition);
-		short[] output = net.getOutput(transition);
+		int[] input = net.getInput(transition);
+		int[] output = net.getOutput(transition);
 		System.arraycopy(fromMarking, 0, firingMarking, 0, numPlaces);
 
 		for (int i = input.length; i-- > 0;) {
@@ -806,11 +806,11 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		return firingMarking;
 	}
 
-	protected void fire(byte[] marking, short transition) {
+	protected void fire(byte[] marking, int transition) {
 		// fire transition t in marking stored at block, index
 		// First consumption:
-		short[] input = net.getInput(transition);
-		short[] output = net.getOutput(transition);
+		int[] input = net.getInput(transition);
+		int[] output = net.getOutput(transition);
 
 		for (int i = input.length; i-- > 0;) {
 			marking[input[i]]--;
@@ -820,20 +820,20 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		}
 	}
 
-	protected boolean isEnabled(byte[] marking, short transition, int block, int index) {
+	protected boolean isEnabled(byte[] marking, int transition, int block, int index) {
 		// check enablement on the tokens and on the predecessor
-		short preTransition = getPredecessorTransition(block, index);
+		int preTransition = getPredecessorTransition(block, index);
 		if (!moveSorting || preTransition <= transition || hasPlaceBetween(preTransition, transition)) {
 			// allow firing only if there is a place between or if total order
 			// is
 			// respected
-			short[] input = net.getInput(transition);
+			int[] input = net.getInput(transition);
 			for (int i = input.length; i-- > 0;) {
 				if (marking[input[i]] < 1) {
 					return false;
 				}
 			}
-			short[] output = net.getOutput(transition);
+			int[] output = net.getOutput(transition);
 			for (int i = output.length; i-- > 0;) {
 				if (marking[output[i]] > Byte.MAX_VALUE - 1 || marking[output[i]] < 0) {
 					alignmentResult |= Utils.ENABLINGBLOCKEDBYOUTPUT;
@@ -872,9 +872,9 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 	 * @param transitionTo
 	 * @return
 	 */
-	public boolean hasPlaceBetween(short preTransition, short transition) {
-		short[] input = net.getInput(transition);
-		short[] output = net.getOutput(preTransition);
+	public boolean hasPlaceBetween(int preTransition, int transition) {
+		int[] input = net.getInput(transition);
+		int[] output = net.getOutput(preTransition);
 		// Note, input and output are SORTED LISTS.
 		int i = 0, j = 0;
 		while (i < input.length && j < output.length) {
@@ -894,7 +894,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		// add initial marking
 		System.arraycopy(net.getInitialMarking(), 0, marking, 0, numPlaces);
 		// fire all transitions in the sequence back
-		short t;
+		int t;
 		int m = getPredecessor(block, index);
 		while (m != NOPREDECESSOR) {
 			t = getPredecessorTransition(block, index);
@@ -1008,7 +1008,7 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		return net;
 	}
 
-	private int getCostForType(short[] alignment, byte type1, byte type2) {
+	private int getCostForType(int[] alignment, byte type1, byte type2) {
 		int cost = 0;
 		for (int i = 0; i < alignment.length; i++) {
 			if (net.getTypeOf(alignment[i]) == type1 || net.getTypeOf(alignment[i]) == type2) {
@@ -1018,14 +1018,14 @@ public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 		return cost;
 	}
 
-	public short getLastRankOf(int marking) {
+	public int getLastRankOf(int marking) {
 		int m = marking;
-		short trans = getPredecessorTransition(m);
+		int trans = getPredecessorTransition(m);
 		while (net.getRankOf(trans) < 0 && m > 0) {
 			m = getPredecessor(m);
 			trans = getPredecessorTransition(m);
 		}
-		short evt = net.getRankOf(trans);
+		int evt = net.getRankOf(trans);
 		return evt;
 	}
 

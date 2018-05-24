@@ -2,11 +2,11 @@ package nl.tue.alignment;
 
 import java.io.PrintStream;
 
-import gnu.trove.iterator.TShortIterator;
+import gnu.trove.iterator.TIntIterator;
 import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.set.TShortSet;
-import gnu.trove.set.hash.TShortHashSet;
+import gnu.trove.set.TIntSet;
+import gnu.trove.set.hash.TIntHashSet;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
 public class Utils {
@@ -83,7 +83,7 @@ public class Utils {
 	public static String asVector(byte[] marking, SyncProduct net) {
 		StringBuffer buf = new StringBuffer();
 		buf.append('[');
-		for (short i = 0; i < net.numPlaces();) {
+		for (int i = 0; i < net.numPlaces();) {
 			buf.append(marking[i]);
 			if (++i < net.numPlaces()) {
 				buf.append(',');
@@ -96,7 +96,7 @@ public class Utils {
 	public static String asBag(byte[] marking, SyncProduct net) {
 		StringBuffer buf = new StringBuffer();
 		buf.append('[');
-		for (short i = 0; i < net.numPlaces();) {
+		for (int i = 0; i < net.numPlaces();) {
 			if (marking[i] > 0) {
 				if (buf.length() > 1) {
 					buf.append(',');
@@ -114,7 +114,7 @@ public class Utils {
 
 	public static void toTpn(SyncProduct product, PrintStream stream) {
 		synchronized (stream) {
-			for (short p = 0; p < product.numPlaces(); p++) {
+			for (int p = 0; p < product.numPlaces(); p++) {
 				stream.print("place \"place_" + p);
 				stream.print("\"");
 				if (product.getInitialMarking()[p] > 0) {
@@ -122,17 +122,17 @@ public class Utils {
 				}
 				stream.print(";\n");
 			}
-			for (short t = 0; t < product.numTransitions(); t++) {
+			for (int t = 0; t < product.numTransitions(); t++) {
 				stream.print("trans \"t_" + t);
 				stream.print("\"~\"");
 				stream.print(product.getTransitionLabel(t));
 				stream.print("\" in ");
-				for (short p : product.getInput(t)) {
+				for (int p : product.getInput(t)) {
 					stream.print(" \"place_" + p);
 					stream.print("\"");
 				}
 				stream.print(" out ");
-				for (short p : product.getOutput(t)) {
+				for (int p : product.getOutput(t)) {
 					stream.print(" \"place_" + p);
 					stream.print("\"");
 				}
@@ -147,30 +147,30 @@ public class Utils {
 		synchronized (stream) {
 			stream.println("Digraph SP { \n rankdir=LR;\n");
 
-			for (short p = 0; p < product.numPlaces(); p++) {
+			for (int p = 0; p < product.numPlaces(); p++) {
 				placeToDot(product, stream, p, p);
 			}
 			stream.print("{ rank=same;");
-			for (short p = 0; p < product.numPlaces(); p++) {
+			for (int p = 0; p < product.numPlaces(); p++) {
 				if (product.getInitialMarking()[p] > 0) {
 					stream.print("p" + p + "; ");
 				}
 			}
 			stream.print("}\n");
 			stream.print("{ rank=same;");
-			for (short p = 0; p < product.numPlaces(); p++) {
+			for (int p = 0; p < product.numPlaces(); p++) {
 				if (product.getFinalMarking()[p] > 0) {
 					stream.print("p" + p + "; ");
 				}
 			}
 			stream.print("}\n");
 
-			TShortSet events = new TShortHashSet(product.numTransitions(), 0.5f, (short) -2);
-			for (short t = 0; t < product.numTransitions(); t++) {
+			TIntSet events = new TIntHashSet(product.numTransitions(), 0.5f,  -2);
+			for (int t = 0; t < product.numTransitions(); t++) {
 				events.add(product.getEventOf(t));
 				transitionToDot(product, stream, t, t);
 
-				for (short p : product.getInput(t)) {
+				for (int p : product.getInput(t)) {
 					stream.print("p" + p + " -> t" + t);
 					if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
 						stream.print(" [weight=2]");
@@ -179,7 +179,7 @@ public class Utils {
 					}
 					stream.print(";\n");
 				}
-				for (short p : product.getOutput(t)) {
+				for (int p : product.getOutput(t)) {
 					stream.print("t" + t + " -> p" + p);
 					if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
 						stream.print(" [weight=2]");
@@ -192,11 +192,11 @@ public class Utils {
 
 			events.remove(SyncProduct.NOEVENT);
 
-			short e;
-			for (TShortIterator it = events.iterator(); it.hasNext();) {
+			int e;
+			for (TIntIterator it = events.iterator(); it.hasNext();) {
 				e = it.next();
 				stream.print("{ rank=same;");
-				for (short t = 0; t < product.numTransitions(); t++) {
+				for (int t = 0; t < product.numTransitions(); t++) {
 					if (product.getEventOf(t) == e) {
 						stream.print("t" + t + "; ");
 					}
@@ -211,13 +211,13 @@ public class Utils {
 
 	}
 
-	public static void toDot(SyncProduct product, short[] alignment, PrintStream stream) {
+	public static void toDot(SyncProduct product, int[] alignment, PrintStream stream) {
 		synchronized (stream) {
 			stream.print("Digraph A { \n rankdir=LR;\n");
 
 			stream.print("{ rank=same;");
 			TIntList[] place2index = new TIntList[product.numPlaces()];
-			for (short p = 0; p < product.numPlaces(); p++) {
+			for (int p = 0; p < product.numPlaces(); p++) {
 				place2index[p] = new TIntArrayList(3);
 				if (product.getInitialMarking()[p] > 0) {
 					place2index[p].add(p);
@@ -227,10 +227,10 @@ public class Utils {
 			stream.print("}\n");
 
 			for (int i = 0; i < alignment.length; i++) {
-				short t = alignment[i];
+				int t = alignment[i];
 				transitionToDot(product, stream, i, t);
 
-				for (short p : product.getInput(t)) {
+				for (int p : product.getInput(t)) {
 					int j = place2index[p].removeAt(place2index[p].size() - 1);
 					if (j == p) {
 						placeToDot(product, stream, j, p);
@@ -243,7 +243,7 @@ public class Utils {
 					}
 					stream.print(";\n");
 				}
-				for (short p : product.getOutput(t)) {
+				for (int p : product.getOutput(t)) {
 					int j = i * product.numPlaces() + p;
 					place2index[p].add(j);
 					placeToDot(product, stream, j, p);
@@ -258,7 +258,7 @@ public class Utils {
 			}
 
 			stream.print("{ rank=same;");
-			for (short p = 0; p < product.numPlaces(); p++) {
+			for (int p = 0; p < product.numPlaces(); p++) {
 				if (place2index[p].size() > 0) {
 					int i = place2index[p].get(0);
 					stream.print("p" + i + "; ");
@@ -271,7 +271,7 @@ public class Utils {
 		}
 	}
 
-	private static void placeToDot(SyncProduct product, PrintStream stream, int i, short p) {
+	private static void placeToDot(SyncProduct product, PrintStream stream, int i, int p) {
 		stream.print("p" + i);
 		stream.print(" [label=<" + product.getPlaceLabel(p));
 		if (product.getInitialMarking()[p] > 0) {
@@ -284,7 +284,7 @@ public class Utils {
 		stream.print("\n");
 	}
 
-	private static void transitionToDot(SyncProduct product, PrintStream stream, int i, short t) {
+	private static void transitionToDot(SyncProduct product, PrintStream stream, int i, int t) {
 		stream.print("t" + i);
 		stream.print(" [label=<" + product.getTransitionLabel(t));
 		stream.print("<br/>r:" + product.getRankOf(t));

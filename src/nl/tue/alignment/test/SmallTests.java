@@ -24,18 +24,18 @@ public class SmallTests {
 	public static class SyncProductExampleBook extends SyncProductImpl {
 
 		public SyncProductExampleBook() {
-			super("Book Example", (short) 10,
+			super("Book Example", 10,
 					new String[] { "As,-", "Aa,-", "Fa,-", "Sso,-", "Ro,-", "Co,-", "t,-", "Da1,-", "Do,-", "Da2,-",
 							"Ao,-", "Aaa,-", "As,As", "Aa,Aa", "Sso,Sso", "Ro,Ro", "Ao,Ao", "Aaa,Aaa1", "Aaa,Aaa2",
 							"-,As", "-,Aa", "-,Sso", "-,Ro", "-,Ao", "-,Aaa1", "-,Aaa2" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
 							"p13", "p14", "p15", "p16", "p17", "p18" }, //
-					new short[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5,
+					new int[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5,
 							6 }, //
 					new byte[] { MM, MM, MM, MM, MM, MM, TM, MM, MM, MM, MM, MM, SM, SM, SM, SM, SM, SM, SM, LM, LM, LM,
 							LM, LM, LM, LM }, //
-					new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, /**/ 19, 20, 21, 22, 23, 24, 24, /**/ 12, 13, 14, 15,
-							16, 17, 17 }, //
+					new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, /**/ 19, 20, 21, 22, 23, 24, 24, /**/ 12, 13, 14,
+							15, 16, 17, 17 }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1 }//
 			);
 			setInput(0, 0);
@@ -113,12 +113,12 @@ public class SmallTests {
 	public static class NastySyncProductExample extends SyncProductImpl {
 
 		public NastySyncProductExample() {
-			super("Nasty Example", (short) 12,
+			super("Nasty Example", 12,
 					new String[] { "A,-", "B,-", "C,-", "D,-", "E,-", "F,-", "G,-", "H,-", "I,-", "J,-", "K,-", "L,-",
 							"K,K", "L,L", "-,L", "-,K" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
 							"p13", "p14" }, //
-					new short[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 0, 1 }, //
+					new int[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 0, 1 }, //
 					new byte[] { MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, SM, SM, LM, LM }, //
 					new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, /**/ 34, 35, /**/ 23, 22 }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1 }//
@@ -183,7 +183,7 @@ public class SmallTests {
 	//					new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
 	//							"E,E", "F,F", "G,-", "G,G", "-,X" }, //
 	//					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
-	//					new short[] { -1, -1, -1, 1, 2, 3, 2, 3, -1, -1, 4, 5, 4, 5, -1, 1, 0 }, //
+	//					new int[] { -1, -1, -1, 1, 2, 3, 2, 3, -1, -1, 4, 5, 4, 5, -1, 1, 0 }, //
 	//					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, MM, SM, LM }, //
 	//					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1 }//
 	//			);
@@ -251,7 +251,7 @@ public class SmallTests {
 	//					new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
 	//							"E,E", "F,F", "G,-", "G,G", "tau" }, //
 	//					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
-	//					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4, -1, 0, -1 }, //
+	//					new int[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4, -1, 0, -1 }, //
 	//					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, MM, SM, TM }, //
 	//					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0 }//
 	//			);
@@ -318,7 +318,7 @@ public class SmallTests {
 	//					new String[] { "A,-", "D,-", "C,-", "-,B", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
 	//							"E,E", "F,F", "-,G" }, //
 	//					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
-	//					new short[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4, 5 }, //
+	//					new int[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4, 5 }, //
 	//					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, LM }, //
 	//					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1 }//
 	//			);
@@ -376,7 +376,7 @@ public class SmallTests {
 		// INITIALIZE LpSolve for stdout
 		LpSolve.lpSolveVersion();
 
-		short[] alignment;
+		int[] alignment;
 		//		SyncProduct net = new SyncProductExampleBook();
 		SyncProduct net = new NastySyncProductExample();
 
@@ -388,7 +388,7 @@ public class SmallTests {
 		//		testSingleGraph(new NastySyncProductExample(), Debug.DOT);
 	}
 
-	public static short[] testSingleGraph(SyncProduct net, Debug debug) throws LPMatrixException {
+	public static int[] testSingleGraph(SyncProduct net, Debug debug) throws LPMatrixException {
 
 		ReplayAlgorithm algorithm;
 		//INITIALIZATION OF CLASSLOADER FOR PROPER RECORDING OF TIMES.
@@ -434,7 +434,7 @@ public class SmallTests {
 			e.printStackTrace();
 		}
 		return null;
-		//		for (short t : alignment) {
+		//		for (int t : alignment) {
 		//			System.out.println(net.getTransitionLabel(t));
 		//		}
 	}

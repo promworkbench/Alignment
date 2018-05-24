@@ -25,19 +25,19 @@ public class Constraint {
 		outputLabelOccurrence = new int[classes];
 	}
 
-	public void addInput(short label, int value) {
+	public void addInput(int label, int value) {
 		inputLabelOccurrence[label] += value;
 	}
 
-	public void addOutput(short label, int value) {
+	public void addOutput(int label, int value) {
 		outputLabelOccurrence[label] += value;
 	}
 
-	public void setInput(short label, int value) {
+	public void setInput(int label, int value) {
 		inputLabelOccurrence[label] = value;
 	}
 
-	public void setOutput(short label, int value) {
+	public void setOutput(int label, int value) {
 		outputLabelOccurrence[label] = value;
 	}
 
@@ -45,7 +45,7 @@ public class Constraint {
 		value = 0;
 	}
 
-	public boolean satisfiedAfterOccurence(short label) {
+	public boolean satisfiedAfterOccurence(int label) {
 		value += inputLabelOccurrence[label];
 		value -= outputLabelOccurrence[label];
 		return satisfied();
@@ -56,7 +56,7 @@ public class Constraint {
 	}
 
 	public void add(Constraint constraint) {
-		for (short l = 0; l < inputLabelOccurrence.length; l++) {
+		for (int l = 0; l < inputLabelOccurrence.length; l++) {
 			inputLabelOccurrence[l] += constraint.inputLabelOccurrence[l];
 			outputLabelOccurrence[l] += constraint.outputLabelOccurrence[l];
 		}
@@ -76,11 +76,11 @@ public class Constraint {
 		return false;
 	}
 
-	public int getInputValue(short label) {
+	public int getInputValue(int label) {
 		return inputLabelOccurrence[label];
 	}
 
-	public int getOutputValue(short label) {
+	public int getOutputValue(int label) {
 		return outputLabelOccurrence[label];
 	}
 

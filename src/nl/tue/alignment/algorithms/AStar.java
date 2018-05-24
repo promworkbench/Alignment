@@ -10,7 +10,7 @@ import nl.tue.astar.util.ilp.LPMatrix.SPARSE.LPSOLVE;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
 /**
- * Implements a variant of AStar shortest path algorithm for alignments. It uses
+ * Implements a variant of AStar intest path algorithm for alignments. It uses
  * (I)LP to estimate the remaining distance.
  * 
  * This implementation can NOT be used for prefix alignments. The final marking
@@ -37,17 +37,17 @@ public class AStar extends AbstractLPBasedAlgorithm {
 		matrix = new LPMatrix.SPARSE.LPSOLVE(net.numPlaces(), net.numTransitions());
 
 		// Set the objective to follow the cost function
-		for (short t = net.numTransitions(); t-- > 0;) {
+		for (int t = net.numTransitions(); t-- > 0;) {
 			matrix.setObjective(t, net.getCost(t));
 
-			short[] input = net.getInput(t);
+			int[] input = net.getInput(t);
 			for (int i = input.length; i-- > 0;) {
 				// transition t consumes from place p, hence  incidence matrix
 				// is -1;
 				matrix.adjustMat(input[i], t, -1);
 				assert matrix.getMat(input[i], t) <= 1;
 			}
-			short[] output = net.getOutput(t);
+			int[] output = net.getOutput(t);
 			for (int i = output.length; i-- > 0;) {
 				matrix.adjustMat(output[i], t, 1);
 				assert matrix.getMat(output[i], t) <= 1;
@@ -68,7 +68,7 @@ public class AStar extends AbstractLPBasedAlgorithm {
 
 		rhf = new double[net.numPlaces()];
 		byte[] marking = net.getFinalMarking();
-		for (short p = net.numPlaces(); p-- > 0;) {
+		for (int p = net.numPlaces(); p-- > 0;) {
 			if (debug != Debug.NONE) {
 				matrix.setRowName(p, net.getPlaceLabel(p));
 			}
@@ -177,13 +177,13 @@ public class AStar extends AbstractLPBasedAlgorithm {
 
 	protected double computeCostForVars(double[] vars) {
 		double c = 0;
-		for (short t = net.numTransitions(); t-- > 0;) {
+		for (int t = net.numTransitions(); t-- > 0;) {
 			c += vars[t] * net.getCost(t);
 		}
 		return c;
 	}
 
-	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
+	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, int transition, int to, int toBlock,
 			int toIndex) {
 		if (hasExactHeuristic(fromBlock, fromIndex) && getHScore(fromBlock, fromIndex) != HEURISTICINFINITE
 				&& (getLpSolution(from, transition) >= 1)) {
@@ -227,13 +227,13 @@ public class AStar extends AbstractLPBasedAlgorithm {
 	}
 
 	@Override
-	protected void fillStatistics(short[] alignment) {
+	protected void fillStatistics(int[] alignment) {
 		super.fillStatistics(alignment);
 		putStatistic(Statistic.HEURISTICTIME, (int) (solveTime / 1000));
 	}
 
 	@Override
-	protected void writeEndOfAlignmentDot(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+	protected void writeEndOfAlignmentDot(int[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		for (int m = 0; m < markingsReached; m++) {
 			if (!isClosed(m)) {
 				if (isDerivedLpSolution(m)) {

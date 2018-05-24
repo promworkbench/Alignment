@@ -46,15 +46,14 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 	private int traceLogMoveCost;
 
 	// internal variables
-	private short[] alignment;
+	private int[] alignment;
 	private int maximumNumberOfStates;
-	private short[] eventsWithErrors;
+	private int[] eventsWithErrors;
 	private final long preProcessTimeNanoseconds;
 	private final int timeoutMilliseconds;
-	private boolean mergeDuplicateTraces;
 
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, int timeoutMilliseconds,
-			int maximumNumberOfStates, long preProcessTimeNanoseconds, short... eventsWithErrors) {
+			int maximumNumberOfStates, long preProcessTimeNanoseconds, int... eventsWithErrors) {
 		this.replayer = replayer;
 		this.parameters = parameters;
 		this.maximumNumberOfStates = maximumNumberOfStates;
@@ -70,13 +69,13 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 
 	@Deprecated
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, int timeoutMilliseconds,
-			int maximumNumberOfStates, short... eventsWithErrors) {
+			int maximumNumberOfStates, int... eventsWithErrors) {
 		this(replayer, parameters, timeoutMilliseconds, maximumNumberOfStates, 0, eventsWithErrors);
 	}
 
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, XTrace trace, int traceIndex,
 			int timeoutMilliseconds, int maximumNumberOfStates, long preProcessTimeNanoseconds,
-			short... eventsWithErrors) {
+			int... eventsWithErrors) {
 		this.replayer = replayer;
 		this.parameters = parameters;
 		this.trace = trace;
@@ -91,7 +90,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 
 	@Deprecated
 	public TraceReplayTask(Replayer replayer, ReplayerParameters parameters, XTrace trace, int traceIndex,
-			int timeoutMilliseconds, int maximumNumberOfStates, short... eventsWithErrors) {
+			int timeoutMilliseconds, int maximumNumberOfStates, int... eventsWithErrors) {
 		this(replayer, parameters, trace, traceIndex, timeoutMilliseconds, maximumNumberOfStates, 0, eventsWithErrors);
 	}
 
@@ -173,12 +172,12 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 	}
 
 	private SyncReplayResult toSyncReplayResult(SyncProduct product, TObjectIntMap<Statistic> statistics,
-			short[] alignment, XTrace trace, int traceIndex, List<Transition> transitionList) {
+			int[] alignment, XTrace trace, int traceIndex, List<Transition> transitionList) {
 		List<Object> nodeInstance = new ArrayList<>(alignment.length);
 		List<StepTypes> stepTypes = new ArrayList<>(alignment.length);
 		int mm = 0, lm = 0, smm = 0, slm = 0;
 		for (int i = 0; i < alignment.length; i++) {
-			short t = alignment[i];
+			int t = alignment[i];
 			if (product.getTypeOf(t) == SyncProduct.LOG_MOVE) {
 				nodeInstance.add(replayer.classes.getClassOf(trace.get(product.getEventOf(t))));
 				stepTypes.add(StepTypes.L);

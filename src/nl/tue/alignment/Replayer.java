@@ -23,11 +23,10 @@ import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 import org.processmining.plugins.petrinet.replayresult.PNRepResultImpl;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
-import gnu.trove.list.TShortList;
-import gnu.trove.list.array.TShortArrayList;
+import gnu.trove.list.TIntList;
+import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.TObjectShortMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
@@ -56,7 +55,7 @@ public class Replayer {
 	private Progress progress;
 	final boolean mergeDuplicateTraces;
 
-	private TObjectShortMap<XEventClass> class2id;
+	private TObjectIntMap<XEventClass> class2id;
 
 	private ConstraintSet constraintSet;
 
@@ -170,19 +169,19 @@ public class Replayer {
 
 		int t = 0;
 		for (XTrace trace : log) {
-			TShortList errorEvents = new TShortArrayList(trace.size());
+			TIntList errorEvents = new TIntArrayList(trace.size());
 			long preprocessTime = 0;
 			if (constraintSet != null) {
 				long start = System.nanoTime();
 				// pre-process the trace
 				constraintSet.reset();
-				for (short e = 0; e < trace.size(); e++) {
-					short label = class2id.get(classes.getClassOf(trace.get(e)));
+				for (int e = 0; e < trace.size(); e++) {
+					int label = class2id.get(classes.getClassOf(trace.get(e)));
 					if (!constraintSet.satisfiedAfterOccurence(label)) {
 						//						if (e > 0) {
-						//							errorEvents.add((short) (e));
+						//							errorEvents.add((int) (e));
 						//						}
-						errorEvents.add((short) (e + 1));
+						errorEvents.add((int) (e + 1));
 					}
 				}
 				//				System.out.println("Splitpoints:" + errorEvents.toString());

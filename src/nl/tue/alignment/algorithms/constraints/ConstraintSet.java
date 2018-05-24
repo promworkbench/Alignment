@@ -14,22 +14,22 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Transition
 import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 
-import gnu.trove.map.TObjectShortMap;
-import gnu.trove.map.TShortObjectMap;
-import gnu.trove.map.hash.TObjectShortHashMap;
-import gnu.trove.map.hash.TShortObjectHashMap;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 
 public class ConstraintSet {
 
-	private TShortObjectMap<Set<Constraint>> label2input = new TShortObjectHashMap<>();
-	private TShortObjectMap<Set<Constraint>> label2output = new TShortObjectHashMap<>();
+	private TIntObjectMap<Set<Constraint>> label2input = new TIntObjectHashMap<>();
+	private TIntObjectMap<Set<Constraint>> label2output = new TIntObjectHashMap<>();
 	private Set<Constraint> constraints = new HashSet<>();
 	private String[] colNames;
 
 	private static final String TAU = "tau";
 	private static final String VISIBLE = "??";
 
-	public ConstraintSet(Petrinet net, Marking initialMarking, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
+	public ConstraintSet(Petrinet net, Marking initialMarking, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map) {
 
 		int ts = net.getTransitions().size();
@@ -39,31 +39,31 @@ public class ConstraintSet {
 		int rows = cs + ts + ps;
 		int columns = ts + cs + 1;
 
-		short[][] matrix = new short[rows][columns];
+		int[][] matrix = new int[rows][columns];
 		int[] firstNonZero = new int[rows];
 		Arrays.fill(firstNonZero, columns);
 		colNames = new String[columns];
 		colNames[columns - 1] = "marking";
 
-		TObjectShortMap<Place> p2id = new TObjectShortHashMap<>(net.getPlaces().size(), 0.7f, (short) -1);
-		TObjectShortMap<Transition> t2id = new TObjectShortHashMap<>(net.getTransitions().size(), 0.7f, (short) -1);
+		TObjectIntMap<Place> p2id = new TObjectIntHashMap<>(net.getPlaces().size(), 0.7f,  -1);
+		TObjectIntMap<Transition> t2id = new TObjectIntHashMap<>(net.getTransitions().size(), 0.7f,  -1);
 
 		for (Transition t : net.getTransitions()) {
-			t2id.put(t, (short) t2id.size());
+			t2id.put(t,  t2id.size());
 		}
 
 		for (PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> edge : net.getEdges()) {
 			if (edge.getSource() instanceof Place) {
-				short p = p2id.putIfAbsent((Place) edge.getSource(), (short) p2id.size());
+				int p = p2id.putIfAbsent((Place) edge.getSource(),  p2id.size());
 				if (p < 0) {
-					p = (short) (p2id.size() - 1);
+					p =  (p2id.size() - 1);
 				}
-				short t = t2id.putIfAbsent((Transition) edge.getTarget(), (short) t2id.size());
+				int t = t2id.putIfAbsent((Transition) edge.getTarget(),  t2id.size());
 				if (t < 0) {
-					t = (short) (t2id.size() - 1);
+					t =  (t2id.size() - 1);
 				}
 				XEventClass clazz = map.get(edge.getTarget());
-				short c;
+				int c;
 				if (clazz == null) {
 					c = -1;
 					if (((Transition) edge.getTarget()).isInvisible()) {
@@ -91,20 +91,20 @@ public class ConstraintSet {
 				// t consumes from p
 				matrix[cs + ts + p][t] -= 1;
 				// initial marking
-				matrix[cs + ts + p][ts + cs] = (short) -initialMarking.occurrences(edge.getSource());
+				matrix[cs + ts + p][ts + cs] =  -initialMarking.occurrences(edge.getSource());
 				firstNonZero[cs + ts + p] = firstNonZero[cs + ts + p] > t ? t : firstNonZero[cs + ts + p];
 
 			} else {
-				short p = p2id.putIfAbsent((Place) edge.getTarget(), (short) p2id.size());
+				int p = p2id.putIfAbsent((Place) edge.getTarget(),  p2id.size());
 				if (p < 0) {
-					p = (short) (p2id.size() - 1);
+					p =  (p2id.size() - 1);
 				}
-				short t = t2id.putIfAbsent((Transition) edge.getSource(), (short) t2id.size());
+				int t = t2id.putIfAbsent((Transition) edge.getSource(),  t2id.size());
 				if (t < 0) {
-					t = (short) (t2id.size() - 1);
+					t =  (t2id.size() - 1);
 				}
 				XEventClass clazz = map.get(edge.getSource());
-				short c;
+				int c;
 				if (clazz == null) {
 					c = -1;
 					if (((Transition) edge.getSource()).isInvisible()) {
@@ -131,7 +131,7 @@ public class ConstraintSet {
 				// t produces in p
 				matrix[cs + ts + p][t] += 1;
 				// initial marking
-				matrix[cs + ts + p][ts + cs] = (short) -initialMarking.occurrences(edge.getTarget());
+				matrix[cs + ts + p][ts + cs] =  -initialMarking.occurrences(edge.getTarget());
 				firstNonZero[cs + ts + p] = firstNonZero[cs + ts + p] > t ? t : firstNonZero[cs + ts + p];
 
 			}
@@ -147,7 +147,7 @@ public class ConstraintSet {
 				if (firstNonZero[r2] < firstNonZero[r] || (firstNonZero[r2] == firstNonZero[r]
 						&& firstNonZero[r] < columns && matrix[r2][firstNonZero[r]] < matrix[r][firstNonZero[r]])) {
 					// swap rows
-					short[] row = matrix[r2];
+					int[] row = matrix[r2];
 					matrix[r2] = matrix[r];
 					matrix[r] = row;
 					int first = firstNonZero[r2];
@@ -174,7 +174,7 @@ public class ConstraintSet {
 		// now matrix needs to be swept to create 0 columns in the lower left part.
 		for (int c = 0; c < ts; c++) {
 
-			short[][] newMatrix = new short[ps][];
+			int[][] newMatrix = new int[ps][];
 
 			//			System.out.println("Column " + c);
 			// try to reduce the lower elements of column c to 0, by
@@ -205,7 +205,7 @@ public class ConstraintSet {
 					for (int s = 0; s < cs && !done; s++) {
 						if (first1[s] == c) {
 							// subtract this row
-							short f1 = matrix[r][c];
+							int f1 = matrix[r][c];
 							for (int x = c; x < columns; x++) {
 								newMatrix[rn][x] -= f1 * matrix[s][x];
 							}
@@ -216,8 +216,8 @@ public class ConstraintSet {
 					// if not done, try to add another constraint
 					for (int s = cs + ts; s < rows && !done; s++) {
 						if (matrix[s][c] < 0) {
-							short f1 = matrix[r][c];
-							short f2 = matrix[s][c];
+							int f1 = matrix[r][c];
+							int f2 = matrix[s][c];
 							// we can use row s, but we have to find the least common multiple
 							for (int x = c; x < columns; x++) {
 								newMatrix[rn][x] *= -f2;
@@ -230,7 +230,7 @@ public class ConstraintSet {
 					// finally, try to add a weakening constraint
 					for (int s = cs; s < cs + ts && !done; s++) {
 						if (matrix[s][c] == -1) {
-							short f1 = matrix[r][c];
+							int f1 = matrix[r][c];
 							// we can use row s, but we have to find the least common multiple
 							for (int x = c; x < columns; x++) {
 								newMatrix[rn][x] += f1 * matrix[s][x];
@@ -238,7 +238,7 @@ public class ConstraintSet {
 							done = true;
 
 							// swap with lastStrong to avoid over-use of weak constraints
-							short[] tmp = newMatrix[lastStrong];
+							int[] tmp = newMatrix[lastStrong];
 							newMatrix[lastStrong] = newMatrix[rn];
 							newMatrix[rn] = tmp;
 							// move last strong pointer up
@@ -252,10 +252,10 @@ public class ConstraintSet {
 					// reduce it, even by weakening. This implies a tau-transition, remove the row.
 					if (!done) {
 						// eliminate row r;
-						Arrays.fill(newMatrix[rn], (short) 0);
+						Arrays.fill(newMatrix[rn],  0);
 
 						// swap with lastStrong to avoid over-use of weak constraints
-						short[] tmp = newMatrix[lastStrong];
+						int[] tmp = newMatrix[lastStrong];
 						newMatrix[lastStrong] = newMatrix[rn];
 						newMatrix[rn] = tmp;
 						// move last strong pointer up
@@ -278,7 +278,7 @@ public class ConstraintSet {
 					for (int s = 0; s < cs && !done; s++) {
 						if (first1[s] == c) {
 							// add this row
-							short f1 = matrix[r][c];
+							int f1 = matrix[r][c];
 							for (int x = c; x < columns; x++) {
 								newMatrix[rn][x] -= f1 * matrix[s][x];
 							}
@@ -289,8 +289,8 @@ public class ConstraintSet {
 					// if not done, try to add another constraint
 					for (int s = cs + ts; s < rows && !done; s++) {
 						if (matrix[s][c] > 0) {
-							short f1 = matrix[r][c];
-							short f2 = matrix[s][c];
+							int f1 = matrix[r][c];
+							int f2 = matrix[s][c];
 							// we can use row s, but we have to find the least common multiple
 							for (int x = c; x < columns; x++) {
 								newMatrix[rn][x] *= f2;
@@ -304,7 +304,7 @@ public class ConstraintSet {
 					if (!done) {
 						newMatrix[rn][c] = 0;
 						// swap with lastStrong to avoid over-use of weak constraints
-						short[] tmp = newMatrix[lastStrong];
+						int[] tmp = newMatrix[lastStrong];
 						newMatrix[lastStrong] = newMatrix[rn];
 						newMatrix[rn] = tmp;
 						// move last strong pointer up
@@ -324,7 +324,7 @@ public class ConstraintSet {
 		//		System.out.println("After:");
 		//		printMatrix(matrix);
 
-		for (short c = 0; c < c2id.size(); c++) {
+		for (int c = 0; c < c2id.size(); c++) {
 			label2input.put(c, new HashSet<Constraint>());
 			label2output.put(c, new HashSet<Constraint>());
 		}
@@ -335,18 +335,18 @@ public class ConstraintSet {
 			Constraint constraint = new Constraint(c2id.size(), matrix[r][columns - 1], classColNames);
 			for (int c = ts; c < ts + cs; c++) {
 				if (matrix[r][c] > 0) {
-					constraint.addInput((short) (c - ts), matrix[r][c]);
+					constraint.addInput( (c - ts), matrix[r][c]);
 				} else if (matrix[r][c] < 0) {
-					constraint.addOutput((short) (c - ts), -matrix[r][c]);
+					constraint.addOutput( (c - ts), -matrix[r][c]);
 				}
 			}
 			if (constraints.add(constraint)) {
 				// new constraint;
 				for (int c = ts; c < ts + cs; c++) {
 					if (matrix[r][c] > 0) {
-						label2input.get((short) (c - ts)).add(constraint);
+						label2input.get( (c - ts)).add(constraint);
 					} else if (matrix[r][c] < 0) {
-						label2output.get((short) (c - ts)).add(constraint);
+						label2output.get( (c - ts)).add(constraint);
 					}
 				}
 			}
@@ -357,7 +357,7 @@ public class ConstraintSet {
 
 	}
 
-	private void printMatrix(short[][] matrix) {
+	private void printMatrix(int[][] matrix) {
 
 		for (int c = 0; c < colNames.length; c++) {
 			System.out.print(colNames[c]);
@@ -385,7 +385,7 @@ public class ConstraintSet {
 		}
 	}
 
-	public boolean satisfiedAfterOccurence(short label) {
+	public boolean satisfiedAfterOccurence(int label) {
 		// process all relevant constraints for internal state consistency
 		boolean satisfied = true;
 		for (Constraint constraint : label2input.get(label)) {

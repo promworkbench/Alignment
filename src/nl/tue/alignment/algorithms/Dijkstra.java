@@ -3,7 +3,7 @@ package nl.tue.alignment.algorithms;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
 /**
- * Implements a variant of Dijkstra's shortest path algorithm for alignments,
+ * Implements a variant of Dijkstra's intest path algorithm for alignments,
  * i.e. the heuristic is always equal to 0.
  * 
  * This implementation can be used for prefix alignments, as it defers the
@@ -45,7 +45,7 @@ public class Dijkstra extends ReplayAlgorithm {
 		return net.isFinalMarking(tempFinalMarking);
 	}
 
-	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
+	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, int transition, int to, int toBlock,
 			int toIndex) {
 		setHScore(toBlock, toIndex, 0, true);
 	}

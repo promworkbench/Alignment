@@ -8,8 +8,8 @@ public interface SyncProduct {
 	public static byte TAU_MOVE = 4;
 
 	public static final int MAXTRANS = 0b0011111111;
-	public static final short NOEVENT = -1;
-	public static final short NORANK = -1;
+	public static final int NOEVENT = -1;
+	public static final int NORANK = -1;
 
 	/**
 	 * Returns the number of transitions. At most MAXTRANS transitions are allowed
@@ -17,21 +17,21 @@ public interface SyncProduct {
 	 * 
 	 * @return
 	 */
-	public short numTransitions();
+	public int numTransitions();
 
 	/**
-	 * The number of places is in principle bounded Short.MAX_VALUE
+	 * The number of places is in principle bounded Integer.MAX_VALUE
 	 * 
 	 * @return
 	 */
-	public short numPlaces();
+	public int numPlaces();
 
 	/**
 	 * The number of events in the trace
 	 * 
 	 * @return
 	 */
-	public short numEvents();
+	public int numEvents();
 
 	/**
 	 * Returns a sorted array of places serving as input to transition t
@@ -39,7 +39,7 @@ public interface SyncProduct {
 	 * @param transition
 	 * @return
 	 */
-	public short[] getInput(short transition);
+	public int[] getInput(int transition);
 
 	/**
 	 * Returns a sorted array of places serving as output to transition t
@@ -47,7 +47,7 @@ public interface SyncProduct {
 	 * @param transition
 	 * @return
 	 */
-	public short[] getOutput(short transition);
+	public int[] getOutput(int transition);
 
 	/**
 	 * Return the initial marking as an array where each byte represents the marking
@@ -72,7 +72,7 @@ public interface SyncProduct {
 	 * @param t
 	 * @return
 	 */
-	public int getCost(short transition);
+	public int getCost(int transition);
 
 	/**
 	 * Returns the label of transition t
@@ -80,7 +80,7 @@ public interface SyncProduct {
 	 * @param t
 	 * @return
 	 */
-	public String getTransitionLabel(short t);
+	public String getTransitionLabel(int t);
 
 	/**
 	 * Checks if a given marking is the (a) final marking
@@ -96,7 +96,7 @@ public interface SyncProduct {
 	 * @param p
 	 * @return
 	 */
-	public String getPlaceLabel(short place);
+	public String getPlaceLabel(int place);
 
 	/**
 	 * Returns the label of the synchronous product
@@ -113,7 +113,7 @@ public interface SyncProduct {
 	 * @param transition
 	 * @return
 	 */
-	public short getEventOf(short transition);
+	public int getEventOf(int transition);
 
 	/**
 	 * returns the rank of the transition. If a transition is a Model Move, the rank
@@ -127,7 +127,7 @@ public interface SyncProduct {
 	 * @param transition
 	 * @return
 	 */
-	public short getRankOf(short transition);
+	public int getRankOf(int transition);
 
 	/**
 	 * returns the type of the transion as a byte equal to one of the constants
@@ -136,7 +136,7 @@ public interface SyncProduct {
 	 * @param transition
 	 * @return
 	 */
-	public byte getTypeOf(short transition);
+	public byte getTypeOf(int transition);
 
 	/**
 	 * returns the move to which the transition corresponds. If transition is a
@@ -148,14 +148,14 @@ public interface SyncProduct {
 	 * @param transition
 	 * @return
 	 */
-	public int getMoveOf(short transition);
+	public int getMoveOf(int transition);
 
 	/**
 	 * returns the number of event classes known to this product
 	 * 
 	 * @return
 	 */
-	public short numEventClasses();
+	public int numEventClasses();
 
 	/**
 	 * returns the number of model moves in this product

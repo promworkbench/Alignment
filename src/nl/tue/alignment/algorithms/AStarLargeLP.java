@@ -2,11 +2,11 @@ package nl.tue.alignment.algorithms;
 
 import java.util.Arrays;
 
-import gnu.trove.iterator.TShortIterator;
-import gnu.trove.list.TShortList;
-import gnu.trove.list.array.TShortArrayList;
-import gnu.trove.map.TShortObjectMap;
-import gnu.trove.map.hash.TShortObjectHashMap;
+import gnu.trove.iterator.TIntIterator;
+import gnu.trove.list.TIntList;
+import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import nl.tue.alignment.Utils;
@@ -15,7 +15,7 @@ import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
 /**
- * Implements a variant of AStar shortest path algorithm for alignments. It uses
+ * Implements a variant of AStar intest path algorithm for alignments. It uses
  * (I)LP to estimate the remaining distance.
  * 
  * This implementation can NOT be used for prefix alignments. The final marking
@@ -30,9 +30,9 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 	//	protected int numRows;
 	//	protected int numCols;
-	private short[] indexMap;
+	private int[] indexMap;
 
-	private final TShortObjectMap<TShortList> rank2LSMove = new TShortObjectHashMap<>();
+	private final TIntObjectMap<TIntList> rank2LSMove = new TIntObjectHashMap<>();
 
 	private int numRanks;
 
@@ -40,7 +40,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 	private SyncProduct product;
 	private boolean useInteger;
-	private short maxRankExact;
+	private int maxRankExact;
 	private int maxRankMarking;
 
 	public AStarLargeLP(SyncProduct product) {
@@ -59,14 +59,13 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	 *            problematic, the array should be [2]. In linear traces, the rank
 	 *            is the index of the event in the trace.
 	 */
-	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug,
-			short[] splitpoints) {
+	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug, int[] splitpoints) {
 		this(product, moveSorting, useInteger, splitpoints.length + 1, false, debug);
 
 		if (splitpoints.length > 0) {
 			System.arraycopy(splitpoints, 0, this.splitpoints, 1, splitpoints.length);
 		}
-		this.splitpoints[splitpoints.length + 1] = (short) (numRanks + 1);
+		this.splitpoints[splitpoints.length + 1] = (numRanks + 1);
 		splits = splitpoints.length + 1;
 
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
@@ -82,7 +81,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	 */
 	public AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug) {
 		this(product, moveSorting, useInteger, 1, false, debug);
-		this.splitpoints[1] = (short) (numRanks + 1);
+		this.splitpoints[1] = (numRanks + 1);
 
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
@@ -107,14 +106,14 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		this.product = product;
 		this.useInteger = useInteger;
 
-		rank2LSMove.put(SyncProduct.NORANK, new TShortArrayList(10));
+		rank2LSMove.put(SyncProduct.NORANK, new TIntArrayList(10));
 		numRanks = -1;
-		TShortList set;
-		for (short t = 0; t < product.numTransitions(); t++) {
-			short r = product.getRankOf(t);
+		TIntList set;
+		for (int t = 0; t < product.numTransitions(); t++) {
+			int r = product.getRankOf(t);
 			set = rank2LSMove.get(r);
 			if (set == null) {
-				set = new TShortArrayList(3);
+				set = new TIntArrayList(3);
 				rank2LSMove.put(r, set);
 			}
 			set.add(t);
@@ -131,27 +130,27 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 		if (initRandom) {
 			initialBins = Math.min(numRanks, initialBins);
-			splitpoints = new short[initialBins + 1];
+			splitpoints = new int[initialBins + 1];
 			if (initialBins > 0) {
 				double inc = (numRanks + 1) / (double) initialBins;
 				double val = inc;
 				for (int i = 1; i < splitpoints.length; i++) {
-					splitpoints[i] = (short) (val + 0.5);
+					splitpoints[i] = (int) (val + 0.5);
 					val += inc;
 				}
 				// overwrite final value
-				splitpoints[initialBins] = (short) (numRanks + 1);
+				splitpoints[initialBins] = (numRanks + 1);
 			}
 		} else {
-			splitpoints = new short[initialBins + 1];
+			splitpoints = new int[initialBins + 1];
 		}
 		splits = initialBins - 1;
 
 		restarts = 0;
 	}
 
-	private short[] splitpoints;
-	private short[] lastSplitpoints;
+	private int[] splitpoints;
+	private int[] lastSplitpoints;
 
 	private int rows;
 	private int coefficients;
@@ -165,7 +164,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		// only if intermediate splitpoint present, more rows are needed
 		rows = (splitpoints.length - 1) * product.numPlaces();
 
-		indexMap = new short[(splitpoints.length - 1) * modelMoves + product.numTransitions()];
+		indexMap = new int[(splitpoints.length - 1) * modelMoves + product.numTransitions()];
 
 		try {
 			if (solver != null) {
@@ -188,11 +187,11 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				c = addModelMovesToSolver(col, c, start);
 
 				//add log and sync moves in this block for all non-final ranks in the block.
-				for (short e = splitpoints[s - 1]; e < splitpoints[s] - 1; e++) {
+				for (int e = splitpoints[s - 1]; e < splitpoints[s] - 1; e++) {
 					c = addLogAndSyncMovesToSolver(col, c, start, e, true);
 				}
 				//add log and sync moves in this block for final rank in the block, or full if last splitpoint
-				c = addLogAndSyncMovesToSolver(col, c, start, (short) (splitpoints[s] - 1), false);
+				c = addLogAndSyncMovesToSolver(col, c, start, (splitpoints[s] - 1), false);
 
 				start += product.numPlaces();
 			}
@@ -249,19 +248,19 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 	}
 
-	protected int addLogAndSyncMovesToSolver(double[] col, int c, int start, short rank, boolean full)
+	protected int addLogAndSyncMovesToSolver(double[] col, int c, int start, int rank, boolean full)
 			throws LpSolveException {
 		if (rank2LSMove.get(rank) != null) {
-			short[] input;
-			short[] output;
-			TShortList list = rank2LSMove.get(rank);
+			int[] input;
+			int[] output;
+			TIntList list = rank2LSMove.get(rank);
 
-			TShortIterator it = list.iterator();
+			TIntIterator it = list.iterator();
 			while (it.hasNext()) {
-				short t = it.next();
+				int t = it.next();
 
 				//			for (int idx = 0; idx < list.size(); idx++) {
-				//				short t = list.get(idx);
+				//				int t = list.get(idx);
 
 				Arrays.fill(col, 0);
 				input = product.getInput(t);
@@ -303,14 +302,14 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	}
 
 	protected int addModelMovesToSolver(double[] col, int c, int start) throws LpSolveException {
-		short[] input;
-		short[] output;
+		int[] input;
+		int[] output;
 		if (rank2LSMove.get(SyncProduct.NOEVENT) != null) {
-			TShortIterator it = rank2LSMove.get(SyncProduct.NOEVENT).iterator();
+			TIntIterator it = rank2LSMove.get(SyncProduct.NOEVENT).iterator();
 			// first the model moves in this block
 			while (it.hasNext()) {
 				Arrays.fill(col, 0);
-				short t = it.next();
+				int t = it.next();
 				input = product.getInput(t);
 				for (int i = 0; i < input.length; i++) {
 					for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
@@ -360,9 +359,9 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	public int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex) {
 		// find an available solver and block until one is available.
 
-		short rank = (short) (maxRankExact + 1);// marking == 0 ? SyncProduct.NORANK : getLastRankOf(marking);
+		int rank = (maxRankExact + 1);// marking == 0 ? SyncProduct.NORANK : getLastRankOf(marking);
 
-		// the current shortest path explains the events up to and including the event at maxRankExact with exact markings.
+		// the current intest path explains the events up to and including the event at maxRankExact with exact markings.
 		// a state must exist with an estimated heuristic for the event maxRankExact+1. But the search cannot continue from there.
 		// so, we separate maxRankExact+1 by putting the border at maxRankExact+2.
 		// 
@@ -387,7 +386,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 			heuristicsComputedInRun++;
 
-			short r = getLastRankOf(marking);
+			int r = getLastRankOf(marking);
 			if (r > maxRankExact) {
 				maxRankExact = r;
 				maxRankMarking = marking;
@@ -519,7 +518,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		setNewLpSolution(marking, bits, tempForSettingSolution);
 	}
 
-	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, short transition, int to, int toBlock,
+	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, int transition, int to, int toBlock,
 			int toIndex) {
 		if (hasExactHeuristic(fromBlock, fromIndex) && (getLpSolution(from, transition) >= 1)) {
 			// from Marking has exact heuristic
@@ -530,7 +529,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			setHScore(toBlock, toIndex, getHScore(fromBlock, fromIndex) - net.getCost(transition), true);
 			heuristicsDerived++;
 
-			short r = getLastRankOf(to);
+			int r = getLastRankOf(to);
 			if (r > maxRankExact) {
 				maxRankExact = r;
 				maxRankMarking = to;
@@ -539,7 +538,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		} else {
 			if (isFinal(to)) {
 				setHScore(toBlock, toIndex, 0, true);
-				short r = getLastRankOf(to);
+				int r = getLastRankOf(to);
 				if (r > maxRankExact) {
 					maxRankExact = r;
 					maxRankMarking = to;
@@ -569,7 +568,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	}
 
 	@Override
-	protected void fillStatistics(short[] alignment) {
+	protected void fillStatistics(int[] alignment) {
 		super.fillStatistics(alignment);
 		putStatistic(Statistic.HEURISTICTIME, (int) (solveTime / 1000));
 		putStatistic(Statistic.SPLITS, splits);
@@ -577,7 +576,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	}
 
 	@Override
-	protected void writeEndOfAlignmentDot(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+	protected void writeEndOfAlignmentDot(int[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		for (int m = 0; m < markingsReachedInRun; m++) {
 			if (!isClosed(m)) {
 				if (isDerivedLpSolution(m)) {
@@ -642,7 +641,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	}
 
 	@Override
-	protected void writeEndOfAlignmentStats(short[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+	protected void writeEndOfAlignmentStats(int[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		if (alignment != null) {
 			debug.print(Debug.STATS, net.getLabel());
 			for (Statistic s : Statistic.values()) {
@@ -662,7 +661,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	 * string representation consists of a list of the array's elements, enclosed in
 	 * square brackets (<tt>"[]"</tt>). Adjacent elements are separated by the
 	 * characters <tt>", "</tt> (a comma followed by a space). Elements are
-	 * converted to strings as by <tt>String.valueOf(short)</tt>. Returns
+	 * converted to strings as by <tt>String.valueOf(int)</tt>. Returns
 	 * <tt>"null"</tt> if <tt>a</tt> is <tt>null</tt>.
 	 *
 	 * @param a
@@ -670,7 +669,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	 * @return a string representation of <tt>a</tt>
 	 * @since 1.5
 	 */
-	private static String toString(short[] a) {
+	private static String toString(int[] a) {
 		if (a == null)
 			return "null";
 		int iMax = a.length - 1;

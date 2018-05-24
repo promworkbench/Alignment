@@ -20,21 +20,18 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Transition
 import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 
-import gnu.trove.iterator.TObjectShortIterator;
-import gnu.trove.iterator.TShortIterator;
+import gnu.trove.iterator.TIntIterator;
+import gnu.trove.iterator.TObjectIntIterator;
 import gnu.trove.list.TByteList;
 import gnu.trove.list.TIntList;
-import gnu.trove.list.TShortList;
 import gnu.trove.list.array.TByteArrayList;
 import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.list.array.TShortArrayList;
+import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.TObjectShortMap;
-import gnu.trove.map.TShortObjectMap;
-import gnu.trove.map.hash.TObjectShortHashMap;
-import gnu.trove.map.hash.TShortObjectHashMap;
-import gnu.trove.set.TShortSet;
-import gnu.trove.set.hash.TShortHashSet;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
+import gnu.trove.set.TIntSet;
+import gnu.trove.set.hash.TIntHashSet;
 import nl.tue.astar.Trace;
 import nl.tue.astar.util.LinearTrace;
 import nl.tue.astar.util.PartiallyOrderedTrace;
@@ -129,43 +126,43 @@ public class SyncProductFactory {
 		}
 	}
 
-	private final short transitions;
+	private final int transitions;
 	private final TIntList t2mmCost;
 	private final TIntList t2smCost;
-	private final TObjectShortMap<Object> t2id;
+	private final TObjectIntMap<Object> t2id;
 	private final StringList t2name;
-	private final List<short[]> t2input;
-	private final List<short[]> t2output;
-	private final TShortList t2eid;
+	private final List<int[]> t2input;
+	private final List<int[]> t2output;
+	private final TIntList t2eid;
 	private final TByteList t2type;
 	private final Transition[] t2transition;
 
-	private final short classCount;
+	private final int classCount;
 	private final int[] c2lmCost;
-	private final TShortObjectMap<TShortSet> c2t;
+	private final TIntObjectMap<TIntSet> c2t;
 
-	private final short places;
+	private final int places;
 	private final StringList p2name;
 	private final byte[] initMarking;
 	private final byte[] finMarking;
 	private final XEventClasses classes;
-	private final TObjectShortMap<XEventClass> c2id;
+	private final TObjectIntMap<XEventClass> c2id;
 	private final TIntList t2move;
 
-	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map, Marking initialMarking, Marking finalMarking) {
 		this(net, classes, c2id, map, new MapWrap<Transition>(1), new MapWrap<XEventClass>(1), //
 				new MapWrap<Transition>(0), initialMarking, finalMarking);
 	}
 
-	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map, Map<Transition, Integer> mapTrans2Cost, Map<XEventClass, Integer> mapEvClass2Cost,
 			Map<Transition, Integer> mapSync2Cost, Marking initialMarking, Marking finalMarking) {
 		this(net, classes, c2id, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
 				new MapWrap<>(mapSync2Cost, 0), initialMarking, finalMarking);
 	}
 
-	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map, TObjectIntMap<Transition> mapTrans2Cost,
 			TObjectIntMap<XEventClass> mapEvClass2Cost, TObjectIntMap<Transition> mapSync2Cost, Marking initialMarking,
 			Marking finalMarking) {
@@ -173,30 +170,30 @@ public class SyncProductFactory {
 				new MapWrap<>(mapSync2Cost, 0), initialMarking, finalMarking);
 	}
 
-	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map, Map<Transition, Integer> mapTrans2Cost, Map<XEventClass, Integer> mapEvClass2Cost,
 			Marking initialMarking, Marking finalMarking) {
 		this(net, classes, c2id, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
 				new MapWrap<Transition>(0), initialMarking, finalMarking);
 	}
 
-	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
+	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map, TObjectIntMap<Transition> mapTrans2Cost,
 			TObjectIntMap<XEventClass> mapEvClass2Cost, Marking initialMarking, Marking finalMarking) {
 		this(net, classes, c2id, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
 				new MapWrap<Transition>(0), initialMarking, finalMarking);
 	}
 
-	public static TObjectShortMap<XEventClass> createClass2ID(XEventClasses classes) {
-		TObjectShortHashMap<XEventClass> c2id = new TObjectShortHashMap<>(classes.size(), 0.75f, (short) -1);
-		short id = 0;
+	public static TObjectIntMap<XEventClass> createClass2ID(XEventClasses classes) {
+		TObjectIntHashMap<XEventClass> c2id = new TObjectIntHashMap<>(classes.size(), 0.75f, -1);
+		int id = 0;
 		for (XEventClass clazz : classes.getClasses()) {
 			c2id.put(clazz, id++);
 		}
 		return c2id;
 	}
 
-	private SyncProductFactory(Petrinet net, XEventClasses classes, TObjectShortMap<XEventClass> c2id,
+	private SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map, MapWrap<Transition> mapTrans2Cost, MapWrap<XEventClass> mapEvClass2Cost,
 			MapWrap<Transition> mapSync2Cost, Marking initialMarking, Marking finalMarking) {
 
@@ -204,8 +201,8 @@ public class SyncProductFactory {
 		this.classes = classes;
 
 		// find the highest class number
-		short mx = 0;
-		TObjectShortIterator<XEventClass> its = c2id.iterator();
+		int mx = 0;
+		TObjectIntIterator<XEventClass> its = c2id.iterator();
 		while (its.hasNext()) {
 			its.advance();
 			if (mx < its.value()) {
@@ -216,15 +213,15 @@ public class SyncProductFactory {
 
 		this.classCount = mx;
 		c2lmCost = new int[classCount];
-		c2t = new TShortObjectHashMap<>(this.classCount);
+		c2t = new TIntObjectHashMap<>(this.classCount);
 		for (XEventClass clazz : classes.getClasses()) {
 			c2lmCost[c2id.get(clazz)] = mapEvClass2Cost.get(clazz);
 		}
 
-		transitions = (short) net.getTransitions().size();
+		transitions = net.getTransitions().size();
 		t2mmCost = new TIntArrayList(transitions * 2);
 		t2smCost = new TIntArrayList(transitions * 2);
-		t2eid = new TShortArrayList(transitions * 2);
+		t2eid = new TIntArrayList(transitions * 2);
 		t2type = new TByteArrayList(transitions * 2);
 		t2name = new StringList(transitions * 2);
 		t2input = new ArrayList<>(transitions * 2);
@@ -232,29 +229,29 @@ public class SyncProductFactory {
 		t2transition = new Transition[transitions];
 		t2move = new TIntArrayList(transitions * 2);
 
-		places = (short) net.getPlaces().size();
+		places = net.getPlaces().size();
 		p2name = new StringList(places * 2);
-		TObjectShortMap<Place> p2id = new TObjectShortHashMap<>(net.getPlaces().size(), 0.75f, (short) -1);
-		t2id = new TObjectShortHashMap<>(net.getTransitions().size(), 0.75f, (short) -1);
+		TObjectIntMap<Place> p2id = new TObjectIntHashMap<>(net.getPlaces().size(), 0.75f, -1);
+		t2id = new TObjectIntHashMap<>(net.getTransitions().size(), 0.75f, -1);
 
 		// build list of move_model transitions
 		Integer cost;
 		Iterator<Transition> it = net.getTransitions().iterator();
 		while (it.hasNext()) {
 			Transition t = it.next();
-			t2id.put(t, (short) t2name.size());
+			t2id.put(t, t2name.size());
 			t2transition[t2name.size()] = t;
-			t2move.add((short) t2name.size());
+			t2move.add(t2name.size());
 
 			// update mapping from event class to transitions
 			XEventClass clazz = map.get(t);
 			if (clazz != null) {
-				TShortSet set = c2t.get(c2id.get(clazz));
+				TIntSet set = c2t.get(c2id.get(clazz));
 				if (set == null) {
-					set = new TShortHashSet(3);
+					set = new TIntHashSet(3);
 					c2t.put(c2id.get(clazz), set);
 				}
-				set.add((short) t2name.size());
+				set.add(t2name.size());
 			}
 
 			cost = mapTrans2Cost.get(t);
@@ -265,26 +262,26 @@ public class SyncProductFactory {
 			t2eid.add(SyncProduct.NOEVENT);
 			t2type.add(t.isInvisible() ? SyncProduct.TAU_MOVE : SyncProduct.MODEL_MOVE);
 
-			short[] input = new short[net.getInEdges(t).size()];
+			int[] input = new int[net.getInEdges(t).size()];
 			int i = 0;
 			for (PetrinetEdge<?, ?> e : net.getInEdges(t)) {
 				Place p = (Place) e.getSource();
-				short id = p2id.get(p);
+				int id = p2id.get(p);
 				if (id == -1) {
-					id = (short) p2id.size();
+					id = p2id.size();
 					p2id.put(p, id);
 					p2name.add(p.getLabel());
 				}
 				input[i++] = id;
 			}
 			t2input.add(input);
-			short[] output = new short[net.getOutEdges(t).size()];
+			int[] output = new int[net.getOutEdges(t).size()];
 			i = 0;
 			for (PetrinetEdge<?, ?> e : net.getOutEdges(t)) {
 				Place p = (Place) e.getTarget();
-				short id = p2id.get(p);
+				int id = p2id.get(p);
 				if (id == -1) {
-					id = (short) p2id.size();
+					id = p2id.size();
 					p2id.put(p, id);
 					p2name.add(p.getLabel());
 				}
@@ -295,7 +292,7 @@ public class SyncProductFactory {
 
 		initMarking = new byte[p2name.size()];
 		for (Place p : initialMarking) {
-			short id = p2id.get(p);
+			int id = p2id.get(p);
 			if (id >= 0) {
 				initMarking[id]++;
 			}
@@ -303,7 +300,7 @@ public class SyncProductFactory {
 
 		finMarking = new byte[p2name.size()];
 		for (Place p : finalMarking) {
-			short id = p2id.get(p);
+			int id = p2id.get(p);
 			if (id >= 0) {
 				finMarking[id]++;
 			}
@@ -348,9 +345,9 @@ public class SyncProductFactory {
 		transitionList.clear();
 		// for this trace, compute the log-moves
 		// compute the sync moves
-		for (short e = 0; e < trace.getSize(); e++) {
+		for (int e = 0; e < trace.getSize(); e++) {
 			//			XEventClass clazz = classes.getClassOf(trace.get(e));
-			short cid = (short) trace.get(e); // c2id.get(clazz);
+			int cid = trace.get(e); // c2id.get(clazz);
 			// add a place
 			p2name.add("pe_" + e);
 			// add log move
@@ -360,12 +357,12 @@ public class SyncProductFactory {
 			t2type.add(SyncProduct.LOG_MOVE);
 			t2move.add(transitions + e);
 
-			TShortSet set = c2t.get(cid);
+			TIntSet set = c2t.get(cid);
 			if (set != null) {
-				TShortIterator it = set.iterator();
+				TIntIterator it = set.iterator();
 				while (it.hasNext()) {
 					// add sync move
-					short t = it.next();
+					int t = it.next();
 					t2name.add(t2name.get(t) + ",e" + e + "(" + cid + ")");
 					t2mmCost.add(t2smCost.get(t));
 					t2eid.add(e);
@@ -387,7 +384,7 @@ public class SyncProductFactory {
 				t2move.toArray(), //moves
 				t2mmCost.toArray());
 
-		short t = 0;
+		int t = 0;
 		for (; t < transitions; t++) {
 			// first the model moves
 			product.setInput(t, t2input.get(t));
@@ -395,26 +392,26 @@ public class SyncProductFactory {
 			transitionList.add(t2transition[t]);
 		}
 
-		for (short e = 0; e < trace.getSize(); e++) {
+		for (int e = 0; e < trace.getSize(); e++) {
 			// then the log moves
 			//			XEventClass clazz = classes.getClassOf(trace.get(e));
-			short cid = (short) trace.get(e);// c2id.get(clazz);
+			int cid = trace.get(e);// c2id.get(clazz);
 			product.setInput(t, places + e);
 			product.setOutput(t, places + e + 1);
 			transitionList.add(null);
 			t++;
 
-			TShortSet set = c2t.get(cid);
+			TIntSet set = c2t.get(cid);
 			if (set != null) {
-				TShortIterator it = set.iterator();
+				TIntIterator it = set.iterator();
 				while (it.hasNext()) {
 					// add sync move
-					short t2 = it.next();
+					int t2 = it.next();
 					product.setInput(t, t2input.get(t2));
 					product.setOutput(t, t2output.get(t2));
 
-					product.addToInput(t, (short) (places + e));
-					product.addToOutput(t, (short) (places + e + 1));
+					product.addToInput(t, (places + e));
+					product.addToOutput(t, (places + e + 1));
 
 					transitionList.add(t2transition[t2]);
 					t++;
@@ -442,7 +439,7 @@ public class SyncProductFactory {
 
 	private LinearTrace getLinearTrace(XTrace xTrace, String label) {
 		LinearTrace trace = new LinearTrace(label, xTrace.size());
-		for (short e = 0; e < xTrace.size(); e++) {
+		for (int e = 0; e < xTrace.size(); e++) {
 			XEventClass clazz = classes.getClassOf(xTrace.get(e));
 			trace.set(e, c2id.get(clazz));
 		}
@@ -454,13 +451,13 @@ public class SyncProductFactory {
 	private SyncProduct getPartiallyOrderedSyncProduct(PartiallyOrderedTrace trace, List<Transition> transitionList) {
 		transitionList.clear();
 
-		short[] e2t = new short[trace.getSize()];
+		int[] e2t = new int[trace.getSize()];
 
 		// for this trace, compute the log-moves
 		// compute the sync moves
-		for (short e = 0; e < trace.getSize(); e++) {
+		for (int e = 0; e < trace.getSize(); e++) {
 			//			XEventClass clazz = classes.getClassOf(trace.get(e));
-			short cid = (short) trace.get(e); // c2id.get(clazz);
+			int cid = trace.get(e); // c2id.get(clazz);
 			int[] predecessors = trace.getPredecessors(e);
 			if (predecessors == null) {
 				// initial place
@@ -473,7 +470,7 @@ public class SyncProductFactory {
 				}
 			}
 
-			e2t[e] = (short) t2name.size();
+			e2t[e] = t2name.size();
 			// add log move
 			t2name.add("e" + e + "(" + cid + ")");//clazz.toString());
 			t2mmCost.add(c2lmCost[cid]);
@@ -481,23 +478,23 @@ public class SyncProductFactory {
 			t2type.add(SyncProduct.LOG_MOVE);
 			t2move.add(transitions + e);
 
-			TShortSet set = c2t.get(cid);
+			TIntSet set = c2t.get(cid);
 			if (set != null) {
-				TShortIterator it = set.iterator();
+				TIntIterator it = set.iterator();
 				while (it.hasNext()) {
 					// add sync move
-					short t = it.next();
+					int t = it.next();
 					t2name.add(t2name.get(t) + ",e" + e + "(" + cid + ")");
 					t2mmCost.add(t2smCost.get(t));
 					t2eid.add(e);
 					t2type.add(SyncProduct.SYNC_MOVE);
-					t2move.add((short) (transitions + trace.getSize() + t));
+					t2move.add((transitions + trace.getSize() + t));
 				}
 			}
 
 		}
 
-		short[] ranks = new short[t2eid.size()];
+		int[] ranks = new int[t2eid.size()];
 		Arrays.fill(ranks, SyncProduct.NORANK);
 		SyncProductImpl product = new SyncProductImpl(trace.getLabel(), //label
 				this.classCount, //number of event classes
@@ -509,7 +506,7 @@ public class SyncProductFactory {
 				t2move.toArray(), //moves
 				t2mmCost.toArray());
 
-		short t = 0;
+		int t = 0;
 		for (; t < transitions; t++) {
 			// first the model moves
 			product.setInput(t, t2input.get(t));
@@ -524,10 +521,10 @@ public class SyncProductFactory {
 		// of events is ranked and the assumption is that events are ordered, i.e. that 
 		// the predecessors of the event at index e are a index < e .
 
-		short minRank = SyncProduct.NORANK;
-		short p = places;
-		for (short e = 0; e < trace.getSize(); e++) {
-			short cid = (short) trace.get(e); // c2id.get(clazz);
+		int minRank = SyncProduct.NORANK;
+		int p = places;
+		for (int e = 0; e < trace.getSize(); e++) {
+			int cid = trace.get(e); // c2id.get(clazz);
 
 			int[] predecessors = trace.getPredecessors(e);
 			if (predecessors == null) {
@@ -553,26 +550,26 @@ public class SyncProductFactory {
 			}
 			transitionList.add(null);
 
-			TShortSet set = c2t.get(cid);
+			TIntSet set = c2t.get(cid);
 			if (set != null) {
-				TShortIterator it = set.iterator();
+				TIntIterator it = set.iterator();
 				while (it.hasNext()) {
 					// add sync move
-					short t2 = it.next();
+					int t2 = it.next();
 
 					transitionList.add(t2transition[t2]);
 				}
 			}
 		}
-		for (short e = 0; e < trace.getSize(); e++) {
-			short cid = (short) trace.get(e); // c2id.get(clazz);
+		for (int e = 0; e < trace.getSize(); e++) {
+			int cid = trace.get(e); // c2id.get(clazz);
 			t++;
-			TShortSet set = c2t.get(cid);
+			TIntSet set = c2t.get(cid);
 			if (set != null) {
-				TShortIterator it = set.iterator();
+				TIntIterator it = set.iterator();
 				while (it.hasNext()) {
 					// add sync move
-					short t2 = it.next();
+					int t2 = it.next();
 					product.setInput(t, t2input.get(t2));
 					product.setOutput(t, t2output.get(t2));
 
@@ -607,7 +604,7 @@ public class SyncProductFactory {
 		int currentIdx = 0;
 		for (int i = 0; i < s; i++) {
 			XEvent event = xTrace.get(i);
-			short act = c2id.get(classes.getClassOf(event));
+			int act = c2id.get(classes.getClassOf(event));
 			//			int act = delegate.getActivityOf(trace, i);
 			idx[i] = currentIdx;
 			Date timestamp = XTimeExtension.instance().extractTimestamp(event);

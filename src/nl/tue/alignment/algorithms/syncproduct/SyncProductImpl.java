@@ -4,21 +4,21 @@ import java.util.Arrays;
 
 public class SyncProductImpl implements SyncProduct {
 
-	private static final short[] EMPTY = new short[0];
+	private static final int[] EMPTY = new int[0];
 
 	protected final String[] transitions;
 
-	protected final short[] eventNumbers;
+	protected final int[] eventNumbers;
 
-	protected final short[] ranks;
+	protected final int[] ranks;
 
 	protected final String[] places;
 
 	protected final int[] cost;
 
-	protected final short[][] input;
+	protected final int[][] input;
 
-	protected final short[][] output;
+	protected final int[][] output;
 
 	protected byte[] initMarking;
 
@@ -28,21 +28,21 @@ public class SyncProductImpl implements SyncProduct {
 
 	private final byte[] types;
 
-	private final short numEvents;
+	private final int numEvents;
 
 	private final int[] moves;
 
-	private final short numClasses;
+	private final int numClasses;
 
-	private final short numModelMoves;
+	private final int numModelMoves;
 
-	public SyncProductImpl(String label, short numClasses, String[] transitions, String[] places, short[] eventNumbers,
+	public SyncProductImpl(String label, int numClasses, String[] transitions, String[] places, int[] eventNumbers,
 			byte[] types, int[] moves, int[] cost) {
 		this(label, numClasses, transitions, places, eventNumbers, eventNumbers, types, moves, cost);
 	}
 
-	public SyncProductImpl(String label, short numClasses, String[] transitions, String[] places, short[] eventNumbers,
-			short[] ranks, byte[] types, int[] moves, int[] cost) {
+	public SyncProductImpl(String label, int numClasses, String[] transitions, String[] places, int[] eventNumbers,
+			int[] ranks, byte[] types, int[] moves, int[] cost) {
 		this.eventNumbers = eventNumbers;
 		this.label = label;
 		this.transitions = transitions;
@@ -52,13 +52,13 @@ public class SyncProductImpl implements SyncProduct {
 		this.cost = cost;
 		this.ranks = ranks;
 
-		short mx = 0;
+		int mx = 0;
 		for (int e = 0; e < eventNumbers.length; e++) {
 			if (eventNumbers[e] > mx) {
 				mx = eventNumbers[e];
 			}
 		}
-		this.numEvents = (short) (mx + 1);
+		this.numEvents = (mx + 1);
 
 		mx = 0;
 		for (int e = 0; e < moves.length; e++) {
@@ -69,73 +69,56 @@ public class SyncProductImpl implements SyncProduct {
 		this.numClasses = numClasses;
 		this.numModelMoves = mx;
 
-		input = new short[numTransitions()][];
-		output = new short[numTransitions()][];
+		input = new int[numTransitions()][];
+		output = new int[numTransitions()][];
 
 		initMarking = new byte[numPlaces()];
 		finalMarking = new byte[numPlaces()];
 
 	}
 
-	public short numTransitions() {
-		return (short) transitions.length;
+	public int numTransitions() {
+		return transitions.length;
 	}
 
-	public short numPlaces() {
-		return (short) places.length;
+	public int numPlaces() {
+		return places.length;
 	}
 
-	private void setSortedArray(short[] array, short[] plist) {
+	private void setSortedArray(int[] array, int[] plist) {
 		Arrays.sort(plist);
 		for (int i = plist.length; i-- > 0;) {
 			array[i] = plist[i];
 		}
 	}
 
-	private void setSortedArray(short[] array, int[] plist) {
-		Arrays.sort(plist);
-		for (int i = plist.length; i-- > 0;) {
-			array[i] = (short) plist[i];
-		}
-	}
-
-	public void setInput(short t, short... plist) {
-		input[t] = new short[plist.length];
-		setSortedArray(input[t], plist);
-	}
-
-	public void setOutput(short t, short... plist) {
-		output[t] = new short[plist.length];
-		setSortedArray(output[t], plist);
-	}
-
 	public void setInput(int t, int... plist) {
-		input[t] = new short[plist.length];
+		input[t] = new int[plist.length];
 		setSortedArray(input[t], plist);
 	}
 
 	public void setOutput(int t, int... plist) {
-		output[t] = new short[plist.length];
+		output[t] = new int[plist.length];
 		setSortedArray(output[t], plist);
 	}
 
-	public void addToOutput(short t, short... p) {
+	public void addToOutput(int t, int... p) {
 		output[t] = Arrays.copyOf(getOutput(t), getOutput(t).length + p.length);
 		System.arraycopy(p, 0, output[t], output[t].length - p.length, p.length);
 		Arrays.sort(output[t]);
 	}
 
-	public void addToInput(short t, short... p) {
+	public void addToInput(int t, int... p) {
 		input[t] = Arrays.copyOf(getInput(t), getInput(t).length + p.length);
 		System.arraycopy(p, 0, input[t], input[t].length - p.length, p.length);
 		Arrays.sort(input[t]);
 	}
 
-	public short[] getInput(short transition) {
+	public int[] getInput(int transition) {
 		return input[transition] == null ? EMPTY : input[transition];
 	}
 
-	public short[] getOutput(short transition) {
+	public int[] getOutput(int transition) {
 		return output[transition] == null ? EMPTY : output[transition];
 	}
 
@@ -177,23 +160,23 @@ public class SyncProductImpl implements SyncProduct {
 		}
 	}
 
-	public int getCost(short t) {
+	public int getCost(int t) {
 		return cost[t];
 	}
 
-	public String getTransitionLabel(short t) {
+	public String getTransitionLabel(int t) {
 		return transitions[t];
 	}
 
-	public String getPlaceLabel(short p) {
+	public String getPlaceLabel(int p) {
 		return places[p];
 	}
 
-	public void setTransitionLabel(short t, String label) {
+	public void setTransitionLabel(int t, String label) {
 		transitions[t] = label;
 	}
 
-	public void setPlaceLabel(short p, String label) {
+	public void setPlaceLabel(int p, String label) {
 		places[p] = label;
 	}
 
@@ -216,35 +199,35 @@ public class SyncProductImpl implements SyncProduct {
 		return label;
 	}
 
-	public short getEventOf(short transition) {
+	public int getEventOf(int transition) {
 		return eventNumbers[transition];
 	}
 
-	public void setEventOf(short transition, short event) {
+	public void setEventOf(int transition, int event) {
 		eventNumbers[transition] = event;
 	}
 
-	public byte getTypeOf(short transition) {
+	public byte getTypeOf(int transition) {
 		return types[transition];
 	}
 
-	public short numEvents() {
+	public int numEvents() {
 		return numEvents;
 	}
 
-	public short getRankOf(short transition) {
+	public int getRankOf(int transition) {
 		return ranks[transition];
 	}
 
-	public void setRankOf(short transition, short rank) {
+	public void setRankOf(int transition, int rank) {
 		ranks[transition] = rank;
 	}
 
-	public int getMoveOf(short transition) {
+	public int getMoveOf(int transition) {
 		return moves[transition];
 	}
 
-	public short numEventClasses() {
+	public int numEventClasses() {
 		return numClasses;
 	}
 
