@@ -7,7 +7,7 @@ public interface VisitedSet {
 	 * 
 	 * @return
 	 */
-	public ReplayAlgorithm getAlgorithm();
+	public ReplayAlgorithmDataStore getAlgorithm();
 
 	/**
 	 * Add a marking to the set of visited markings.

@@ -24,7 +24,7 @@ public class IterativeAStarPlugin extends AbstractAlignmentPlugin {
 	}
 
 	public String toString() {
-		return "Splitting replayer assuming at most 3 tokens in each place.";
+		return "Splitting replayer assuming at most 127 tokens in each place.";
 	}
 
 	@Override

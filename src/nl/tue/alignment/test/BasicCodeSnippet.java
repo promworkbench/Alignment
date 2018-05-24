@@ -125,7 +125,7 @@ public class BasicCodeSnippet {
 					int exitCode = replayResult.getInfo().get(Replayer.TRACEEXITCODE).intValue();
 					if ((exitCode & Utils.OPTIMALALIGNMENT) == Utils.OPTIMALALIGNMENT) {
 						// Optimal alignment found.
-						fitting++;
+							fitting++;
 					} else if ((exitCode & Utils.FAILEDALIGNMENT) == Utils.FAILEDALIGNMENT) {
 						// failure in the alignment. Error code shows more details.
 						nonfitting++;

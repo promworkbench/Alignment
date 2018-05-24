@@ -71,7 +71,7 @@ import nl.tue.astar.util.ilp.LPMatrixException;
  * @author bfvdonge
  *
  */
-public abstract class ReplayAlgorithm {
+public abstract class ReplayAlgorithm extends ReplayAlgorithmDataStore {
 
 	protected enum CloseResult {
 		CLOSEDSUCCESSFUL, CLOSEDINFEASIBLE, FINALMARKINGFOUND, REQUEUED, RESTARTNEEDED;
@@ -103,7 +103,7 @@ public abstract class ReplayAlgorithm {
 				b.append(",");
 				b.append(algorithm.hasExactHeuristic(marking) ? "h" : "~h");
 				b.append("=");
-				b.append((heur == HEURISTICINFINITE ? "inf" : heur));
+				b.append((algorithm.isInfinite(heur) ? "inf" : heur));
 				b.append(">");
 				if (!extra.isEmpty()) {
 					b.append(",");
@@ -217,64 +217,7 @@ public abstract class ReplayAlgorithm {
 
 	//	private static final int PTRANSHIMASK = 0b01111111000000000000000000000000;
 
-	protected static final long EXACTMASK = 0b1000000000000000000000000000000000000000000000000000000000000000L;
-	protected static final long COMPUTINGMASK = 0b0100000000000000000000000000000000000000000000000000000000000000L;
-	protected static final long HMASK = 0b0000000000000000000000000011111111111111111111111100000000000000L;
-	protected static final int HSHIFT = 14;
-	protected static final long GMASK = 0b0011111111111111111111111100000000000000000000000000000000000000L;
-	protected static final int GSHIFT = 38;
-	protected static final long PTMASK = 0b0000000000000000000000000000000000000000000000000011111111111111L;
-
-	protected static final int CLOSEDMASK = 0b10000000000000000000000000000000;
-	protected static final int PMASK = 0b01111111111111111111111111111111;
-
-	protected static final int NOPREDECESSOR = PMASK;
-
-	protected static int HEURISTICINFINITE = 0b00000000111111111111111111111111;
-
 	protected static final int RESTART = -1;
-
-	/**
-	 * Stores the blockSize as a power of 2
-	 */
-	protected final int blockSize;
-
-	/**
-	 * Stores the number of trailing 0's in the blockSize.
-	 */
-	protected final int blockBit;
-
-	/**
-	 * equals blockSize-1
-	 */
-	protected final int blockMask;
-
-	/**
-	 * Stores the last block in use
-	 */
-	protected int block;
-
-	/**
-	 * Stores the first new index in current block
-	 */
-	private int indexInBlock;
-
-	/**
-	 * For each marking stores: 1 bit: whether it is estimated 24 bit: Value of g
-	 * function 24 bit: Value of h function 15 bit: Predecessor transition
-	 */
-	protected long[][] e_g_h_pt;
-
-	/**
-	 * Stores the predecessor relation for which the distance so far is minimal.
-	 * 
-	 * Also stores the closed set in the highest bit of each element.
-	 * 
-	 * For marking m, marking p[m] is the predecessor
-	 * 
-	 * For marking m, it is in the closed set if (p[m] & CLOSEDMASK) == CLOSEDMASK
-	 */
-	protected int[][] c_p;
 
 	/**
 	 * Stores the closed set
@@ -316,7 +259,6 @@ public abstract class ReplayAlgorithm {
 	protected int heuristicsDerived;
 	protected int alignmentLength;
 	protected int alignmentCost;
-	protected int alignmentResult;
 	protected int setupTime;
 	protected int runTime;
 	protected int iteration;
@@ -344,16 +286,6 @@ public abstract class ReplayAlgorithm {
 		this.numPlaces = net.numPlaces();
 		this.net = net;
 		this.moveSorting = moveSorting;
-
-		this.blockSize = Utils.DEFAULTBLOCKSIZE;
-		this.blockMask = blockSize - 1;
-		int bit = 1;
-		int i = 0;
-		while (bit < blockMask) {
-			bit <<= 1;
-			i++;
-		}
-		this.blockBit = i;
 
 		// Array used internally for firing transitions.
 		firingMarking = new byte[net.numPlaces()];
@@ -400,11 +332,9 @@ public abstract class ReplayAlgorithm {
 	}
 
 	protected long getEstimatedMemorySize() {
-		// e_g_h_pt holds    4 + length * 8 + block * (4 + blockSize * 8) bytes;
-		// c_p holds         4 + length * 8 + block * (4 + blockSize * 4) bytes;
 
 		// each array has 4 bytes overhead for storing the size
-		long val = 2 * 4 + 2 * c_p.length * 8 + block * (8 + blockSize * 12);
+		long val = super.getEstimatedMemorySize();
 
 		// count the capacity of the queue
 		val += queue.maxBytesUsed();
@@ -642,13 +572,13 @@ public abstract class ReplayAlgorithm {
 					setClosed(bm, im);
 					closedActions++;
 					return CloseResult.RESTARTNEEDED;
-				} else if (heuristic == HEURISTICINFINITE) {
+				} else if (isInfinite(heuristic)) {
 					// marking from which final marking is unreachable
 					// ignore state and continue
 
 					// set the score to exact score
 					assert !queue.contains(m);
-					setHScore(bm, im, HEURISTICINFINITE, true);
+					setHScore(bm, im, heuristic, true);
 					setClosed(bm, im);
 					closedActions++;
 					return CloseResult.CLOSEDINFEASIBLE;
@@ -686,12 +616,8 @@ public abstract class ReplayAlgorithm {
 	}
 
 	protected void initializeIterationInternal() {
+		super.initializeIterationInternal();
 		iteration++;
-
-		block = -1;
-		indexInBlock = 0;
-		c_p = new int[0][];
-		e_g_h_pt = new long[0][];
 
 		this.visited = new VisitedHashSet(this, Utils.DEFAULTVISITEDSIZE);
 		if (queueSorting) {
@@ -1020,396 +946,6 @@ public abstract class ReplayAlgorithm {
 		debug.println(Debug.NORMAL, "   Time (ms):       " + String.format("%,f", time));
 	}
 
-	/**
-	 * Grow the internal array structure. Method should be considered synchronized
-	 * as it should not be executed in parallel.
-	 */
-	protected void growArrays() {
-		if (block + 1 >= c_p.length) {
-			int newLength = c_p.length < 64 ? c_p.length * 2 : (c_p.length * 3) / 2;
-			if (newLength <= block + 1) {
-				newLength = block + 2;
-			}
-			e_g_h_pt = Arrays.copyOf(e_g_h_pt, newLength);
-			c_p = Arrays.copyOf(c_p, newLength);
-		}
-		// increase the block pointer
-		block++;
-		// reset the index in block
-		indexInBlock = 0;
-
-		// e_g_h_pt holds blocksize values for
-		// estimated, g-score, h-score, predecessor transitions
-		e_g_h_pt[block] = new long[blockSize];
-		Arrays.fill(e_g_h_pt[block], GMASK);
-		// p holds blocksize predecessors
-		c_p[block] = new int[blockSize];
-
-	}
-
-	/**
-	 * Returns the f score for a stored marking
-	 * 
-	 * @param marking
-	 * @return
-	 */
-	public int getFScore(int marking) {
-		return getFScore(marking >>> blockBit, marking & blockMask);
-	}
-
-	/**
-	 * Returns the f score for a stored marking
-	 * 
-	 * @param block
-	 *            the memory block the marking is stored in
-	 * @param index
-	 *            the index at which the marking is stored in the memory block
-	 * @return
-	 */
-	public int getFScore(int block, int index) {
-		return getGScore(block, index) + getHScore(block, index);
-	}
-
-	/**
-	 * Returns the g score for a stored marking
-	 * 
-	 * @param marking
-	 * @return
-	 */
-	public int getGScore(int marking) {
-		return getGScore(marking >>> blockBit, marking & blockMask);
-	}
-
-	/**
-	 * Returns the g score for a stored marking
-	 * 
-	 * @param block
-	 *            the memory block the marking is stored in
-	 * @param index
-	 *            the index at which the marking is stored in the memory block
-	 * @return
-	 */
-	public int getGScore(int block, int index) {
-		return (int) ((e_g_h_pt[block][index] & GMASK) >>> GSHIFT);
-	}
-
-	/**
-	 * Set the g score for a stored marking
-	 * 
-	 * @param block
-	 *            the memory block the marking is stored in
-	 * @param index
-	 *            the index at which the marking is stored in the memory block
-	 * @return
-	 */
-	public void setGScore(int block, int index, int score) {
-		// overwrite the last three bytes of the score.
-		e_g_h_pt[block][index] &= ~GMASK;
-		long scoreL = ((long) score) << GSHIFT;
-		if ((scoreL & GMASK) != scoreL) {
-			alignmentResult |= Utils.COSTFUNCTIONOVERFLOW;
-			e_g_h_pt[block][index] |= scoreL & GMASK;
-		} else {
-			e_g_h_pt[block][index] |= scoreL;
-		}
-	}
-
-	/**
-	 * Set the g score for a stored marking
-	 * 
-	 * @param marking
-	 * @return
-	 */
-	public void setGScore(int marking, int score) {
-		setGScore(marking >>> blockBit, marking & blockMask, score);
-	}
-
-	/**
-	 * Returns the h score for a stored marking
-	 * 
-	 * @param marking
-	 * @return
-	 */
-	public int getHScore(int marking) {
-		return getHScore(marking >>> blockBit, marking & blockMask);
-	}
-
-	/**
-	 * Returns the h score for a stored marking
-	 * 
-	 * @param block
-	 *            the memory block the marking is stored in
-	 * @param index
-	 *            the index at which the marking is stored in the memory block
-	 * @return
-	 */
-	public int getHScore(int block, int index) {
-		return (int) ((e_g_h_pt[block][index] & HMASK) >>> HSHIFT);
-	}
-
-	/**
-	 * set the h score for a stored marking
-	 * 
-	 * @param block
-	 *            the memory block the marking is stored in
-	 * @param index
-	 *            the index at which the marking is stored in the memory block
-	 * @return
-	 */
-	public void setHScore(int block, int index, int score, boolean isExact) {
-		long scoreL = ((long) score) << HSHIFT;
-		assert (scoreL & HMASK) == scoreL;
-		// overwrite the last three bytes of the score.
-		e_g_h_pt[block][index] &= ~HMASK; // reset to 0
-		e_g_h_pt[block][index] |= scoreL; // set score
-		if (isExact) {
-			e_g_h_pt[block][index] |= EXACTMASK; // set exactFlag
-		} else {
-			e_g_h_pt[block][index] &= ~EXACTMASK; // clear exactFlag
-
-		}
-	}
-
-	/**
-	 * Set the h score for a stored marking
-	 * 
-	 * @param marking
-	 * @return
-	 */
-	public void setHScore(int marking, int score, boolean isExact) {
-		setHScore(marking >>> blockBit, marking & blockMask, score, isExact);
-	}
-
-	/**
-	 * Returns the predecessor for a stored marking
-	 * 
-	 * @param marking
-	 * @return
-	 */
-	public int getPredecessor(int marking) {
-		return getPredecessor(marking >>> blockBit, marking & blockMask);
-	}
-
-	/**
-	 * Returns the predecessor for a stored marking
-	 * 
-	 * @param block
-	 *            the memory block the marking is stored in
-	 * @param index
-	 *            the index at which the marking is stored in the memory block
-	 * @return
-	 */
-	public int getPredecessor(int block, int index) {
-		return c_p[block][index] & PMASK;
-	}
-
-	/**
-	 * Sets the predecessor for a stored marking
-	 * 
-	 * @param block
-	 *            the memory block the marking is stored in
-	 * @param index
-	 *            the index at which the marking is stored in the memory block
-	 * @return
-	 */
-	public void setPredecessor(int block, int index, int predecessorMarking) {
-		c_p[block][index] &= ~PMASK;
-		c_p[block][index] |= predecessorMarking & PMASK;
-	}
-
-	/**
-	 * Sets the predecessor for a stored marking
-	 * 
-	 * @param marking
-	 * @return
-	 */
-	public void setPredecessor(int marking, int predecessorMarking) {
-		setPredecessor(marking >>> blockBit, marking & blockMask, predecessorMarking);
-	}
-
-	/**
-	 * Returns the predecessor transition for a stored marking
-	 * 
-	 * @param marking
-	 * @return
-	 */
-	public short getPredecessorTransition(int marking) {
-		return getPredecessorTransition(marking >>> blockBit, marking & blockMask);
-	}
-
-	/**
-	 * Returns the predecessor transition for a stored marking
-	 * 
-	 * @param block
-	 *            the memory block the marking is stored in
-	 * @param index
-	 *            the index at which the marking is stored in the memory block
-	 * @return
-	 */
-	public short getPredecessorTransition(int block, int index) {
-		return (short) (e_g_h_pt[block][index] & PTMASK);
-	}
-
-	/**
-	 * Sets the predecessor transition for a stored marking
-	 * 
-	 * @param block
-	 *            the memory block the marking is stored in
-	 * @param index
-	 *            the index at which the marking is stored in the memory block
-	 * @return
-	 */
-	public void setPredecessorTransition(int block, int index, short transition) {
-		e_g_h_pt[block][index] &= ~PTMASK; //clear pt bits
-		e_g_h_pt[block][index] |= transition; //clear pt bits
-	}
-
-	/**
-	 * Sets the predecessor transition for a stored marking
-	 * 
-	 * @param marking
-	 * @return
-	 */
-	public void setPredecessorTransition(int marking, short transition) {
-		setPredecessorTransition(marking >>> blockBit, marking & blockMask, transition);
-	}
-
-	/**
-	 * Returns true if marking is in the closed set
-	 * 
-	 * @param marking
-	 * @return
-	 */
-	public boolean isClosed(int marking) {
-		return isClosed(marking >>> blockBit, marking & blockMask);
-	}
-
-	/**
-	 * Returns the g score for a stored marking
-	 * 
-	 * @param block
-	 *            the memory block the marking is stored in
-	 * @param index
-	 *            the index at which the marking is stored in the memory block
-	 * @return
-	 */
-	public boolean isClosed(int block, int index) {
-		return (c_p[block][index] & CLOSEDMASK) == CLOSEDMASK;
-	}
-
-	/**
-	 * Set the g score for a stored marking
-	 * 
-	 * @param block
-	 *            the memory block the marking is stored in
-	 * @param index
-	 *            the index at which the marking is stored in the memory block
-	 * @return
-	 */
-	public void setClosed(int block, int index) {
-		c_p[block][index] |= CLOSEDMASK;
-	}
-
-	/**
-	 * Set the g score for a stored marking
-	 * 
-	 * @param marking
-	 * @return
-	 */
-	public void setClosed(int marking) {
-		setClosed(marking >>> blockBit, marking & blockMask);
-	}
-
-	/**
-	 * Returns the h score for the given marking
-	 * 
-	 * @param marking
-	 * @return
-	 */
-	public abstract int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex);
-
-	/**
-	 * returns true if the heuristic stored for the given marking is exact or an
-	 * estimate.
-	 * 
-	 * @param marking
-	 * @return
-	 */
-	public boolean hasExactHeuristic(int marking) {
-		return hasExactHeuristic(marking >>> blockBit, marking & blockMask);
-	}
-
-	/**
-	 * returns true if the heuristic stored for the given marking is exact or an
-	 * estimate.
-	 * 
-	 * @param marking
-	 * @param block
-	 *            the memory block the marking is stored in
-	 * @param index
-	 *            the index at which the marking is stored in the memory block
-	 * @return
-	 */
-	public boolean hasExactHeuristic(int block, int index) {
-		return (e_g_h_pt[block][index] & EXACTMASK) == EXACTMASK;
-	}
-
-	//	/**
-	//	 * Signal that we intent to start computing an estimate for a specific marking
-	//	 * 
-	//	 * If the marking already has an exact estimate or is already closed, this
-	//	 * method returns without changing anything.
-	//	 * 
-	//	 * If the marking is not exact and currently not computing, this method flags
-	//	 * the marking to the computing state and returns
-	//	 * 
-	//	 * If the marking is not exact and the computing flag is set, this method blocks
-	//	 * until the computing flag is released. After this, the marking may have an
-	//	 * exact heuristic, but it may also be an estimated one.
-	//	 * 
-	//	 * A lock that is acquired should be released after setting the new exact
-	//	 * heuristic value
-	//	 * 
-	//	 * @param b
-	//	 * @param i
-	//	 */
-	//	protected void getLockForComputingEstimate(int b, int i) {
-	//		if (multiThreading) {
-	//			synchronized (e_g_h_pt[b]) {
-	//				while (isComputing(b, i)) {
-	//					// currently computing, so lock cannot be obtained
-	//					try {
-	//						// wait until not computing anymore
-	//						e_g_h_pt[b].wait(100);
-	//					} catch (InterruptedException e) {
-	//					}
-	//				}
-	//				// lock can be obtained
-	//				// set the computing flag
-	//				e_g_h_pt[b][i] |= COMPUTINGMASK;
-	//			}
-	//		}
-	//	}
-
-	//	/**
-	//	 * Signal that we completed computing an exact estimate for a specific marking.
-	//	 * 
-	//	 * @param b
-	//	 * @param i
-	//	 */
-	//	protected void releaseLockForComputingEstimate(int b, int i) {
-	//		if (multiThreading) {
-	//			synchronized (e_g_h_pt[b]) {
-	//				e_g_h_pt[b][i] &= ~COMPUTINGMASK;
-	//				e_g_h_pt[b].notify();
-	//			}
-	//		}
-	//	}
-
-	protected boolean isComputing(int block, int index) {
-		return (e_g_h_pt[block][index] & COMPUTINGMASK) == COMPUTINGMASK;
-	}
-
 	private transient final byte[] equalMarking;
 
 	/**
@@ -1468,10 +1004,6 @@ public abstract class ReplayAlgorithm {
 		return Arrays.hashCode(marking);
 	}
 
-	public boolean isComputing(int i) {
-		return isComputing(i >>> blockBit, i & blockMask);
-	}
-
 	public SyncProduct getNet() {
 		return net;
 	}
@@ -1500,5 +1032,13 @@ public abstract class ReplayAlgorithm {
 	public void putStatistic(Statistic stat, int value) {
 		replayStatistics.put(stat, value);
 	}
+
+	/**
+	 * Returns the h score for the given marking
+	 * 
+	 * @param marking
+	 * @return
+	 */
+	public abstract int getExactHeuristic(int marking, byte[] markingArray, int markingBlock, int markingIndex);
 
 }

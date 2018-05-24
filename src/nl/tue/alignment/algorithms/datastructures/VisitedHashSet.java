@@ -98,9 +98,9 @@ class TIntHashSetForMarkings extends THash {
 	}
 
 	/**
-	 * Locates the index at which <tt>val</tt> can be inserted. if there is
-	 * already a value equal()ing <tt>val</tt> in the set, returns that value as
-	 * a negative integer.
+	 * Locates the index at which <tt>val</tt> can be inserted. if there is already
+	 * a value equal()ing <tt>val</tt> in the set, returns that value as a negative
+	 * integer.
 	 * 
 	 * @param val
 	 *            an <code>int</code> value

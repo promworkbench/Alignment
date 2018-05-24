@@ -7,7 +7,7 @@ public interface Queue {
 	 * 
 	 * @return
 	 */
-	public ReplayAlgorithm getAlgorithm();
+	public ReplayAlgorithmDataStore getAlgorithm();
 
 	/**
 	 * Show the number of the marking at the head of the priority queue

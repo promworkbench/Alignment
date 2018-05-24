@@ -23,7 +23,7 @@ public class AStarPlugin extends AbstractAlignmentPlugin {
 	}
 
 	public String toString() {
-		return "LP-based replayer assuming at most 3 tokens in each place.";
+		return "LP-based replayer assuming at most 127 tokens in each place.";
 	}
 
 	public String getHTMLInfo() {
