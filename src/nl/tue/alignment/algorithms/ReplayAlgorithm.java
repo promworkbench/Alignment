@@ -371,4 +371,11 @@ public interface ReplayAlgorithm {
 	 */
 	public boolean isClosed(int markingId);
 
+	/**
+	 * Estimates the memory size of the internal data structures in bytes.
+	 * 
+	 * @return The estimated memory size of the internal data structures in bytes.
+	 */
+	public long getEstimatedMemorySize();
+
 }

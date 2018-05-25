@@ -342,8 +342,7 @@ public class HashBackedPriorityQueue implements Queue {
 		return maxQueueSize;
 	}
 
-	public int maxBytesUsed() {
-		// TODO count the bytes of the locationMap
+	public long getEstimatedMemorySize() {
 		return 4 + 4 * maxQueueLength + maxMapCapacity * 9 + 12;
 	}
 }

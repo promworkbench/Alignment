@@ -45,6 +45,15 @@ public class VisitedHashSet implements VisitedSet {
 	public void clear() {
 		set.clear();
 	}
+
+	/**
+	 * returns the maximum memory use in bytes the queue ever had.
+	 * 
+	 * @return
+	 */
+	public long getEstimatedMemorySize() {
+		return 16 + 33 + 4 + set.capacity() * 4;
+	}
 }
 
 class TIntHashSetForMarkings extends THash {
@@ -288,10 +297,6 @@ class TIntHashSetForMarkings extends THash {
 		return -1;
 	}
 
-	public int capacity() {
-		return set.length;
-	}
-
 	protected void rehash(int newCapacity) {
 		int oldCapacity = set.length;
 
@@ -328,6 +333,10 @@ class TIntHashSetForMarkings extends THash {
 		int capacity = super.setUp(initialCapacity);
 		set = new int[capacity];
 		return capacity;
+	}
+
+	public int capacity() {
+		return set.length;
 	}
 
 }

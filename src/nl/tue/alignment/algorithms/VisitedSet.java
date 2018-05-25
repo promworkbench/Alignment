@@ -16,21 +16,30 @@ public interface VisitedSet {
 	 * newIndex
 	 * 
 	 * @param marking
+	 *            the byte[] indicating the number of tokens per place
+	 * @return the id of the marking in the set. If the marking existed before, the
+	 *         existing ID is returned, otherwise a new successive ID is returned.
 	 * @return
 	 */
 	public int add(byte[] marking, int newIndex);
 
 	/**
-	 * returns the reserved space in this set. Not all slots may be used, but memory
-	 * is consumed.
+	 * returns the maximum memory use in bytes the set ever had.
 	 * 
 	 * @return
 	 */
-	public int capacity();
+	public long getEstimatedMemorySize();
 
 	/**
 	 * empties the set and restores it to its original state
 	 */
 	public void clear();
+
+	/**
+	 * returns the current capacity of the set, including the non-used slots.
+	 * 
+	 * @return
+	 */
+	public int capacity();
 
 }

@@ -44,7 +44,7 @@ public interface Queue {
 	 * 
 	 * @return
 	 */
-	public int maxBytesUsed();
+	public long getEstimatedMemorySize();
 
 	/**
 	 * returns the maximum memory capacity the queue ever had.

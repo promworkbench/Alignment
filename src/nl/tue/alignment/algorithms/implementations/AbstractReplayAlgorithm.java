@@ -8,10 +8,7 @@ import nl.tue.alignment.Canceler;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.Queue;
-import nl.tue.alignment.algorithms.ReplayAlgorithm;
 import nl.tue.alignment.algorithms.VisitedSet;
-import nl.tue.alignment.algorithms.ReplayAlgorithm.CloseResult;
-import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 import nl.tue.alignment.algorithms.datastructures.HashBackedPriorityQueue;
 import nl.tue.alignment.algorithms.datastructures.SortedHashBackedPriorityQueue;
 import nl.tue.alignment.algorithms.datastructures.VisitedHashSet;
@@ -202,15 +199,15 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		replayStatistics.put(Utils.Statistic.MEMORYUSED, (int) (getEstimatedMemorySize() / 1024));
 	}
 
-	protected long getEstimatedMemorySize() {
+	public long getEstimatedMemorySize() {
 
 		// each array has 4 bytes overhead for storing the size
 		long val = super.getEstimatedMemorySize();
 
 		// count the capacity of the queue
-		val += queue.maxBytesUsed();
+		val += queue.getEstimatedMemorySize();
 		// count the capacity of the visistedSet
-		val += 4 + visited.capacity() * 4;
+		val += visited.getEstimatedMemorySize();
 
 		return val;
 	}

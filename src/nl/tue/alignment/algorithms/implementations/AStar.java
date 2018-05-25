@@ -4,8 +4,6 @@ import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
-import nl.tue.alignment.algorithms.ReplayAlgorithm;
-import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 import nl.tue.astar.util.ilp.LPMatrix;
 import nl.tue.astar.util.ilp.LPMatrix.SPARSE.LPSOLVE;
@@ -221,7 +219,7 @@ public class AStar extends AbstractLPBasedAlgorithm {
 	}
 
 	@Override
-	protected long getEstimatedMemorySize() {
+	public long getEstimatedMemorySize() {
 		long val = super.getEstimatedMemorySize();
 		// count size of rhs
 		val += rhf.length * 8 + 4;

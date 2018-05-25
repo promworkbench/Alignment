@@ -209,7 +209,7 @@ abstract class AbstractLPBasedAlgorithm extends AbstractReplayAlgorithm {
 	protected abstract double computeCostForVars(double[] vars);
 
 	@Override
-	protected long getEstimatedMemorySize() {
+	public long getEstimatedMemorySize() {
 		long val = super.getEstimatedMemorySize();
 		// count space for all computed solutions
 		val += bytesLpSolutionsSize;

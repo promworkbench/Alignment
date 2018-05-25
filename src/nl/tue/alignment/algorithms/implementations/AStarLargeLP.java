@@ -560,7 +560,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	}
 
 	@Override
-	protected long getEstimatedMemorySize() {
+	public long getEstimatedMemorySize() {
 		long val = super.getEstimatedMemorySize();
 		// approximate memory for LpSolve
 		val += 8 * coefficients * 2;

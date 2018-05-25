@@ -347,7 +347,7 @@ abstract class AbstractReplayAlgorithmDataStore implements ReplayAlgorithm {
 		setClosed(marking >>> blockBit, marking & blockMask);
 	}
 
-	protected long getEstimatedMemorySize() {
+	public long getEstimatedMemorySize() {
 		// e_g_h_pt holds    4 + length * 8 + block * (4 + blockSize * 8) bytes;
 		// c_p holds         4 + length * 8 + block * (4 + blockSize * 8) bytes;
 		return 2 * 4 + 2 * g__pt.length * 8 + 2 * block * (8 + blockSize * 8);
