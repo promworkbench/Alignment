@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import nl.tue.alignment.Utils;
 
-class ReplayAlgorithmDataStore {
+abstract class AbstractReplayAlgorithmDataStore implements ReplayAlgorithm {
 
 	// The g__pt array is organized as follows
 	private static final long GMASK /* ..... 31 */ = 0b1111111111111111111111111111111000000000000000000000000000000000L;
@@ -59,7 +59,7 @@ class ReplayAlgorithmDataStore {
 	 */
 	private long[][] e_h_c_p;
 
-	public ReplayAlgorithmDataStore() {
+	public AbstractReplayAlgorithmDataStore() {
 		super();
 		this.blockSize = Utils.DEFAULTBLOCKSIZE;
 		this.blockMask = blockSize - 1;
@@ -411,7 +411,7 @@ class ReplayAlgorithmDataStore {
 		return (e_h_c_p[block][index] & EXACTMASK) == EXACTMASK;
 	}
 
-	protected boolean isInfinite(int heur) {
+	public boolean isInfinite(int heur) {
 		return heur == HEURISTICINFINITE;
 	}
 

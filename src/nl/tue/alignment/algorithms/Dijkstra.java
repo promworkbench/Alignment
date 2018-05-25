@@ -13,7 +13,7 @@ import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
  * @author bfvdonge
  * 
  */
-public class Dijkstra extends ReplayAlgorithm {
+public class Dijkstra extends AbstractReplayAlgorithm {
 
 	public Dijkstra(SyncProduct product) {
 		this(product, false, false,  Debug.NONE);

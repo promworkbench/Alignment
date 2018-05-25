@@ -7,7 +7,7 @@ import gnu.trove.map.hash.TIntObjectHashMap;
 import lpsolve.LpSolve;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
-public abstract class AbstractLPBasedAlgorithm extends ReplayAlgorithm {
+public abstract class AbstractLPBasedAlgorithm extends AbstractReplayAlgorithm {
 
 	// for each stored solution, the first byte is used for flagging.
 	// the first bit indicates whether the solution is derived

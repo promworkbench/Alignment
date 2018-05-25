@@ -7,7 +7,7 @@ public interface VisitedSet {
 	 * 
 	 * @return
 	 */
-	public ReplayAlgorithmDataStore getAlgorithm();
+	public ReplayAlgorithm getAlgorithm();
 
 	/**
 	 * Add a marking to the set of visited markings.
@@ -21,8 +21,8 @@ public interface VisitedSet {
 	public int add(byte[] marking, int newIndex);
 
 	/**
-	 * returns the reserved space in this set. Not all slots may be used, but
-	 * memory is consumed.
+	 * returns the reserved space in this set. Not all slots may be used, but memory
+	 * is consumed.
 	 * 
 	 * @return
 	 */

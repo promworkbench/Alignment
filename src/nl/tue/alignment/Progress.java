@@ -1,6 +1,6 @@
 package nl.tue.alignment;
 
-public interface Progress {
+public interface Progress extends Canceller {
 
 	public final static Progress INVISIBLE = new Progress() {
 
@@ -23,8 +23,6 @@ public interface Progress {
 	public void setMaximum(int maximum);
 
 	public void inc();
-
-	public boolean isCancelled();
 
 	public void log(String message);
 }

@@ -51,8 +51,8 @@ public class AlignmentTest {
 
 	public static enum Type {
 
-		ASTAR(true), //
-		INC0(true), //
+		ASTAR(false), //
+		INC0(false), //
 		INC3(false), //
 		INC_PLUS(true), //
 		PLANNING(false);
@@ -90,7 +90,7 @@ public class AlignmentTest {
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
 		//		mainFileFolder(Debug.STATS, 15, "road_fines");
 
-		mainFileFolder(Debug.DOT, 100000, "test");
+		mainFileFolder(Debug.DOT, 100000, "test", "test2", "alifah", "alifah2");
 		//		mainFileFolder(Debug.NONE, 30, "prCm6");
 		//		mainFileFolder(Debug.STATS, 30, "pr1151_l4_noise");
 		//		mainFileFolder(Debug.STATS, 15, "prCm6");
@@ -100,7 +100,7 @@ public class AlignmentTest {
 		//April 2018:
 		int timeout = 60;
 		//Initialize internal structures...
-		mainFileFolder(Debug.NONE, timeout, "d53_rad1");
+		mainFileFolder(Debug.STATS, timeout, "d53_rad1");
 		System.exit(0);
 
 		//
