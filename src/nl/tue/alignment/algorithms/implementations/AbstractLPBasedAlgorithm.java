@@ -1,4 +1,4 @@
-package nl.tue.alignment.algorithms;
+package nl.tue.alignment.algorithms.implementations;
 
 import java.util.Arrays;
 
@@ -7,7 +7,7 @@ import gnu.trove.map.hash.TIntObjectHashMap;
 import lpsolve.LpSolve;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
-public abstract class AbstractLPBasedAlgorithm extends AbstractReplayAlgorithm {
+abstract class AbstractLPBasedAlgorithm extends AbstractReplayAlgorithm {
 
 	// for each stored solution, the first byte is used for flagging.
 	// the first bit indicates whether the solution is derived
@@ -34,11 +34,10 @@ public abstract class AbstractLPBasedAlgorithm extends AbstractReplayAlgorithm {
 	};
 	protected long lpSolutionsSize = 4;
 	protected long bytesLpSolutionsSize = 4;
-	
+
 	protected LpSolve solver;
 	protected int bytesUsed;
 	protected long solveTime = 0;
-	public static boolean useTranslate = true;
 
 	/**
 	 * In the abstract LP Based algorithm, the translation is made from transitions
@@ -53,11 +52,7 @@ public abstract class AbstractLPBasedAlgorithm extends AbstractReplayAlgorithm {
 	public AbstractLPBasedAlgorithm(SyncProduct net, boolean moveSorting, boolean queueSorting, boolean preferExact,
 			Debug debug) {
 		super(net, moveSorting, queueSorting, preferExact, debug);
-		if (useTranslate) {
-			tempForSettingSolution = new int[2 * net.numModelMoves() + net.numEvents()];
-		} else {
-			tempForSettingSolution = new int[net.numTransitions()];
-		}
+		tempForSettingSolution = new int[net.numTransitions()];
 	}
 
 	protected int[] tempForSettingSolution;
@@ -67,17 +62,13 @@ public abstract class AbstractLPBasedAlgorithm extends AbstractReplayAlgorithm {
 		// and compute the maximum.
 		Arrays.fill(tempForSettingSolution, 0);
 		byte bits = 1;
-		for (int i =  solutionDouble.length; i-- > 0;) {
-			tempForSettingSolution[translate(i)] += ((int) (solutionDouble[i] + 1E-7));
-			if (tempForSettingSolution[translate(i)] > (1 << (bits - 1))) {
+		for (int i = solutionDouble.length; i-- > 0;) {
+			tempForSettingSolution[i] += ((int) (solutionDouble[i] + 1E-7));
+			if (tempForSettingSolution[i] > (1 << (bits - 1))) {
 				bits++;
 			}
 		}
 		setNewLpSolution(marking, bits, tempForSettingSolution);
-	}
-
-	protected int translate(int transition) {
-		return useTranslate ? net.getMoveOf(transition) : transition;
 	}
 
 	/**
@@ -126,14 +117,13 @@ public abstract class AbstractLPBasedAlgorithm extends AbstractReplayAlgorithm {
 	}
 
 	protected int getLpSolution(int marking, int transition) {
-		int move = translate(transition);
 
 		byte[] solution = getSolution(marking);
 		//		if ((solution[0] & STOREDFULL) == STOREDFULL) {
 		// get the bits used per transition
 		int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> FREEBITSFIRSTBYTE);
 		// which is the first bit?
-		int fromBit = 8 - FREEBITSFIRSTBYTE + move * bits;
+		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits;
 		// that implies the following byte
 		int fromByte = fromBit >>> 3;
 		// with the following index in byte.
@@ -169,7 +159,6 @@ public abstract class AbstractLPBasedAlgorithm extends AbstractReplayAlgorithm {
 	}
 
 	protected void setDerivedLpSolution(int from, int to, int transition) {
-		int move = translate(transition);
 
 		//		assert getSolution(to) == null;
 		byte[] solutionFrom = getSolution(from);
@@ -181,7 +170,7 @@ public abstract class AbstractLPBasedAlgorithm extends AbstractReplayAlgorithm {
 		// get the length of the bits used per transition
 		int bits = 1 + ((solution[0] & BITPERTRANSMASK) >>> FREEBITSFIRSTBYTE);
 		// which is the least significant bit?
-		int fromBit = 8 - FREEBITSFIRSTBYTE + move * bits + (bits - 1);
+		int fromBit = 8 - FREEBITSFIRSTBYTE + transition * bits + (bits - 1);
 		// that implies the following byte
 		int fromByte = fromBit >>> 3;
 		// with the following index in byte.

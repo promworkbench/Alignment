@@ -36,7 +36,6 @@ import nl.tue.alignment.Progress;
 import nl.tue.alignment.Replayer;
 import nl.tue.alignment.ReplayerParameters;
 import nl.tue.alignment.Utils;
-import nl.tue.alignment.algorithms.AbstractLPBasedAlgorithm;
 import nl.tue.alignment.algorithms.ReplayAlgorithm;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 
@@ -79,7 +78,6 @@ public class AlignmentTest {
 	}
 
 	public static void main(String[] args) throws Exception {
-		AbstractLPBasedAlgorithm.useTranslate = false;
 		if (Type.PLANNING.include()) {
 			frame.setVisible(true);
 		}

@@ -1,8 +1,9 @@
-package nl.tue.alignment.algorithms;
+package nl.tue.alignment.algorithms.implementations;
 
 import java.util.Arrays;
 
 import nl.tue.alignment.Utils;
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
 
 abstract class AbstractReplayAlgorithmDataStore implements ReplayAlgorithm {
 

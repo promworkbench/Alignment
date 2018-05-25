@@ -1,4 +1,4 @@
-package nl.tue.alignment.algorithms;
+package nl.tue.alignment.algorithms.implementations;
 
 import java.util.Arrays;
 
@@ -510,8 +510,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		Arrays.fill(tempForSettingSolution, 0);
 		byte bits = 1;
 		for (int i = solutionDouble.length; i-- > 0;) {
-			tempForSettingSolution[translate(indexMap[i])] += ((int) (solutionDouble[i] + 1E-7));
-			if (tempForSettingSolution[translate(indexMap[i])] > (1 << (bits - 1))) {
+			tempForSettingSolution[indexMap[i]] += ((int) (solutionDouble[i] + 1E-7));
+			if (tempForSettingSolution[indexMap[i]] > (1 << (bits - 1))) {
 				bits++;
 			}
 		}

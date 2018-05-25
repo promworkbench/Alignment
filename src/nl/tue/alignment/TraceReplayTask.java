@@ -16,11 +16,11 @@ import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
 import gnu.trove.map.TObjectIntMap;
 import nl.tue.alignment.Utils.Statistic;
-import nl.tue.alignment.algorithms.AStar;
-import nl.tue.alignment.algorithms.AStarLargeLP;
-import nl.tue.alignment.algorithms.Dijkstra;
 import nl.tue.alignment.algorithms.ReplayAlgorithm;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
+import nl.tue.alignment.algorithms.implementations.AStar;
+import nl.tue.alignment.algorithms.implementations.AStarLargeLP;
+import nl.tue.alignment.algorithms.implementations.Dijkstra;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 import nl.tue.astar.Trace;
 import nl.tue.astar.util.ilp.LPMatrixException;

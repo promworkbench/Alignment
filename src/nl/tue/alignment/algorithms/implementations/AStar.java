@@ -1,9 +1,11 @@
-package nl.tue.alignment.algorithms;
+package nl.tue.alignment.algorithms.implementations;
 
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 import nl.tue.astar.util.ilp.LPMatrix;
 import nl.tue.astar.util.ilp.LPMatrix.SPARSE.LPSOLVE;

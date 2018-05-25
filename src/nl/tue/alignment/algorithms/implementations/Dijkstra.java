@@ -1,5 +1,7 @@
-package nl.tue.alignment.algorithms;
+package nl.tue.alignment.algorithms.implementations;
 
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
 /**

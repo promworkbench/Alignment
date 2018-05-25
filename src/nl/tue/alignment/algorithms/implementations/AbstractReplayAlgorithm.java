@@ -1,4 +1,4 @@
-package nl.tue.alignment.algorithms;
+package nl.tue.alignment.algorithms.implementations;
 
 import java.util.Arrays;
 
@@ -7,6 +7,11 @@ import gnu.trove.map.hash.TObjectIntHashMap;
 import nl.tue.alignment.Canceler;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
+import nl.tue.alignment.algorithms.Queue;
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
+import nl.tue.alignment.algorithms.VisitedSet;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.CloseResult;
+import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 import nl.tue.alignment.algorithms.datastructures.HashBackedPriorityQueue;
 import nl.tue.alignment.algorithms.datastructures.SortedHashBackedPriorityQueue;
 import nl.tue.alignment.algorithms.datastructures.VisitedHashSet;
