@@ -71,7 +71,7 @@ public class BasicCodeSnippet {
 			XEventClasses classes, TransEvClassMapping mapping) {
 
 		int nThreads = 2;
-		int costUpperBound = 0; //Integer.MaxValue
+		int costUpperBound = Integer.MAX_VALUE;
 
 		ReplayerParameters parameters = new ReplayerParameters.Default(nThreads, costUpperBound, Debug.NONE);
 		Replayer replayer = new Replayer(parameters, net, initialMarking, finalMarking, classes, mapping, false);
