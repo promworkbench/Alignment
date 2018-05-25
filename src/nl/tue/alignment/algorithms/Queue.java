@@ -54,7 +54,7 @@ public interface Queue {
 	public int maxCapacity();
 
 	/**
-	 * returns maximum number of elements the queue ever contained empty.
+	 * returns maximum number of elements the queue ever contained.
 	 * 
 	 * @return
 	 */
@@ -67,7 +67,19 @@ public interface Queue {
 	 */
 	public int size();
 
-	public boolean contains(int marking);
+	/**
+	 * Checks if the the stored marking with ID markingId is contained in this
+	 * queue.
+	 * 
+	 * @param markingId
+	 * @return true if the given marking is in the queue
+	 */
+	public boolean contains(int markingId);
 
+	/**
+	 * Debugging method that checks the queue invariant on the queue
+	 * 
+	 * @return
+	 */
 	public boolean checkInv();
 }

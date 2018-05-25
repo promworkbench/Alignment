@@ -343,6 +343,6 @@ public class HashBackedPriorityQueue implements Queue {
 	}
 
 	public long getEstimatedMemorySize() {
-		return 4 + 4 * maxQueueLength + maxMapCapacity * 9 + 12;
+		return 4 + 4 * maxQueueLength + maxMapCapacity * 9 + 40;
 	}
 }
