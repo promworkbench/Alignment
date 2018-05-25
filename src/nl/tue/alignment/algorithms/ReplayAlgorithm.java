@@ -3,7 +3,7 @@ package nl.tue.alignment.algorithms;
 import java.io.PrintStream;
 
 import gnu.trove.map.TObjectIntMap;
-import nl.tue.alignment.Canceller;
+import nl.tue.alignment.Canceler;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
@@ -230,7 +230,7 @@ public interface ReplayAlgorithm {
 	 *             Exceptions is thrown if there is a problem with the LP
 	 *             computations.
 	 */
-	public int[] run(Canceller canceler, int timeoutMilliseconds, int maximumNumberOfStates, int costUpperLimit)
+	public int[] run(Canceler canceler, int timeoutMilliseconds, int maximumNumberOfStates, int costUpperLimit)
 			throws LPMatrixException;
 
 	/**

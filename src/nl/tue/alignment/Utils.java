@@ -20,7 +20,7 @@ public class Utils {
 	public static int TIMEOUTREACHED = 32;
 	public static int STATELIMITREACHED = 64;
 	public static int COSTLIMITREACHED = 128;
-	public static int CANCELLED = 256;
+	public static int CANCELED = 256;
 
 	/**
 	 * Default block size determines how many bytes are reserved top store

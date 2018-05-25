@@ -1,6 +1,6 @@
 package nl.tue.alignment;
 
-public interface Progress extends Canceller {
+public interface Progress extends Canceler {
 
 	public final static Progress INVISIBLE = new Progress() {
 
@@ -10,7 +10,7 @@ public interface Progress extends Canceller {
 		public void inc() {
 		}
 
-		public boolean isCancelled() {
+		public boolean isCanceled() {
 			return false;
 		}
 

@@ -68,7 +68,7 @@ public abstract class AbstractAlignmentPlugin implements IPNReplayAlgorithm {
 					context.getProgress().inc();
 				}
 
-				public boolean isCancelled() {
+				public boolean isCanceled() {
 					return context.getProgress().isCancelled();
 				}
 

@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
-import nl.tue.alignment.Canceller;
+import nl.tue.alignment.Canceler;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.datastructures.HashBackedPriorityQueue;
@@ -218,7 +218,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 	 * Progress, int, int, int)
 	 */
 	@Override
-	public int[] run(Canceller canceller, int timeoutMilliseconds, int maximumNumberOfStates, int costUpperLimit)
+	public int[] run(Canceler canceller, int timeoutMilliseconds, int maximumNumberOfStates, int costUpperLimit)
 			throws LPMatrixException {
 		if (maximumNumberOfStates <= 0) {
 			this.maximumNumberOfStates = Integer.MAX_VALUE;
@@ -239,7 +239,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 				timeoutMilliseconds <= 0 ? Integer.MAX_VALUE : timeoutMilliseconds, costUpperLimit);
 	}
 
-	protected int[] runReplayAlgorithm(Canceller canceller, long startTime, int timeoutMilliseconds, int costUpperBound)
+	protected int[] runReplayAlgorithm(Canceler canceller, long startTime, int timeoutMilliseconds, int costUpperBound)
 			throws LPMatrixException {
 
 		//		int[] trans = new int[net.numTransitions()];
@@ -267,7 +267,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 				byte[] marking_m = new byte[numPlaces];
 
 				queueLoop: while (!queue.isEmpty() && (System.currentTimeMillis() < timeoutAtTimeInMillisecond)
-						&& markingsReachedInRun < maximumNumberOfStates && !canceller.isCancelled()) {
+						&& markingsReachedInRun < maximumNumberOfStates && !canceller.isCanceled()) {
 					assert queue.size() == markingsReachedInRun - closedActionsInRun;
 
 					int m = queue.peek();
@@ -318,8 +318,8 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 				if (f_Score > costUpperBound) {
 					alignmentResult |= Utils.COSTLIMITREACHED;
 				}
-				if (canceller.isCancelled()) {
-					alignmentResult |= Utils.CANCELLED;
+				if (canceller.isCanceled()) {
+					alignmentResult |= Utils.CANCELED;
 				}
 				terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
 			}

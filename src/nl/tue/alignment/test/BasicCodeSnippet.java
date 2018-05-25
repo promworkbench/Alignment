@@ -148,7 +148,7 @@ public class BasicCodeSnippet {
 					if ((exitCode & Utils.COSTLIMITREACHED) == Utils.COSTLIMITREACHED) {
 						// no optimal alignment found with cost less or equal to the given limit.
 					}
-					if ((exitCode & Utils.CANCELLED) == Utils.CANCELLED) {
+					if ((exitCode & Utils.CANCELED) == Utils.CANCELED) {
 						// user-cancelled.
 					}
 

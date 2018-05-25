@@ -256,7 +256,7 @@ public class Replayer {
 	}
 
 	private boolean isCancelled() {
-		return getProgress().isCancelled();
+		return getProgress().isCanceled();
 	}
 
 	int getCostLM(XEventClass classOf) {
