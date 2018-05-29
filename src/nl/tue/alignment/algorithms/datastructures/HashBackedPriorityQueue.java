@@ -82,7 +82,7 @@ public class HashBackedPriorityQueue implements Queue {
 	 * @see nl.tue.astar.util.FastLookupPriorityQueue#isEmpty()
 	 */
 	public boolean isEmpty() {
-		return size() == 0;
+		return size == 0;
 	}
 
 	public int hashCode() {
