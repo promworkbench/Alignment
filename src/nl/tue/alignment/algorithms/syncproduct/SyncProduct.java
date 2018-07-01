@@ -7,7 +7,7 @@ public interface SyncProduct {
 	public static byte SYNC_MOVE = 3;
 	public static byte TAU_MOVE = 4;
 
-	public static final int MAXTRANS = 0b0011111111;
+	public static final int MAXTRANS = 0b00111111111111111111111111;
 	public static final int NOEVENT = -1;
 	public static final int NORANK = -1;
 
