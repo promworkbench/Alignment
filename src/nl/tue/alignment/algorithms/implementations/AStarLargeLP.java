@@ -209,7 +209,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			solver.addColumn(col);
 			c++;
 			coefficients++;
-			solver.setObj(c, 1);
+			solver.setObj(c, 1.0 / (c * 255));
 
 			int r;
 			// slack column equals sum other columns
@@ -217,7 +217,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			solver.setConstrType(1, LpSolve.EQ);
 
 			// The first blocks have to result in a marking >= 0 after consumption
-			for (r = 2; r < rows - product.numPlaces(); r++) {
+			for (r = 2; r <= rows - product.numPlaces(); r++) {
 				solver.setConstrType(r, LpSolve.GE);
 				solver.setRh(r, -product.getInitialMarking()[(r - 2) % product.numPlaces()]);
 				coefficients++;
@@ -285,7 +285,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				//				int t = list.get(idx);
 
 				Arrays.fill(col, 0);
-				col[1] = 1;//splitpoints.length-currentSplitpoint;
+				col[1] = splitpoints.length - currentSplitpoint;
 
 				input = product.getInput(t);
 				for (int i = 0; i < input.length; i++) {
@@ -333,7 +333,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			// first the model moves in this block
 			while (it.hasNext()) {
 				Arrays.fill(col, 0);
-				col[1] = 1;//splitpoints.length-currentSplitpoint;
+				col[1] = splitpoints.length - currentSplitpoint;
 				int t = it.next();
 
 				move2col[currentSplitpoint * net.numTransitions() + t] = c;
@@ -545,7 +545,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, int transition, int to, int toBlock,
 			int toIndex) {
-		int splitIndex = getSplitIndex(to);
+		int splitIndex = getSplitIndex(from);
 
 		int var = move2col[splitIndex * net.numTransitions() + transition];
 
@@ -593,7 +593,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	 * getLastRankof(marking)
 	 */
 	private int getSplitIndex(int marking) {
-		int e = getLastRankOf(marking);
+		int e = getLastRankOf(marking) + 1;
 		int i = 1;
 		while (splitpoints[i] <= e) {
 			i++;
