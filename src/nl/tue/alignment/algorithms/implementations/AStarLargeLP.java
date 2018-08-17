@@ -128,8 +128,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			numRanks = 1;
 		}
 
+		initialBins = Math.min(numRanks, initialBins);
 		if (initRandom) {
-			initialBins = Math.min(numRanks, initialBins);
 			splitpoints = new int[initialBins + 1];
 			if (initialBins > 0) {
 				double inc = (numRanks + 1) / (double) initialBins;
@@ -151,6 +151,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 	private int[] splitpoints;
 	private int[] lastSplitpoints;
+	private int[] move2col;
 
 	private int rows;
 	private int coefficients;
@@ -165,6 +166,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		rows = (splitpoints.length - 1) * product.numPlaces();
 
 		indexMap = new int[(splitpoints.length - 1) * modelMoves + product.numTransitions()];
+		move2col = new int[(splitpoints.length - 1) * product.numTransitions()];
+		Arrays.fill(move2col, -1);
 
 		try {
 			if (solver != null) {
@@ -184,14 +187,14 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			for (int s = 1; s < splitpoints.length; s++) {
 
 				// add model moves in this block (if any)
-				c = addModelMovesToSolver(col, c, start);
+				c = addModelMovesToSolver(col, c, start, s - 1);
 
 				//add log and sync moves in this block for all non-final ranks in the block.
 				for (int e = splitpoints[s - 1]; e < splitpoints[s] - 1; e++) {
-					c = addLogAndSyncMovesToSolver(col, c, start, e, true);
+					c = addLogAndSyncMovesToSolver(col, c, start, s - 1, e, true);
 				}
 				//add log and sync moves in this block for final rank in the block, or full if last splitpoint
-				c = addLogAndSyncMovesToSolver(col, c, start, (splitpoints[s] - 1), false);
+				c = addLogAndSyncMovesToSolver(col, c, start, s - 1, (splitpoints[s] - 1), false);
 
 				start += product.numPlaces();
 			}
@@ -245,11 +248,12 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		}
 		heuristicsComputedInRun = 0;
 		varsMainThread = new double[indexMap.length];
+		tempForSettingSolution = new int[indexMap.length];
 
 	}
 
-	protected int addLogAndSyncMovesToSolver(double[] col, int c, int start, int rank, boolean full)
-			throws LpSolveException {
+	protected int addLogAndSyncMovesToSolver(double[] col, int c, int start, int currentSplitpoint, int rank,
+			boolean full) throws LpSolveException {
 		if (rank2LSMove.get(rank) != null) {
 			int[] input;
 			int[] output;
@@ -258,6 +262,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			TIntIterator it = list.iterator();
 			while (it.hasNext()) {
 				int t = it.next();
+
+				move2col[currentSplitpoint * net.numTransitions() + t] = c;
 
 				//			for (int idx = 0; idx < list.size(); idx++) {
 				//				int t = list.get(idx);
@@ -301,7 +307,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		return c;
 	}
 
-	protected int addModelMovesToSolver(double[] col, int c, int start) throws LpSolveException {
+	protected int addModelMovesToSolver(double[] col, int c, int start, int currentSplitpoint) throws LpSolveException {
 		int[] input;
 		int[] output;
 		if (rank2LSMove.get(SyncProduct.NOEVENT) != null) {
@@ -310,6 +316,9 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			while (it.hasNext()) {
 				Arrays.fill(col, 0);
 				int t = it.next();
+
+				move2col[currentSplitpoint * net.numTransitions() + t] = c;
+
 				input = product.getInput(t);
 				for (int i = 0; i < input.length; i++) {
 					for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
@@ -419,11 +428,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		// start from correct right hand side
 		try {
 
-			int e = getLastRankOf(marking);
-			int i = 0;
-			while (splitpoints[i] < e) {
-				i++;
-			}
+			int i = getSplitIndex(marking);
 			i--;
 
 			int r;
@@ -503,28 +508,32 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		return c;
 	}
 
-	@Override
-	protected void setNewLpSolution(int marking, double[] solutionDouble) {
-		// copy the solution from double array to byte array (rounding down)
-		// and compute the maximum.
-		Arrays.fill(tempForSettingSolution, 0);
-		byte bits = 1;
-		for (int i = solutionDouble.length; i-- > 0;) {
-			tempForSettingSolution[indexMap[i]] += ((int) (solutionDouble[i] + 1E-7));
-			if (tempForSettingSolution[indexMap[i]] > (1 << (bits - 1))) {
-				bits++;
-			}
-		}
-		setNewLpSolution(marking, bits, tempForSettingSolution);
-	}
+	//	@Override
+	//	protected void setNewLpSolution(int marking, double[] solutionDouble) {
+	//		// copy the solution from double array to byte array (rounding down)
+	//		// and compute the maximum.
+	//		Arrays.fill(tempForSettingSolution, 0);
+	//		byte bits = 1;
+	//		for (int i = solutionDouble.length; i-- > 0;) {
+	//			tempForSettingSolution[indexMap[i]] += ((int) (solutionDouble[i] + 1E-7));
+	//			if (tempForSettingSolution[indexMap[i]] > (1 << (bits - 1))) {
+	//				bits++;
+	//			}
+	//		}
+	//		setNewLpSolution(marking, bits, tempForSettingSolution);
+	//	}
 
 	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, int transition, int to, int toBlock,
 			int toIndex) {
-		if (hasExactHeuristic(fromBlock, fromIndex) && (getLpSolution(from, transition) >= 1)) {
+		int splitIndex = getSplitIndex(from);
+
+		int var = move2col[splitIndex * net.numTransitions() + transition];
+
+		if (hasExactHeuristic(fromBlock, fromIndex) && var >= 0 && (getLpSolution(from, var) >= 1)) {
 			// from Marking has exact heuristic
 			// we can derive an exact heuristic from it
 
-			setDerivedLpSolution(from, to, transition);
+			setDerivedLpSolution(from, to, var);
 			// set the exact h score
 			setHScore(toBlock, toIndex, getHScore(fromBlock, fromIndex) - net.getCost(transition), true);
 			heuristicsDerived++;
@@ -557,6 +566,19 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			}
 		}
 
+	}
+
+	/**
+	 * Returns the first index i in splitpoints such that splitpoints[i] >=
+	 * getLastRankof(marking)
+	 */
+	private int getSplitIndex(int marking) {
+		int e = getLastRankOf(marking);
+		int i = 0;
+		while (splitpoints[i] < e) {
+			i++;
+		}
+		return i;
 	}
 
 	@Override

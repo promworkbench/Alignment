@@ -899,11 +899,12 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 	public int getLastRankOf(int marking) {
 		int m = marking;
 		int trans = getPredecessorTransition(m);
-		while (net.getRankOf(trans) < 0 && m > 0) {
+		int evt = net.getRankOf(trans);
+		while (evt < 0 && m > 0) {
 			m = getPredecessor(m);
 			trans = getPredecessorTransition(m);
+			evt = net.getRankOf(trans);
 		}
-		int evt = net.getRankOf(trans);
 		return evt;
 	}
 

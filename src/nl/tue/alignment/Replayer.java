@@ -164,7 +164,7 @@ public class Replayer {
 		List<Future<TraceReplayTask>> resultList = new ArrayList<>();
 
 		TraceReplayTask tr = new TraceReplayTask(this, parameters, timeoutMilliseconds,
-				parameters.maximumNumberOfStates, 0);
+				parameters.maximumNumberOfStates, 0l);
 		resultList.add(service.submit(tr));
 
 		int t = 0;

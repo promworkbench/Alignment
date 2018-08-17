@@ -161,8 +161,9 @@ public class AStar extends AbstractLPBasedAlgorithm {
 				alignmentResult |= Utils.TIMEOUTREACHED;
 				return HEURISTICINFINITE;
 			} else {
-				//					lp.writeLp("D:/temp/alignment/debugLP-Alignment.lp");
+				solver.writeLp("C:/temp/alignment/loopdouble_500K/debugLP-Alignment.lp");
 				System.err.println("Error code from LpSolve solver:" + solverResult);
+				System.exit(1);
 				return HEURISTICINFINITE;
 			}
 
