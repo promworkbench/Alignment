@@ -165,7 +165,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		// only if intermediate splitpoint present, more rows are needed
 		rows = (splitpoints.length - 1) * product.numPlaces();
 
-		indexMap = new int[(splitpoints.length - 1) * modelMoves + product.numTransitions()];
+		indexMap = new int[(splitpoints.length - 2) * modelMoves + product.numTransitions()];
 		move2col = new int[(splitpoints.length - 1) * product.numTransitions()];
 		Arrays.fill(move2col, -1);
 
@@ -187,13 +187,17 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			for (int s = 1; s < splitpoints.length; s++) {
 
 				// add model moves in this block (if any)
+				// These are part of x_{s-1}
 				c = addModelMovesToSolver(col, c, start, s - 1);
 
 				//add log and sync moves in this block for all non-final ranks in the block.
 				for (int e = splitpoints[s - 1]; e < splitpoints[s] - 1; e++) {
+					// These are part of x_{s-1}
 					c = addLogAndSyncMovesToSolver(col, c, start, s - 1, e, true);
 				}
 				//add log and sync moves in this block for final rank in the block, or full if last splitpoint
+
+				// These is vector of y_{s}
 				c = addLogAndSyncMovesToSolver(col, c, start, s - 1, (splitpoints[s] - 1), false);
 
 				start += product.numPlaces();
@@ -460,6 +464,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			if (solverResult == LpSolve.OPTIMAL) {
 				// retrieve the solution
 				solver.getVariables(vars);
+
 				setNewLpSolution(marking, vars);
 
 				// compute cost estimate
@@ -525,7 +530,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 	protected void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, int transition, int to, int toBlock,
 			int toIndex) {
-		int splitIndex = getSplitIndex(from);
+		int splitIndex = getSplitIndex(to);
 
 		int var = move2col[splitIndex * net.numTransitions() + transition];
 
@@ -575,7 +580,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	private int getSplitIndex(int marking) {
 		int e = getLastRankOf(marking);
 		int i = 1;
-		while (splitpoints[i] < e) {
+		while (splitpoints[i] <= e) {
 			i++;
 		}
 		return --i;
@@ -705,6 +710,63 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			if (i == iMax)
 				return b.append(']').toString();
 			b.append("; ");
+		}
+	}
+
+	private String toString(double[] vars) {
+
+		int[] tempForString = new int[net.numTransitions()];
+		// copy the solution from double array to byte array (rounding down)
+		// and compute the maximum.
+		Arrays.fill(tempForSettingSolution, 0);
+		byte bits = 1;
+		for (int i = vars.length; i-- > 0;) {
+			tempForString[indexMap[i]] += ((int) (vars[i] + 1E-7));
+			if (tempForString[indexMap[i]] > (1 << (bits - 1))) {
+				bits++;
+			}
+		}
+
+		int iMax = tempForString.length - 1;
+		if (iMax == -1)
+			return "";
+
+		StringBuilder b = new StringBuilder();
+		for (int i = 0;; i++) {
+			if (tempForString[i] > 0) {
+				b.append(tempForString[i]);
+				b.append(" ");
+				b.append(net.getTransitionLabel(i));
+			}
+			if (i == iMax)
+				return b.toString();
+			if (tempForString[i] > 0) {
+				b.append(", ");
+			}
+		}
+	}
+
+	private String toStringPerBlock(double[] vars) {
+
+		int iMax = move2col.length - 1;
+		if (iMax == -1)
+			return "";
+		StringBuilder b = new StringBuilder();
+		for (int i = 0;; i++) {
+			if (move2col[i] >= 0) {
+				if (vars[move2col[i]] > 0) {
+					b.append(((int) (vars[move2col[i]] + 1E-7)));
+					b.append(" ");
+					b.append(net.getTransitionLabel(indexMap[move2col[i]]));
+				}
+				if (i == iMax)
+					return b.toString();
+				if (i > 0 && i % net.numTransitions() == 0) {
+					b.append(" || ");
+				} else if (vars[move2col[i]] > 0) {
+					b.append(", ");
+				}
+			}
 		}
 	}
 

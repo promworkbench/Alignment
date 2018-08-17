@@ -363,7 +363,7 @@ public class SyncProductFactory {
 				while (it.hasNext()) {
 					// add sync move
 					int t = it.next();
-					t2name.add(t2name.get(t) + ",e" + e + "(" + cid + ")");
+					t2name.add(t2name.get(t) + " + e" + e + "(" + cid + ")");
 					t2mmCost.add(t2smCost.get(t));
 					t2eid.add(e);
 					t2type.add(SyncProduct.SYNC_MOVE);
