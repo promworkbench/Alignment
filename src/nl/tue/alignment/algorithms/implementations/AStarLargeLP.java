@@ -770,4 +770,12 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		}
 	}
 
+	private double[] buildLpSolution(int marking) {
+		double[] vars = new double[tempForSettingSolution.length];
+		for (int v = 0; v < vars.length; v++) {
+			vars[v] = getLpSolution(marking, v);
+		}
+		return vars;
+
+	}
 }

@@ -396,7 +396,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 							deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
 
 							if (hasExactHeuristic(bn, in)) {
-								debug.writeEdgeTraversed(this, m, t, n, "style=dashed,color=gray19");
+								debug.writeEdgeTraversed(this, m, t, n, "color=gray19");
 								// marking is now exact and was not before. 
 								assert queue.contains(n);
 								int s = queue.size();
