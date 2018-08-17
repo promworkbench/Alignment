@@ -12,7 +12,6 @@ import java.util.concurrent.Future;
 
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
-import org.deckfour.xes.extension.std.XConceptExtension;
 import org.deckfour.xes.model.XEvent;
 import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.XTrace;
@@ -133,7 +132,7 @@ public class Replayer {
 		}
 	}
 
-	public PNRepResult computePNRepResult(Progress progress, XLog log, String... traceToInclude)
+	public PNRepResult computePNRepResult(Progress progress, XLog log)//, String... traceToInclude)
 			throws InterruptedException, ExecutionException {
 		this.progress = progress;
 
@@ -176,10 +175,10 @@ public class Replayer {
 
 		int t = 0;
 		for (XTrace trace : log) {
-			if (traceToInclude.length > 0
-					&& !XConceptExtension.instance().extractName(trace).equals(traceToInclude[0])) {
-				continue;
-			}
+//			if (traceToInclude.length > 0
+//					&& !XConceptExtension.instance().extractName(trace).equals(traceToInclude[0])) {
+//				continue;
+//			}
 
 			TIntList errorEvents = new TIntArrayList(trace.size());
 			long preprocessTime = 0;
