@@ -285,7 +285,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				//				int t = list.get(idx);
 
 				Arrays.fill(col, 0);
-				col[1] = splitpoints.length-currentSplitpoint;
+				col[1] = 1;//splitpoints.length-currentSplitpoint;
 
 				input = product.getInput(t);
 				for (int i = 0; i < input.length; i++) {
@@ -333,7 +333,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			// first the model moves in this block
 			while (it.hasNext()) {
 				Arrays.fill(col, 0);
-				col[1] = splitpoints.length - currentSplitpoint;
+				col[1] = 1;//splitpoints.length-currentSplitpoint;
 				int t = it.next();
 
 				move2col[currentSplitpoint * net.numTransitions() + t] = c;
