@@ -132,8 +132,7 @@ public class Replayer {
 		}
 	}
 
-	public PNRepResult computePNRepResult(Progress progress, XLog log)//, String... traceToInclude)
-			throws InterruptedException, ExecutionException {
+	public PNRepResult computePNRepResult(Progress progress, XLog log) throws InterruptedException, ExecutionException {
 		this.progress = progress;
 
 		if (parameters.debug == Debug.STATS) {
@@ -175,10 +174,10 @@ public class Replayer {
 
 		int t = 0;
 		for (XTrace trace : log) {
-//			if (traceToInclude.length > 0
-//					&& !XConceptExtension.instance().extractName(trace).equals(traceToInclude[0])) {
-//				continue;
-//			}
+			//			if (traceToInclude.length > 0
+			//					&& !XConceptExtension.instance().extractName(trace).equals(traceToInclude[0])) {
+			//				continue;
+			//			}
 
 			TIntList errorEvents = new TIntArrayList(trace.size());
 			long preprocessTime = 0;
