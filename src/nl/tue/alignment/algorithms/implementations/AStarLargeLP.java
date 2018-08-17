@@ -222,8 +222,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				solver.setRh(r, -product.getInitialMarking()[(r - 2) % product.numPlaces()]);
 				coefficients++;
 			}
-			for (; r <= rows;) {
-				r++;
+			for (; r <= rows; r++) {
 				solver.setConstrType(r, LpSolve.EQ);
 				solver.setRh(r, product.getFinalMarking()[(r - 2) % product.numPlaces()]
 						- product.getInitialMarking()[(r - 2) % product.numPlaces()]);
@@ -452,16 +451,13 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			//			i--;
 
 			int r;
-			for (r = 1; r <= i * product.numPlaces();) {
-				r++;
+			for (r = 1; r <= i * product.numPlaces() + 1; r++) {
 				solver.setRh(r, 0);
 			}
-			for (; r <= rows - product.numPlaces();) {
-				r++;
+			for (; r <= rows - product.numPlaces(); r++) {
 				solver.setRh(r, -markingArray[(r - 2) % product.numPlaces()]);
 			}
-			for (; r <= rows;) {
-				r++;
+			for (; r <= rows; r++) {
 				solver.setRh(r, product.getFinalMarking()[(r - 2) % product.numPlaces()]
 						- markingArray[(r - 2) % product.numPlaces()]);
 			}
