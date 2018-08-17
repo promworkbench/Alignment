@@ -128,7 +128,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			numRanks = 1;
 		}
 
-		initialBins = Math.min(numRanks, initialBins);
+		initialBins = Math.min(numRanks + 1, initialBins);
 		if (initRandom) {
 			splitpoints = new int[initialBins + 1];
 			if (initialBins > 0) {
