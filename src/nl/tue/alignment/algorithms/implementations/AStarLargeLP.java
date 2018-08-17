@@ -65,7 +65,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		if (splitpoints.length > 0) {
 			System.arraycopy(splitpoints, 0, this.splitpoints, 1, splitpoints.length);
 		}
-		this.splitpoints[splitpoints.length + 1] = (numRanks + 1);
+		this.splitpoints[this.splitpoints.length - 1] = (numRanks + 1);
 		splits = splitpoints.length + 1;
 
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
