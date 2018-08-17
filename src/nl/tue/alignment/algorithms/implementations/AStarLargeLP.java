@@ -709,7 +709,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			b.append(a[i]);
 			if (i == iMax)
 				return b.append(']').toString();
-			b.append("; ");
+			b.append(" ");
 		}
 	}
 
