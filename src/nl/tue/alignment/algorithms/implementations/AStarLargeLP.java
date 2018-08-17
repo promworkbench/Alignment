@@ -429,7 +429,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		try {
 
 			int i = getSplitIndex(marking);
-			i--;
+			//			i--;
 
 			int r;
 			for (r = 1; r <= i * product.numPlaces(); r++) {
@@ -574,11 +574,11 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	 */
 	private int getSplitIndex(int marking) {
 		int e = getLastRankOf(marking);
-		int i = 0;
+		int i = 1;
 		while (splitpoints[i] < e) {
 			i++;
 		}
-		return i;
+		return --i;
 	}
 
 	@Override
