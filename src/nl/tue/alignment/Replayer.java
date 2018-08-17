@@ -29,6 +29,7 @@ import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
+import nl.tue.alignment.ReplayerParameters.Algorithm;
 import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
@@ -137,12 +138,16 @@ public class Replayer {
 		if (parameters.debug == Debug.STATS) {
 			parameters.debug.print(Debug.STATS, "SP label");
 			for (Statistic s : Statistic.values()) {
-				parameters.debug.print(Debug.STATS, ",");
+				parameters.debug.print(Debug.STATS, Utils.SEP);
 				parameters.debug.print(Debug.STATS, s.toString());
 			}
-			parameters.debug.print(Debug.STATS, ",max Memory (MB)");
-			parameters.debug.print(Debug.STATS, ",total Memory (MB)");
-			parameters.debug.print(Debug.STATS, ",free Memory (MB)");
+			parameters.debug.print(Debug.STATS, Utils.SEP + "max Memory (MB)");
+			parameters.debug.print(Debug.STATS, Utils.SEP + "total Memory (MB)");
+			parameters.debug.print(Debug.STATS, Utils.SEP + "free Memory (MB)");
+
+			if (parameters.algorithm == Algorithm.INCREMENTALASTAR) {
+				parameters.debug.print(Debug.STATS, Utils.SEP + "Splitpoints");
+			}
 
 			parameters.debug.println(Debug.STATS);
 

@@ -11,7 +11,7 @@ import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
 public class Utils {
 
-	public static final String SEP = ";";
+	public static final String SEP = ",";
 	public static int OPTIMALALIGNMENT = 1;
 	public static int FAILEDALIGNMENT = 2;
 	public static int ENABLINGBLOCKEDBYOUTPUT = 4;
