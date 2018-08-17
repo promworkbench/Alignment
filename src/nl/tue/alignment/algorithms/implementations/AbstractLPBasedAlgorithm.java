@@ -62,7 +62,7 @@ abstract class AbstractLPBasedAlgorithm extends AbstractReplayAlgorithm {
 		// and compute the maximum.
 		Arrays.fill(tempForSettingSolution, 0);
 		byte bits = 1;
-		for (int i = solutionDouble.length; i-- > 0;) {
+		for (int i = tempForSettingSolution.length; i-- > 0;) {
 			tempForSettingSolution[i] += ((int) (solutionDouble[i] + 1E-7));
 			if (tempForSettingSolution[i] > (1 << (bits - 1))) {
 				bits++;

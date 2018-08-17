@@ -163,7 +163,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		maxRankMarking = 0;
 
 		// only if intermediate splitpoint present, more rows are needed
-		rows = (splitpoints.length - 1) * product.numPlaces();
+		rows = 1 + (splitpoints.length - 1) * product.numPlaces();
 
 		indexMap = new int[(splitpoints.length - 2) * modelMoves + product.numTransitions()];
 		move2col = new int[(splitpoints.length - 1) * product.numTransitions()];
@@ -203,17 +203,30 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				start += product.numPlaces();
 			}
 
+			// slack column
+			Arrays.fill(col, 0);
+			col[1] = -1;
+			solver.addColumn(col);
+			c++;
+			coefficients++;
+			solver.setObj(c, 1);
+
 			int r;
+			// slack column equals sum other columns
+			solver.setRh(1, 0);
+			solver.setConstrType(1, LpSolve.EQ);
+
 			// The first blocks have to result in a marking >= 0 after consumption
-			for (r = 1; r <= rows - product.numPlaces(); r++) {
+			for (r = 2; r < rows - product.numPlaces(); r++) {
 				solver.setConstrType(r, LpSolve.GE);
-				solver.setRh(r, -product.getInitialMarking()[(r - 1) % product.numPlaces()]);
+				solver.setRh(r, -product.getInitialMarking()[(r - 2) % product.numPlaces()]);
 				coefficients++;
 			}
-			for (; r <= rows; r++) {
+			for (; r <= rows;) {
+				r++;
 				solver.setConstrType(r, LpSolve.EQ);
-				solver.setRh(r, product.getFinalMarking()[(r - 1) % product.numPlaces()]
-						- product.getInitialMarking()[(r - 1) % product.numPlaces()]);
+				solver.setRh(r, product.getFinalMarking()[(r - 2) % product.numPlaces()]
+						- product.getInitialMarking()[(r - 2) % product.numPlaces()]);
 				coefficients++;
 			}
 
@@ -251,7 +264,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			throw new LPMatrixException(e);
 		}
 		heuristicsComputedInRun = 0;
-		varsMainThread = new double[indexMap.length];
+		varsMainThread = new double[indexMap.length + 1];
 		tempForSettingSolution = new int[indexMap.length];
 
 	}
@@ -273,9 +286,11 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				//				int t = list.get(idx);
 
 				Arrays.fill(col, 0);
+				col[1] = 1;
+
 				input = product.getInput(t);
 				for (int i = 0; i < input.length; i++) {
-					for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
+					for (int p = 1 + start + input[i]; p < col.length; p += product.numPlaces()) {
 						col[p] -= 1;
 						coefficients++;
 					}
@@ -284,12 +299,12 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				output = product.getOutput(t);
 				for (int i = 0; i < output.length; i++) {
 					if (full) {
-						for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
+						for (int p = 1 + start + output[i]; p < col.length; p += product.numPlaces()) {
 							col[p] += 1;
 							coefficients++;
 						}
 					} else {
-						for (int p = start + product.numPlaces() + output[i]; p < col.length; p += product
+						for (int p = 1 + start + product.numPlaces() + output[i]; p < col.length; p += product
 								.numPlaces()) {
 							col[p] += 1;
 							coefficients++;
@@ -319,20 +334,21 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			// first the model moves in this block
 			while (it.hasNext()) {
 				Arrays.fill(col, 0);
+				col[1] = 1;
 				int t = it.next();
 
 				move2col[currentSplitpoint * net.numTransitions() + t] = c;
 
 				input = product.getInput(t);
 				for (int i = 0; i < input.length; i++) {
-					for (int p = start + input[i]; p < col.length; p += product.numPlaces()) {
+					for (int p = 1 + start + input[i]; p < col.length; p += product.numPlaces()) {
 						col[p] -= 1;
 						coefficients++;
 					}
 				}
 				output = product.getOutput(t);
 				for (int i = 0; i < output.length; i++) {
-					for (int p = start + output[i]; p < col.length; p += product.numPlaces()) {
+					for (int p = 1 + start + output[i]; p < col.length; p += product.numPlaces()) {
 						col[p] += 1;
 						coefficients++;
 					}
@@ -436,15 +452,18 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			//			i--;
 
 			int r;
-			for (r = 1; r <= i * product.numPlaces(); r++) {
+			for (r = 1; r <= i * product.numPlaces();) {
+				r++;
 				solver.setRh(r, 0);
 			}
-			for (; r <= rows - product.numPlaces(); r++) {
-				solver.setRh(r, -markingArray[(r - 1) % product.numPlaces()]);
+			for (; r <= rows - product.numPlaces();) {
+				r++;
+				solver.setRh(r, -markingArray[(r - 2) % product.numPlaces()]);
 			}
-			for (; r <= rows; r++) {
-				solver.setRh(r, product.getFinalMarking()[(r - 1) % product.numPlaces()]
-						- markingArray[(r - 1) % product.numPlaces()]);
+			for (; r <= rows;) {
+				r++;
+				solver.setRh(r, product.getFinalMarking()[(r - 2) % product.numPlaces()]
+						- markingArray[(r - 2) % product.numPlaces()]);
 			}
 
 			solver.defaultBasis();
@@ -507,7 +526,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 	protected double computeCostForVars(double[] vars) {
 		double c = 0;
-		for (int t = vars.length; t-- > 0;) {
+		for (int t = vars.length - 1; t-- > 0;) {
 			c += vars[t] * net.getCost(indexMap[t]);
 		}
 		return c;
