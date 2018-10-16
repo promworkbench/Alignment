@@ -45,22 +45,22 @@ public class ConstraintSet {
 		colNames = new String[columns];
 		colNames[columns - 1] = "marking";
 
-		TObjectIntMap<Place> p2id = new TObjectIntHashMap<>(net.getPlaces().size(), 0.7f,  -1);
-		TObjectIntMap<Transition> t2id = new TObjectIntHashMap<>(net.getTransitions().size(), 0.7f,  -1);
+		TObjectIntMap<Place> p2id = new TObjectIntHashMap<>(net.getPlaces().size(), 0.7f, -1);
+		TObjectIntMap<Transition> t2id = new TObjectIntHashMap<>(net.getTransitions().size(), 0.7f, -1);
 
 		for (Transition t : net.getTransitions()) {
-			t2id.put(t,  t2id.size());
+			t2id.put(t, t2id.size());
 		}
 
 		for (PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> edge : net.getEdges()) {
 			if (edge.getSource() instanceof Place) {
-				int p = p2id.putIfAbsent((Place) edge.getSource(),  p2id.size());
+				int p = p2id.putIfAbsent((Place) edge.getSource(), p2id.size());
 				if (p < 0) {
-					p =  (p2id.size() - 1);
+					p = (p2id.size() - 1);
 				}
-				int t = t2id.putIfAbsent((Transition) edge.getTarget(),  t2id.size());
+				int t = t2id.putIfAbsent((Transition) edge.getTarget(), t2id.size());
 				if (t < 0) {
-					t =  (t2id.size() - 1);
+					t = (t2id.size() - 1);
 				}
 				XEventClass clazz = map.get(edge.getTarget());
 				int c;
@@ -91,17 +91,17 @@ public class ConstraintSet {
 				// t consumes from p
 				matrix[cs + ts + p][t] -= 1;
 				// initial marking
-				matrix[cs + ts + p][ts + cs] =  -initialMarking.occurrences(edge.getSource());
+				matrix[cs + ts + p][ts + cs] = -initialMarking.occurrences(edge.getSource());
 				firstNonZero[cs + ts + p] = firstNonZero[cs + ts + p] > t ? t : firstNonZero[cs + ts + p];
 
 			} else {
-				int p = p2id.putIfAbsent((Place) edge.getTarget(),  p2id.size());
+				int p = p2id.putIfAbsent((Place) edge.getTarget(), p2id.size());
 				if (p < 0) {
-					p =  (p2id.size() - 1);
+					p = (p2id.size() - 1);
 				}
-				int t = t2id.putIfAbsent((Transition) edge.getSource(),  t2id.size());
+				int t = t2id.putIfAbsent((Transition) edge.getSource(), t2id.size());
 				if (t < 0) {
-					t =  (t2id.size() - 1);
+					t = (t2id.size() - 1);
 				}
 				XEventClass clazz = map.get(edge.getSource());
 				int c;
@@ -131,15 +131,15 @@ public class ConstraintSet {
 				// t produces in p
 				matrix[cs + ts + p][t] += 1;
 				// initial marking
-				matrix[cs + ts + p][ts + cs] =  -initialMarking.occurrences(edge.getTarget());
+				matrix[cs + ts + p][ts + cs] = -initialMarking.occurrences(edge.getTarget());
 				firstNonZero[cs + ts + p] = firstNonZero[cs + ts + p] > t ? t : firstNonZero[cs + ts + p];
 
 			}
 
 		}
 
-//		System.out.println("Before:");
-//		printMatrix(matrix);
+		//		System.out.println("Before:");
+		//		printMatrix(matrix);
 
 		// swap rows cs+ts..cs+ts+ps to make the matrix triangular.
 		for (int r = cs + ts; r < rows; r++) {
@@ -156,8 +156,8 @@ public class ConstraintSet {
 				}
 			}
 		}
-//		System.out.println("Sorted:");
-//		printMatrix(matrix);
+		//		System.out.println("Sorted:");
+		//		printMatrix(matrix);
 
 		int[] first1 = new int[cs];
 		for (int r = 0; r < cs; r++) {
@@ -252,14 +252,16 @@ public class ConstraintSet {
 					// reduce it, even by weakening. This implies a tau-transition, remove the row.
 					if (!done) {
 						// eliminate row r;
-						Arrays.fill(newMatrix[rn],  0);
+						Arrays.fill(newMatrix[rn], 0);
 
-						// swap with lastStrong to avoid over-use of weak constraints
-						int[] tmp = newMatrix[lastStrong];
-						newMatrix[lastStrong] = newMatrix[rn];
-						newMatrix[rn] = tmp;
-						// move last strong pointer up
-						lastStrong--;
+						if (lastStrong >= 0) {
+							// swap with lastStrong to avoid over-use of weak constraints
+							int[] tmp = newMatrix[lastStrong];
+							newMatrix[lastStrong] = newMatrix[rn];
+							newMatrix[rn] = tmp;
+							// move last strong pointer up
+							lastStrong--;
+						}
 						// decrease r, as the new row might have a non 0 value at [r][c]
 						r--;
 					}
@@ -303,12 +305,14 @@ public class ConstraintSet {
 					// if not done, set to 0 as this is only weakens the constraint
 					if (!done) {
 						newMatrix[rn][c] = 0;
-						// swap with lastStrong to avoid over-use of weak constraints
-						int[] tmp = newMatrix[lastStrong];
-						newMatrix[lastStrong] = newMatrix[rn];
-						newMatrix[rn] = tmp;
-						// move last strong pointer up
-						lastStrong--;
+						if (lastStrong >= 0) {
+							// swap with lastStrong to avoid over-use of weak constraints
+							int[] tmp = newMatrix[lastStrong];
+							newMatrix[lastStrong] = newMatrix[rn];
+							newMatrix[rn] = tmp;
+							// move last strong pointer up
+							lastStrong--;
+						}
 						// decrease r, as the new row might have a non 0 value at [r][c]
 						r--;
 					}
@@ -335,18 +339,18 @@ public class ConstraintSet {
 			Constraint constraint = new Constraint(c2id.size(), matrix[r][columns - 1], classColNames);
 			for (int c = ts; c < ts + cs; c++) {
 				if (matrix[r][c] > 0) {
-					constraint.addInput( (c - ts), matrix[r][c]);
+					constraint.addInput((c - ts), matrix[r][c]);
 				} else if (matrix[r][c] < 0) {
-					constraint.addOutput( (c - ts), -matrix[r][c]);
+					constraint.addOutput((c - ts), -matrix[r][c]);
 				}
 			}
 			if (constraints.add(constraint)) {
 				// new constraint;
 				for (int c = ts; c < ts + cs; c++) {
 					if (matrix[r][c] > 0) {
-						label2input.get( (c - ts)).add(constraint);
+						label2input.get((c - ts)).add(constraint);
 					} else if (matrix[r][c] < 0) {
-						label2output.get( (c - ts)).add(constraint);
+						label2output.get((c - ts)).add(constraint);
 					}
 				}
 			}

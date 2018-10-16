@@ -15,6 +15,7 @@ import org.deckfour.xes.model.XEvent;
 import org.deckfour.xes.model.XTrace;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
+import org.processmining.models.graphbased.directed.petrinet.elements.Arc;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.models.semantics.petrinet.Marking;
@@ -262,7 +263,7 @@ public class SyncProductFactory {
 			t2eid.add(SyncProduct.NOEVENT);
 			t2type.add(t.isInvisible() ? SyncProduct.TAU_MOVE : SyncProduct.MODEL_MOVE);
 
-			int[] input = new int[net.getInEdges(t).size()];
+			TIntList input = new TIntArrayList(2 * net.getInEdges(t).size());
 			int i = 0;
 			for (PetrinetEdge<?, ?> e : net.getInEdges(t)) {
 				Place p = (Place) e.getSource();
@@ -272,10 +273,14 @@ public class SyncProductFactory {
 					p2id.put(p, id);
 					p2name.add(p.getLabel());
 				}
-				input[i++] = id;
+				for (int w = 0; w < ((Arc) e).getWeight(); w++) {
+					input.add(id);
+					i++;
+				}
 			}
-			t2input.add(input);
-			int[] output = new int[net.getOutEdges(t).size()];
+			t2input.add(input.toArray());
+
+			TIntList output = new TIntArrayList(2 * net.getOutEdges(t).size());
 			i = 0;
 			for (PetrinetEdge<?, ?> e : net.getOutEdges(t)) {
 				Place p = (Place) e.getTarget();
@@ -285,9 +290,12 @@ public class SyncProductFactory {
 					p2id.put(p, id);
 					p2name.add(p.getLabel());
 				}
-				output[i++] = id;
+				for (int w = 0; w < ((Arc) e).getWeight(); w++) {
+					output.add(id);
+					i++;
+				}
 			}
-			t2output.add(output);
+			t2output.add(output.toArray());
 		}
 
 		initMarking = new byte[p2name.size()];

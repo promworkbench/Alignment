@@ -1,11 +1,13 @@
 package nl.tue.alignment.test;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
+import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.concurrent.ExecutionException;
 
 import org.deckfour.xes.classification.XEventClass;
@@ -18,9 +20,7 @@ import org.deckfour.xes.info.XLogInfo;
 import org.deckfour.xes.info.XLogInfoFactory;
 import org.deckfour.xes.info.impl.XLogInfoImpl;
 import org.deckfour.xes.model.XLog;
-import org.jbpt.petri.Flow;
-import org.jbpt.petri.NetSystem;
-import org.jbpt.petri.io.PNMLSerializer;
+import org.processmining.models.connections.GraphLayoutConnection;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
@@ -29,7 +29,11 @@ import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetFactor
 import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 import org.processmining.plugins.petrinet.replayresult.PNRepResult;
+import org.processmining.plugins.pnml.base.FullPnmlElementFactory;
+import org.processmining.plugins.pnml.base.Pnml;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserFactory;
 
 import lpsolve.LpSolve;
 import nl.tue.alignment.Progress;
@@ -48,12 +52,15 @@ public class AlignmentTest {
 	public static int iteration = 0;
 	public static FrameContext frame = new FrameContext();
 
+	static String[] SINGLETRACE = new String[] {};
+
 	public static enum Type {
 
 		ASTAR(false), //
-		INC0(false), //
+		INC0(true), //
 		INC3(false), //
-		INC_PLUS(true), //
+		INC10(false), //
+		INC_PLUS(false), //
 		PLANNING(false);
 
 		private boolean include;
@@ -88,19 +95,25 @@ public class AlignmentTest {
 		//				"prFm6", "prGm6", "prAm6", "prBm6");
 		//		mainFileFolder(Debug.STATS, 15, "road_fines");
 
-		mainFileFolder(Debug.DOT, 100000, "test", "test2", "alifah", "alifah2");
-		//		mainFileFolder(Debug.NONE, 30, "prCm6");
+		//		mainFileFolder(Debug.STATS, 60, "pr1151_l4_noise", "pr1912_l4_noise");
+
+		//		mainFileFolder(SINGLETRACE.length > 0 ? Debug.DOT : Debug.STATS, 100000, "log_abc_500");
+		//		mainFileFolder(SINGLETRACE.length > 0 ? Debug.DOT : Debug.STATS, 100000, "loopdouble_500K");
+		//
+		//		System.exit(0);
+
+		//Initialize internal structures...
+
+		//		mainFileFolder(Debug.NONE, 100000, "test", "test2", "alifah", "alifah2");
+		mainFileFolder(Debug.DOT, Integer.MAX_VALUE, "or");
+		System.exit(0);
 		//		mainFileFolder(Debug.STATS, 30, "pr1151_l4_noise");
 		//		mainFileFolder(Debug.STATS, 15, "prCm6");
 
 		//		mainFileFolder(Debug.STATS, 30, "prAm6", "prBm6", "prEm6", "prCm6", "prDm6", "prFm6", "prGm6");
 
 		//April 2018:
-		int timeout = 60;
-		//Initialize internal structures...
-		mainFileFolder(Debug.STATS, timeout, "d53_rad1");
-		System.exit(0);
-
+		int timeout = 10;
 		//
 		mainFileFolder(Debug.STATS, timeout, "prCm6", "prBm6", "prAm6");
 		mainFileFolder(Debug.STATS, timeout, "prEm6", "prFm6", "prGm6", "prDm6"); // Planner runs out of memory
@@ -148,8 +161,19 @@ public class AlignmentTest {
 			for (String name : names) {
 				name = name.replace(".pnml", "");
 
-				Petrinet net = constructNet(FOLDER + folder + name + ".pnml");
-				Marking initialMarking = getInitialMarking(net);
+				File pnmlFile = new File(FOLDER + folder + name + ".pnml");
+				FileInputStream inputStream = new FileInputStream(pnmlFile);
+				Pnml pnml = importPnmlFromStream(inputStream, pnmlFile.getName(), pnmlFile.length());
+				inputStream.close();
+
+				Petrinet net = PetrinetFactory.newPetrinet(pnml.getLabel());
+				Marking initialMarking = new Marking();
+				GraphLayoutConnection layout = new GraphLayoutConnection(net);
+
+				pnml.convertToNet(net, initialMarking, layout);
+
+				//				Petrinet net = constructNet(FOLDER + folder + name + ".pnml");
+				//				Marking initialMarking = getInitialMarking(net);
 				Marking finalMarking = getFinalMarking(net);
 				XLog log;
 				XEventClassifier eventClassifier;
@@ -202,8 +226,20 @@ public class AlignmentTest {
 
 		for (String name : names) {
 			String folder = FOLDER + name + "/" + name;
-			Petrinet net = constructNet(folder + ".pnml");
-			Marking initialMarking = getInitialMarking(net);
+
+			File pnmlFile = new File(folder + ".pnml");
+			FileInputStream inputStream = new FileInputStream(pnmlFile);
+			Pnml pnml = importPnmlFromStream(inputStream, pnmlFile.getName(), pnmlFile.length());
+			inputStream.close();
+
+			Petrinet net = PetrinetFactory.newPetrinet(pnml.getLabel());
+			Marking initialMarking = new Marking();
+			GraphLayoutConnection layout = new GraphLayoutConnection(net);
+
+			pnml.convertToNet(net, initialMarking, layout);
+
+			//			Petrinet net = constructNet(folder + ".pnml");
+			//			Marking initialMarking = getInitialMarking(net);
 			Marking finalMarking = getFinalMarking(net);
 			XLog log;
 			XEventClassifier eventClassifier;
@@ -217,6 +253,15 @@ public class AlignmentTest {
 				eventClassifier = new XEventNameClassifier();
 				log = parser.parse(new File(folder + ".xes")).get(0);
 			}
+
+			/////////////////
+			//			java.util.Iterator<XTrace> it = log.iterator();
+			//			while (it.hasNext()) {
+			//				if (!XConceptExtension.instance().extractName(it.next()).equals("414")) {
+			//					it.remove();
+			//				}
+			//			}
+			/////////////////
 
 			System.out.print(folder + SEP);
 			System.out.print((log.size() + 1) + SEP);
@@ -291,6 +336,14 @@ public class AlignmentTest {
 							parameters);
 				}
 				break;
+			case INC10 :
+				if (type.include()) {
+					parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, debug, timeout,
+							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, 10);
+					doReplay(debug, folder, "Incre10", net, initialMarking, finalMarking, log, mapping, classes,
+							parameters);
+				}
+				break;
 
 			case INC_PLUS :
 				if (type.include()) {
@@ -354,7 +407,7 @@ public class AlignmentTest {
 		Replayer replayer = new Replayer(parameters, (Petrinet) net, initialMarking, finalMarking, classes, mapping,
 				true);
 
-		PNRepResult result = replayer.computePNRepResult(Progress.INVISIBLE, log);
+		PNRepResult result = replayer.computePNRepResult(Progress.INVISIBLE, log);//, SINGLETRACE);
 		long end = System.nanoTime();
 
 		int cost = (int) Double.parseDouble((String) result.getInfo().get(Replayer.MAXMODELMOVECOST));
@@ -453,63 +506,121 @@ public class AlignmentTest {
 	//
 	//	}
 
-	private static Petrinet constructNet(String netFile) {
-		PNMLSerializer PNML = new PNMLSerializer();
-		NetSystem sys = PNML.parse(netFile);
+	public static Pnml importPnmlFromStream(InputStream input, String filename, long fileSizeInBytes) throws Exception {
+		FullPnmlElementFactory pnmlFactory = new FullPnmlElementFactory();
+		/*
+		 * Get an XML pull parser.
+		 */
+		XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+		factory.setNamespaceAware(true);
+		XmlPullParser xpp = factory.newPullParser();
+		/*
+		 * Initialize the parser on the provided input.
+		 */
+		xpp.setInput(input, null);
+		/*
+		 * Get the first event type.
+		 */
+		int eventType = xpp.getEventType();
+		/*
+		 * Create a fresh PNML object.
+		 */
+		Pnml pnml = new Pnml();
+		synchronized (pnmlFactory) {
+			pnml.setFactory(pnmlFactory);
 
-		//System.err.println(sys.getMarkedPlaces());
-
-		//		int pi, ti;
-		//		pi = ti = 1;
-		//		for (org.jbpt.petri.Place p : sys.getPlaces())
-		//			p.setName("p" + pi++);
-		//		for (org.jbpt.petri.Transition t : sys.getTransitions())
-		//				t.setName("t" + ti++);
-
-		Petrinet net = PetrinetFactory.newPetrinet(netFile);
-
-		// places
-		Map<org.jbpt.petri.Place, Place> p2p = new HashMap<org.jbpt.petri.Place, Place>();
-		for (org.jbpt.petri.Place p : sys.getPlaces()) {
-			Place pp = net.addPlace(p.toString());
-			p2p.put(p, pp);
-		}
-
-		// transitions
-		Map<org.jbpt.petri.Transition, Transition> t2t = new HashMap<org.jbpt.petri.Transition, Transition>();
-		for (org.jbpt.petri.Transition t : sys.getTransitions()) {
-			Transition tt = net.addTransition(t.getLabel());
-			if (t.isSilent() || t.getLabel().startsWith("tau") || t.getLabel().equals("t2") || t.getLabel().equals("t8")
-					|| t.getLabel().equals("complete")) {
-				tt.setInvisible(true);
+			/*
+			 * Skip whatever we find until we've found a start tag.
+			 */
+			while (eventType != XmlPullParser.START_TAG) {
+				eventType = xpp.next();
 			}
-			t2t.put(t, tt);
-		}
-
-		// flow
-		for (Flow f : sys.getFlow()) {
-			if (f.getSource() instanceof org.jbpt.petri.Place) {
-				net.addArc(p2p.get(f.getSource()), t2t.get(f.getTarget()));
+			/*
+			 * Check whether start tag corresponds to PNML start tag.
+			 */
+			if (xpp.getName().equals(Pnml.TAG)) {
+				/*
+				 * Yes it does. Import the PNML element.
+				 */
+				pnml.importElement(xpp, pnml);
 			} else {
-				net.addArc(t2t.get(f.getSource()), p2p.get(f.getTarget()));
+				/*
+				 * No it does not. Return null to signal failure.
+				 */
+				pnml.log(Pnml.TAG, xpp.getLineNumber(), "Expected pnml");
 			}
 		}
 
-		// add unique start node
-		if (sys.getSourceNodes().isEmpty()) {
-			Place i = net.addPlace("START_P");
-			Transition t = net.addTransition("");
-			t.setInvisible(true);
-			net.addArc(i, t);
-
-			for (org.jbpt.petri.Place p : sys.getMarkedPlaces()) {
-				net.addArc(t, p2p.get(p));
-			}
-
-		}
-
-		return net;
+		/*
+		 * Initialize necessary objects.
+		 */
+		Petrinet net = PetrinetFactory.newPetrinet(pnml.getLabel());
+		Marking marking = new Marking();
+		Collection<Marking> finalMarkings = new HashSet<Marking>();
+		GraphLayoutConnection layout = new GraphLayoutConnection(net);
+		/*
+		 * Copy the imported data into these objects.
+		 */
+		return pnml;
 	}
+
+	//	private static Petrinet constructNet(String netFile) {
+	//		PNMLSerializer PNML = new PNMLSerializer();
+	//		NetSystem sys = PNML.parse(netFile);
+	//
+	//		//System.err.println(sys.getMarkedPlaces());
+	//
+	//		//		int pi, ti;
+	//		//		pi = ti = 1;
+	//		//		for (org.jbpt.petri.Place p : sys.getPlaces())
+	//		//			p.setName("p" + pi++);
+	//		//		for (org.jbpt.petri.Transition t : sys.getTransitions())
+	//		//				t.setName("t" + ti++);
+	//
+	//		Petrinet net = PetrinetFactory.newPetrinet(netFile);
+	//
+	//		// places
+	//		Map<org.jbpt.petri.Place, Place> p2p = new HashMap<org.jbpt.petri.Place, Place>();
+	//		for (org.jbpt.petri.Place p : sys.getPlaces()) {
+	//			Place pp = net.addPlace(p.toString());
+	//			p2p.put(p, pp);
+	//		}
+	//
+	//		// transitions
+	//		Map<org.jbpt.petri.Transition, Transition> t2t = new HashMap<org.jbpt.petri.Transition, Transition>();
+	//		for (org.jbpt.petri.Transition t : sys.getTransitions()) {
+	//			Transition tt = net.addTransition(t.getLabel());
+	//			if (t.isSilent() || t.getLabel().startsWith("tau") || t.getLabel().equals("t2") || t.getLabel().equals("t8")
+	//					|| t.getLabel().equals("complete")) {
+	//				tt.setInvisible(true);
+	//			}
+	//			t2t.put(t, tt);
+	//		}
+	//
+	//		// flow
+	//		for (Flow f : sys.getFlow()) {
+	//			if (f.getSource() instanceof org.jbpt.petri.Place) {
+	//				net.addArc(p2p.get(f.getSource()), t2t.get(f.getTarget()));
+	//			} else {
+	//				net.addArc(t2t.get(f.getSource()), p2p.get(f.getTarget()));
+	//			}
+	//		}
+	//
+	//		// add unique start node
+	//		if (sys.getSourceNodes().isEmpty()) {
+	//			Place i = net.addPlace("START_P");
+	//			Transition t = net.addTransition("");
+	//			t.setInvisible(true);
+	//			net.addArc(i, t);
+	//
+	//			for (org.jbpt.petri.Place p : sys.getMarkedPlaces()) {
+	//				net.addArc(t, p2p.get(p));
+	//			}
+	//
+	//		}
+	//
+	//		return net;
+	//	}
 
 	private static Marking getFinalMarking(PetrinetGraph net) {
 		Marking finalMarking = new Marking();
