@@ -55,8 +55,8 @@ public class AlignmentTest {
 	static String[] SINGLETRACE = new String[] {};
 
 	public static enum Type {
-
-		ASTAR(false), //
+		DIJKSTRA(true), //
+		ASTAR(true), //
 		INC0(true), //
 		INC3(false), //
 		INC10(false), //
@@ -311,6 +311,15 @@ public class AlignmentTest {
 		boolean preProcessUsingPlaceBasedConstraints = true;
 
 		switch (type) {
+			case DIJKSTRA :
+				if (type.include()) {
+					parameters = new ReplayerParameters.Dijkstra(moveSort, queueSort, threads, debug, timeout,
+							maxNumberOfStates, Integer.MAX_VALUE, partialOrder);
+					doReplay(debug, folder, "Dijkstra", net, initialMarking, finalMarking, log, mapping, classes,
+							parameters);
+				}
+				break;
+
 			case ASTAR :
 				if (type.include()) {
 					parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug,

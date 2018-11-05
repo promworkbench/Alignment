@@ -2,9 +2,12 @@ package nl.tue.alignment;
 
 import java.io.PrintStream;
 
+import gnu.trove.iterator.TIntIntIterator;
 import gnu.trove.iterator.TIntIterator;
 import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.map.TIntIntMap;
+import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
@@ -23,9 +26,8 @@ public class Utils {
 	public static int CANCELED = 256;
 
 	/**
-	 * Default block size determines how many bytes are reserved top store
-	 * markings. Whenever a block is full, a new block of this size is
-	 * allocated.
+	 * Default block size determines how many bytes are reserved top store markings.
+	 * Whenever a block is full, a new block of this size is allocated.
 	 */
 	public static int DEFAULTBLOCKSIZE = 1024;
 
@@ -166,36 +168,49 @@ public class Utils {
 			}
 			stream.print("}\n");
 
-			TIntSet events = new TIntHashSet(product.numTransitions(), 0.5f,  -2);
+			TIntIntIterator it;
+			TIntSet events = new TIntHashSet(product.numTransitions(), 0.5f, -2);
 			for (int t = 0; t < product.numTransitions(); t++) {
 				events.add(product.getEventOf(t));
 				transitionToDot(product, stream, t, t);
 
-				for (int p : product.getInput(t)) {
-					stream.print("p" + p + " -> t" + t);
+				it = toBag(product.getInput(t)).iterator();
+				while (it.hasNext()) {
+					//				for (int p : product.getInput(t)) {
+					it.advance();
+					stream.print("p" + it.key() + " -> t" + t);
 					if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
-						stream.print(" [weight=2]");
+						stream.print(" [weight=2");
 					} else {
-						stream.print(" [weight=10]");
+						stream.print(" [weight=10");
 					}
-					stream.print(";\n");
+					if (it.value() > 1) {
+						stream.print(",label=\"" + it.value() + "\"");
+					}
+					stream.print("];\n");
 				}
-				for (int p : product.getOutput(t)) {
-					stream.print("t" + t + " -> p" + p);
+				it = toBag(product.getOutput(t)).iterator();
+				//				for (int p : product.getOutput(t)) {
+				while (it.hasNext()) {
+					it.advance();
+					stream.print("t" + t + " -> p" + it.key());
 					if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
-						stream.print(" [weight=2]");
+						stream.print(" [weight=2");
 					} else {
-						stream.print(" [weight=10]");
+						stream.print(" [weight=10");
 					}
-					stream.print(";\n");
+					if (it.value() > 1) {
+						stream.print(",label=\"" + it.value() + "\"");
+					}
+					stream.print("];\n");
 				}
 			}
 
 			events.remove(SyncProduct.NOEVENT);
 
 			int e;
-			for (TIntIterator it = events.iterator(); it.hasNext();) {
-				e = it.next();
+			for (TIntIterator it2 = events.iterator(); it2.hasNext();) {
+				e = it2.next();
 				stream.print("{ rank=same;");
 				for (int t = 0; t < product.numTransitions(); t++) {
 					if (product.getEventOf(t) == e) {
@@ -210,6 +225,14 @@ public class Utils {
 			stream.flush();
 		}
 
+	}
+
+	private static TIntIntMap toBag(int[] list) {
+		TIntIntHashMap map = new TIntIntHashMap(list.length);
+		for (int i : list) {
+			map.adjustOrPutValue(i, 1, 1);
+		}
+		return map;
 	}
 
 	public static void toDot(SyncProduct product, int[] alignment, PrintStream stream) {
@@ -232,7 +255,7 @@ public class Utils {
 				transitionToDot(product, stream, i, t);
 
 				for (int p : product.getInput(t)) {
-					int j = place2index[p].removeAt(place2index[p].size() - 1);
+					int j = place2index[p].size() > 0 ? place2index[p].removeAt(place2index[p].size() - 1) : -1;
 					if (j == p) {
 						placeToDot(product, stream, j, p);
 					}

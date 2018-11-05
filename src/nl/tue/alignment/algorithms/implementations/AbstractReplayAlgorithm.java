@@ -703,17 +703,21 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		int preTransition = getPredecessorTransition(block, index);
 		if (!moveSorting || preTransition <= transition || hasPlaceBetween(preTransition, transition)) {
 			// allow firing only if there is a place between or if total order
-			// is
-			// respected
+			// is respected
+
+			// copy marking
+			System.arraycopy(marking, 0, firingMarking, 0, numPlaces);
+
 			int[] input = net.getInput(transition);
 			for (int i = input.length; i-- > 0;) {
-				if (marking[input[i]] < 1) {
+				if (--firingMarking[input[i]] < 0) {
 					return false;
 				}
 			}
 			int[] output = net.getOutput(transition);
 			for (int i = output.length; i-- > 0;) {
-				if (marking[output[i]] > Byte.MAX_VALUE - 1 || marking[output[i]] < 0) {
+				if (++firingMarking[output[i]] > Byte.MAX_VALUE - 1
+						|| /* additional overflow check */firingMarking[output[i]] < 0) {
 					alignmentResult |= Utils.ENABLINGBLOCKEDBYOUTPUT;
 					return false;
 				}
