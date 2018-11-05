@@ -11,6 +11,7 @@ import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 import nl.tue.astar.util.ilp.LPMatrixException;
 
@@ -328,8 +329,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	protected int addModelMovesToSolver(double[] col, int c, int start, int currentSplitpoint) throws LpSolveException {
 		int[] input;
 		int[] output;
-		if (rank2LSMove.get(SyncProduct.NOEVENT) != null) {
-			TIntIterator it = rank2LSMove.get(SyncProduct.NOEVENT).iterator();
+		if (rank2LSMove.get(SyncProduct.NORANK) != null) {
+			TIntIterator it = rank2LSMove.get(SyncProduct.NORANK).iterator();
 			// first the model moves in this block
 			while (it.hasNext()) {
 				Arrays.fill(col, 0);
@@ -793,4 +794,17 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		return vars;
 
 	}
+
+	@Override
+	protected void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, int transition, int toMarking,
+			String extra) {
+		if (debug == Debug.DOT && transition >= 0
+				&& Arrays.binarySearch(splitpoints, algorithm.getNet().getEventOf(transition) + 1) >= 0) {
+			debug.writeEdgeTraversed(algorithm, fromMarking, transition, toMarking,
+					extra + ",style=\"tapered\",penwidth=\"5\"");
+		} else {
+			debug.writeEdgeTraversed(algorithm, fromMarking, transition, toMarking, extra);
+		}
+	}
+
 }

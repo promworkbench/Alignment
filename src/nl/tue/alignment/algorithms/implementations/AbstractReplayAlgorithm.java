@@ -8,6 +8,7 @@ import nl.tue.alignment.Canceler;
 import nl.tue.alignment.Utils;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.Queue;
+import nl.tue.alignment.algorithms.ReplayAlgorithm;
 import nl.tue.alignment.algorithms.VisitedSet;
 import nl.tue.alignment.algorithms.datastructures.HashBackedPriorityQueue;
 import nl.tue.alignment.algorithms.datastructures.SortedHashBackedPriorityQueue;
@@ -367,7 +368,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 						int tmpG = getGScore(bm, im) + net.getCost(t);
 
 						if (tmpG < getGScore(bn, in)) {
-							debug.writeEdgeTraversed(this, m, t, n);
+							writeEdgeTraversed(this, m, t, n, "");
 
 							// found a inter path to n.
 							setGScore(bn, in, tmpG);
@@ -396,7 +397,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 							deriveOrEstimateHValue(m, bm, im, t, n, bn, in);
 
 							if (hasExactHeuristic(bn, in)) {
-								debug.writeEdgeTraversed(this, m, t, n, "color=gray19");
+								writeEdgeTraversed(this, m, t, n, ",color=gray19");
 								// marking is now exact and was not before. 
 								assert queue.contains(n);
 								int s = queue.size();
@@ -407,11 +408,11 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 							// not a new marking
 							assert n < newIndex;
 							// reached a marking of which F score is higher than current F score
-							debug.writeEdgeTraversed(this, m, t, n, "style=dashed,color=gray19,arrowtail=tee");
+							writeEdgeTraversed(this, m, t, n, ",style=dashed,color=gray19,arrowtail=tee");
 						}
 					} else {
 						// reached an already closed marking
-						debug.writeEdgeTraversed(this, m, t, n, "style=dashed,color=gray19,arrowtail=box");
+						writeEdgeTraversed(this, m, t, n, ",style=dashed,color=gray19,arrowtail=box");
 					}
 				} finally {
 					//					releaseLockForComputingEstimate(bn, in);
@@ -420,6 +421,11 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		} // end for transitions
 		processedMarking(m, bm, im);
 		return markingsReachedInExpand;
+	}
+
+	protected void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, int transition, int toMarking,
+			String extra) {
+		debug.writeEdgeTraversed(algorithm, fromMarking, transition, toMarking, extra);
 	}
 
 	protected CloseResult closeOrUpdateMarking(int m, byte[] marking_m, int bm, int im) {
@@ -560,7 +566,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		while (n != NOPREDECESSOR) {
 			t = getPredecessorTransition(m2);
 
-			debug.writeEdgeTraversed(this, n, -1, m2, "color=red");
+			writeEdgeTraversed(this, n, -1, m2, "color=red");
 			alignmentLength++;
 			alignmentCost += net.getCost(t);
 			m2 = n;

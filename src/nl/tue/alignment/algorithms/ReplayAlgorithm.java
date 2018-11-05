@@ -96,9 +96,6 @@ public interface ReplayAlgorithm {
 					}
 				}
 				if (!extra.isEmpty()) {
-					if (transition >= 0) {
-						b.append(",");
-					}
 					b.append(extra);
 				}
 

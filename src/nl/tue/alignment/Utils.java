@@ -169,7 +169,7 @@ public class Utils {
 			stream.print("}\n");
 
 			TIntIntIterator it;
-			TIntSet events = new TIntHashSet(product.numTransitions(), 0.5f, -2);
+			TIntSet events = new TIntHashSet(product.numTransitions(), 0.5f, -3);
 			for (int t = 0; t < product.numTransitions(); t++) {
 				events.add(product.getEventOf(t));
 				transitionToDot(product, stream, t, t);

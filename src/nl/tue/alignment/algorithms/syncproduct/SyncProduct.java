@@ -8,8 +8,8 @@ public interface SyncProduct {
 	public static byte TAU_MOVE = 4;
 
 	public static final int MAXTRANS = 0b01111111111111111111111111;
-	public static final int NOEVENT = -1;
-	public static final int NORANK = -1;
+	public static final int NOEVENT = -2;
+	public static final int NORANK = NOEVENT;
 
 	/**
 	 * Returns the number of transitions. At most MAXTRANS transitions are allowed
