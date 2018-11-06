@@ -210,7 +210,10 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			solver.addColumn(col);
 			c++;
 			coefficients++;
-			solver.setObj(c, 1.0 / (c * 255));
+			// positive: do moves costs as late as possible
+			// negative: do moves as early as possible
+			solver.setObj(c, - 1.0 / (c * 255));
+			
 
 			int r;
 			// slack column equals sum other columns
@@ -485,7 +488,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 				// compute cost estimate
 				double c = computeCostForVars(vars);
-
+				
 				if (c >= HEURISTICINFINITE) {
 					alignmentResult |= Utils.HEURISTICFUNCTIONOVERFLOW;
 
