@@ -1,6 +1,7 @@
 package nl.tue.alignment.algorithms.implementations;
 
 import java.util.Arrays;
+import java.util.Random;
 
 import gnu.trove.iterator.TIntIterator;
 import gnu.trove.list.TIntList;
@@ -26,6 +27,8 @@ import nl.tue.astar.util.ilp.LPMatrixException;
  * 
  */
 public class AStarLargeLP extends AbstractLPBasedAlgorithm {
+
+	private static Random random = new Random(41343);
 
 	protected int heuristicsComputedInRun = 0;
 
@@ -212,8 +215,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			coefficients++;
 			// positive: do moves costs as late as possible
 			// negative: do moves as early as possible
-			solver.setObj(c, - 1.0 / (c * 255));
-			
+			solver.setObj(c, -1.0 / (c * 255));
 
 			int r;
 			// slack column equals sum other columns
@@ -279,6 +281,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			int[] output;
 			TIntList list = rank2LSMove.get(rank);
 
+			double n = 0;
 			TIntIterator it = list.iterator();
 			while (it.hasNext()) {
 				int t = it.next();
@@ -289,7 +292,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				//				int t = list.get(idx);
 
 				Arrays.fill(col, 0);
-				col[1] = splitpoints.length - currentSplitpoint;
+				n += random.nextDouble();
+				col[1] = splitpoints.length - currentSplitpoint - n / net.numTransitions();
 
 				input = product.getInput(t);
 				for (int i = 0; i < input.length; i++) {
@@ -317,7 +321,13 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				solver.addColumn(col);
 				indexMap[c] = t;
 				c++;
+
+				//				// SEMICONTINUOUS
+				//				solver.setSemicont(c, true);
+				//				// SEMICONTINUOUS LOWBO = 1
+				//				solver.setLowbo(c, 1);
 				solver.setLowbo(c, 0);
+
 				coefficients++;
 				solver.setUpbo(c, 1);
 				coefficients++;
@@ -335,9 +345,11 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		if (rank2LSMove.get(SyncProduct.NORANK) != null) {
 			TIntIterator it = rank2LSMove.get(SyncProduct.NORANK).iterator();
 			// first the model moves in this block
+			double n = 0;
 			while (it.hasNext()) {
 				Arrays.fill(col, 0);
-				col[1] = splitpoints.length - currentSplitpoint;
+				n += random.nextDouble();
+				col[1] = splitpoints.length - currentSplitpoint - n / net.numTransitions();
 				int t = it.next();
 
 				move2col[currentSplitpoint * net.numTransitions() + t] = c;
@@ -359,7 +371,12 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				solver.addColumn(col);
 				indexMap[c] = t;
 				c++;
+				//				// SEMICONTINUOUS
+				//				solver.setSemicont(c, true);
+				//				// SEMICONTINUOUS LOWBO = 1
+				//				solver.setLowbo(c, 1);
 				solver.setLowbo(c, 0);
+
 				coefficients++;
 				solver.setUpbo(c, 255);
 				coefficients++;
@@ -393,7 +410,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 		int rank = (maxRankExact + 1);// marking == 0 ? SyncProduct.NORANK : getLastRankOf(marking);
 
-		// the current intest path explains the events up to and including the event at maxRankExact with exact markings.
+		// the current path explains the events up to and including the event at maxRankExact with exact markings.
 		// a state must exist with an estimated heuristic for the event maxRankExact+1. But the search cannot continue from there.
 		// so, we separate maxRankExact+1 by putting the border at maxRankExact+2.
 		// 
@@ -488,7 +505,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 				// compute cost estimate
 				double c = computeCostForVars(vars);
-				
+
 				if (c >= HEURISTICINFINITE) {
 					alignmentResult |= Utils.HEURISTICFUNCTIONOVERFLOW;
 

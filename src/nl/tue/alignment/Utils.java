@@ -235,6 +235,25 @@ public class Utils {
 		return map;
 	}
 
+	public static String toVector(SyncProduct product, double[] solution, int[] indexMap) {
+		StringBuilder b = new StringBuilder();
+		b.append("[");
+		for (int i = 0; i < indexMap.length; i++) {
+			if (solution[i] > 0) {
+				b.append(String.format("%1$.2f ", solution[i]));
+				b.append(product.getTransitionLabel(indexMap[i]));
+				b.append("(");
+				b.append(indexMap[i]);
+				b.append(")");
+				if (i < indexMap.length - 1) {
+					b.append(", ");
+				}
+			}
+		}
+		b.append("]");
+		return b.toString();
+	}
+
 	public static void toDot(SyncProduct product, int[] alignment, PrintStream stream) {
 		synchronized (stream) {
 			stream.print("Digraph A { \n rankdir=LR;\n");
