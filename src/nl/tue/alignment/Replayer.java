@@ -85,6 +85,7 @@ public class Replayer {
 		this(parameters, net, initialMarking, finalMarking, classes, null, null, null, mapping, mergeDuplicateTraces);
 	}
 
+	
 	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
 			XEventClasses classes, Map<Transition, Integer> costMM, Map<XEventClass, Integer> costLM,
 			Map<Transition, Integer> costSM, TransEvClassMapping mapping, boolean mergeDuplicateTraces) {

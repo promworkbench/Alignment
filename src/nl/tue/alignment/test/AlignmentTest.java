@@ -55,10 +55,10 @@ public class AlignmentTest {
 	static String[] SINGLETRACE = new String[] {};
 
 	public static enum Type {
-		DIJKSTRA(true), //
-		ASTAR(true), //
-		INC0(true), //
-		INC3(false), //
+		DIJKSTRA(false), //
+		ASTAR(false), //
+		INC0(false), //
+		INC3(true), //
 		INC10(false), //
 		INC_PLUS(false), //
 		PLANNING(false);
@@ -105,7 +105,8 @@ public class AlignmentTest {
 		//Initialize internal structures...
 
 		//		mainFileFolder(Debug.NONE, 100000, "test", "test2", "alifah", "alifah2");
-		mainFileFolder(Debug.DOT, Integer.MAX_VALUE, "or");
+		//		mainFileFolder(Debug.DOT, Integer.MAX_VALUE, "or");
+		mainFileFolder(Debug.STATS, Integer.MAX_VALUE, "BPIC15_1_start_end_IMfa");
 		System.exit(0);
 		//		mainFileFolder(Debug.STATS, 30, "pr1151_l4_noise");
 		//		mainFileFolder(Debug.STATS, 15, "prCm6");

@@ -375,4 +375,12 @@ public interface ReplayAlgorithm {
 	 */
 	public long getEstimatedMemorySize();
 
+	/**
+	 * returns the length of the path from the initial marking to reach this marking
+	 * 
+	 * @param marking
+	 * @return
+	 */
+	public int getPathLength(int marking);
+
 }

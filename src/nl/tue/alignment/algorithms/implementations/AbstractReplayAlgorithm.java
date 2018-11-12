@@ -934,4 +934,12 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		return iteration;
 	}
 
+	public int getPathLength(int marking) {
+		if (marking == NOPREDECESSOR) {
+			return 0;
+		} else {
+			return 1 + getPathLength(getPredecessor(marking));
+		}
+	}
+
 }

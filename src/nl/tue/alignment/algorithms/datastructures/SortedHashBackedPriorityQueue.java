@@ -75,8 +75,16 @@ public class SortedHashBackedPriorityQueue extends HashBackedPriorityQueue {
 			return false;
 		}
 
-		// prefer the later reached marking
-		return marking2 > marking1;
+		c1 = algorithm.getPathLength(marking1);
+		c2 = algorithm.getPathLength(marking2);
+		if (c1 != c2) {
+			// prefer the longest path. (counter intuitive, but this ensures maximal sequentialization
+			// of the LP solution already achieved.
+			return c1 > c2;
+		}
+
+		// prefer the first marking reached
+		return marking2 < marking1;
 	}
 
 	//	private int getLastEventNumber(int marking) {

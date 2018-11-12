@@ -43,7 +43,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	private int modelMoves;
 
 	private SyncProduct product;
-	private boolean useInteger;
+	private boolean[] useInteger;
 	private int maxRankExact;
 	private int maxRankMarking;
 
@@ -104,11 +104,12 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		this.setupTime = (int) ((System.nanoTime() - startConstructor) / 1000);
 	}
 
-	private AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInteger, int initialBins,
-			boolean initRandom, Debug debug) {
+	private AStarLargeLP(SyncProduct product, boolean moveSorting, boolean useInt, int initialBins, boolean initRandom,
+			Debug debug) {
 		super(product, moveSorting, true, true, debug);
 		this.product = product;
-		this.useInteger = useInteger;
+		this.useInteger = new boolean[product.numTransitions()];
+		Arrays.fill(this.useInteger, useInt);
 
 		rank2LSMove.put(SyncProduct.NORANK, new TIntArrayList(10));
 		numRanks = -1;
@@ -215,7 +216,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			coefficients++;
 			// positive: do moves costs as late as possible
 			// negative: do moves as early as possible
-			solver.setObj(c, -1.0 / (c * 255));
+			solver.setObj(c, 1.0 / (c * 255));
 
 			int r;
 			// slack column equals sum other columns
@@ -293,7 +294,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 				Arrays.fill(col, 0);
 				n += random.nextDouble();
-				col[1] = splitpoints.length - currentSplitpoint - n / net.numTransitions();
+//				col[1] = splitpoints.length - currentSplitpoint - n / net.numTransitions();
+				col[1] = currentSplitpoint + n / net.numTransitions();
 
 				input = product.getInput(t);
 				for (int i = 0; i < input.length; i++) {
@@ -331,7 +333,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				coefficients++;
 				solver.setUpbo(c, 1);
 				coefficients++;
-				solver.setInt(c, useInteger);
+				solver.setInt(c, useInteger[t]);
 				solver.setObj(c, product.getCost(t));
 				coefficients++;
 			} // for all sync/log moves
@@ -349,7 +351,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			while (it.hasNext()) {
 				Arrays.fill(col, 0);
 				n += random.nextDouble();
-				col[1] = splitpoints.length - currentSplitpoint - n / net.numTransitions();
+				col[1] = currentSplitpoint + n / net.numTransitions();
+				//				col[1] = splitpoints.length - currentSplitpoint - n / net.numTransitions();
 				int t = it.next();
 
 				move2col[currentSplitpoint * net.numTransitions() + t] = c;
@@ -380,7 +383,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				coefficients++;
 				solver.setUpbo(c, 255);
 				coefficients++;
-				solver.setInt(c, useInteger);
+				solver.setInt(c, useInteger[t]);
 				solver.setObj(c, product.getCost(t));
 				coefficients++;
 			} // for all modelMoves
@@ -539,6 +542,26 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 		}
 
+	}
+
+	@Override
+	protected void setNewLpSolution(int marking, double[] solutionDouble) {
+		// copy the solution from double array to byte array (rounding down)
+		// and compute the maximum.
+		Arrays.fill(tempForSettingSolution, 0);
+		byte bits = 0;
+		for (int i = tempForSettingSolution.length; i-- > 0;) {
+			tempForSettingSolution[i] = ((int) (solutionDouble[i] + 1E-7));
+			if (tempForSettingSolution[i] < ((int) (solutionDouble[i] - 1E-7))) {
+				//rounded down
+				useInteger[indexMap[i]] = true;
+			}
+			if (tempForSettingSolution[i] > (1 << bits)) {
+				bits++;
+			}
+		}
+		bits++;
+		setNewLpSolution(marking, bits, tempForSettingSolution);
 	}
 
 	protected double computeCostForVars(double[] vars) {

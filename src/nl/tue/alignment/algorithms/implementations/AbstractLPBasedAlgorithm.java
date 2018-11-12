@@ -63,7 +63,7 @@ abstract class AbstractLPBasedAlgorithm extends AbstractReplayAlgorithm {
 		Arrays.fill(tempForSettingSolution, 0);
 		byte bits = 0;
 		for (int i = tempForSettingSolution.length; i-- > 0;) {
-			tempForSettingSolution[i] += ((int) (solutionDouble[i] + 1E-7));
+			tempForSettingSolution[i] = ((int) (solutionDouble[i] + 1E-7));
 			if (tempForSettingSolution[i] > (1 << bits)) {
 				bits++;
 			}
