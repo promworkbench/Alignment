@@ -10,7 +10,6 @@ import java.util.concurrent.Future;
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
 import org.deckfour.xes.classification.XEventClassifier;
-import org.deckfour.xes.classification.XEventNameClassifier;
 import org.deckfour.xes.in.XMxmlParser;
 import org.deckfour.xes.in.XUniversalParser;
 import org.deckfour.xes.in.XesXmlParser;
@@ -53,16 +52,18 @@ public class BasicCodeSnippet {
 
 		if (new File(logFile).exists()) {
 			XMxmlParser parser = new XMxmlParser();
-			eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
 			log = parser.parse(new File(logFile)).get(0);
 		} else if (new File(logFile).exists()) {
 			XesXmlParser parser = new XesXmlParser();
-			eventClassifier = new XEventNameClassifier();
 			log = parser.parse(new File(logFile)).get(0);
 		} else {
 			log = new XUniversalParser().parse(new File(logFile)).iterator().next();
-			eventClassifier = new XEventNameClassifier();
 		}
+		// matching using A+Complete (typical for mxml files)
+		eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
+	
+		// matching using A (typical for xes files)
+		//	eventClassifier = new XEventNameClassifier();
 
 		XEventClass dummyEvClass = new XEventClass("DUMMY", 99999);
 		TransEvClassMapping mapping = constructMappingBasedOnLabelEquality(net, log, dummyEvClass, eventClassifier);
@@ -76,10 +77,15 @@ public class BasicCodeSnippet {
 			costSyncMove.put(t, 0);
 			costModelMove.put(t, t.isInvisible() ? 0 : 2);
 		}
-		XEventClasses cls = summary.getEventClasses();
-		for (XEventClass c : cls.getClasses()) {
+		for (XEventClass c : summary.getEventClasses().getClasses()) {
 			costLogMove.put(c, 5);
 		}
+		costLogMove.put(dummyEvClass, 5);
+
+		System.out.println(String.format("Log size: %d events, %d traces, %d classes", summary.getNumberOfEvents(),
+				summary.getNumberOfTraces(), (summary.getEventClasses().size() + 1)));
+		System.out.println(String.format("Model size: %d transitions, %d places", net.getTransitions().size(),
+				net.getPlaces().size()));
 
 		doReplay(log, net, initialMarking, finalMarking, classes, mapping, costModelMove, costSyncMove, costLogMove);
 
