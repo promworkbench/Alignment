@@ -322,7 +322,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 					alignmentResult |= Utils.COSTLIMITREACHED;
 				}
 				if (canceller.isCanceled()) {
-					alignmentResult |= Utils.CANCELED;
+					alignmentResult |= Utils.CANCELLED;
 				}
 				terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
 			}

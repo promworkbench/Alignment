@@ -57,7 +57,7 @@ public class AlignmentTest {
 	public static enum Type {
 		DIJKSTRA(false), //
 		ASTAR(false), //
-		INC0(false), //
+		INC0(true), //
 		INC3(true), //
 		INC10(false), //
 		INC_PLUS(false), //
@@ -105,8 +105,10 @@ public class AlignmentTest {
 		//Initialize internal structures...
 
 		//		mainFileFolder(Debug.NONE, 100000, "test", "test2", "alifah", "alifah2");
-		//		mainFileFolder(Debug.DOT, Integer.MAX_VALUE, "or");
-		mainFileFolder(Debug.STATS, Integer.MAX_VALUE, "BPIC15_1_start_end_IMfa");
+	
+		mainFileFolder(Debug.DOT, Integer.MAX_VALUE, "alifah3");
+		
+		// mainFileFolder(Debug.STATS, Integer.MAX_VALUE, "BPIC15_1_start_end_IMfa");
 		System.exit(0);
 		//		mainFileFolder(Debug.STATS, 30, "pr1151_l4_noise");
 		//		mainFileFolder(Debug.STATS, 15, "prCm6");
@@ -332,7 +334,7 @@ public class AlignmentTest {
 
 			case INC0 :
 				if (type.include()) {
-					parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, debug, timeout,
+					parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, debug, timeout,
 							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, 0);
 					doReplay(debug, folder, "Incre0", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
@@ -340,7 +342,7 @@ public class AlignmentTest {
 				break;
 			case INC3 :
 				if (type.include()) {
-					parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, debug, timeout,
+					parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, debug, timeout,
 							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, 3);
 					doReplay(debug, folder, "Incre3", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
@@ -348,7 +350,7 @@ public class AlignmentTest {
 				break;
 			case INC10 :
 				if (type.include()) {
-					parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, debug, timeout,
+					parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, debug, timeout,
 							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, 10);
 					doReplay(debug, folder, "Incre10", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
@@ -357,7 +359,7 @@ public class AlignmentTest {
 
 			case INC_PLUS :
 				if (type.include()) {
-					parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, debug, timeout,
+					parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, debug, timeout,
 							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, true);
 					doReplay(debug, folder, "Incre++", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);

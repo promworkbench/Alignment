@@ -51,7 +51,7 @@ public class TraceByTraceAlignment {
 	private Marking finalMarking;
 	private XEventClasses classes;
 	private TransEvClassMapping mapping;
-	private ReplayerParameters.IncementalAStar parameters;
+	private ReplayerParameters.IncrementalAStar parameters;
 	private Replayer replayer;
 
 	/**
@@ -92,7 +92,7 @@ public class TraceByTraceAlignment {
 		// upper bound for costs.
 		int costUpperBound = Integer.MAX_VALUE;
 
-		parameters = new ReplayerParameters.IncementalAStar(moveSort, threads, useInt, Debug.NONE, timeout,
+		parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, Debug.NONE, timeout,
 				maxNumberOfStates, costUpperBound, partialOrder, false);
 		replayer = new Replayer(parameters, net, initialMarking, finalMarking, classes, mapping, false);
 

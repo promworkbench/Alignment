@@ -200,8 +200,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 
 		SyncReplayResult srr = new SyncReplayResult(nodeInstance, stepTypes, traceIndex);
 		srr.addInfo(PNRepResult.RAWFITNESSCOST, 1.0 * statistics.get(Statistic.COST));
-		srr.addInfo(PNRepResult.TIME,
-				(statistics.get(Statistic.PREPROCESSTIME) + statistics.get(Statistic.TOTALTIME)) / 1000.0);
+		srr.addInfo(PNRepResult.TIME, (statistics.get(Statistic.TOTALTIME)) / 1000.0);
 		srr.addInfo(PNRepResult.QUEUEDSTATE, 1.0 * statistics.get(Statistic.QUEUEACTIONS));
 		if (lm + slm == 0) {
 			srr.addInfo(PNRepResult.MOVELOGFITNESS, 1.0);

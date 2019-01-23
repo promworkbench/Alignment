@@ -79,20 +79,20 @@ public abstract class ReplayerParameters {
 		}
 	}
 
-	public final static class IncementalAStar extends ReplayerParameters {
-		public IncementalAStar() {
+	public final static class IncrementalAStar extends ReplayerParameters {
+		public IncrementalAStar() {
 			super(Algorithm.INCREMENTALASTAR, false, true, true,
 					Math.max(1, Runtime.getRuntime().availableProcessors() / 2), false, Debug.NONE, Integer.MAX_VALUE,
 					Integer.MAX_VALUE, Integer.MAX_VALUE, false, false, 0);
 		}
 
-		public IncementalAStar(Debug debug) {
+		public IncrementalAStar(Debug debug) {
 			super(Algorithm.INCREMENTALASTAR, false, true, true,
 					Math.max(1, Runtime.getRuntime().availableProcessors() / 2), false, debug, Integer.MAX_VALUE,
 					Integer.MAX_VALUE, Integer.MAX_VALUE, false, false, 0);
 		}
 
-		public IncementalAStar(boolean moveSort, int nThreads, boolean useInt, Debug debug, int timeoutMilliseconds,
+		public IncrementalAStar(boolean moveSort, int nThreads, boolean useInt, Debug debug, int timeoutMilliseconds,
 				int maximumNumberOfStates, int costUpperBound, boolean partiallyOrderEvents,
 				boolean preProcessUsingPlaceBasedConstraints) {
 			super(Algorithm.INCREMENTALASTAR, moveSort, true, true, nThreads, useInt, debug, timeoutMilliseconds,
@@ -100,7 +100,7 @@ public abstract class ReplayerParameters {
 					0);
 		}
 
-		public IncementalAStar(boolean moveSort, int nThreads, boolean useInt, Debug debug, int timeoutMilliseconds,
+		public IncrementalAStar(boolean moveSort, int nThreads, boolean useInt, Debug debug, int timeoutMilliseconds,
 				int maximumNumberOfStates, int costUpperBound, boolean partiallyOrderEvents, int initialSplits) {
 			super(Algorithm.INCREMENTALASTAR, moveSort, true, true, nThreads, useInt, debug, timeoutMilliseconds,
 					maximumNumberOfStates, costUpperBound, partiallyOrderEvents, false, initialSplits);

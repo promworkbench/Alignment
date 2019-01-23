@@ -12,6 +12,7 @@ import org.deckfour.xes.classification.XEventClasses;
 import org.deckfour.xes.classification.XEventClassifier;
 import org.deckfour.xes.classification.XEventNameClassifier;
 import org.deckfour.xes.in.XMxmlParser;
+import org.deckfour.xes.in.XUniversalParser;
 import org.deckfour.xes.in.XesXmlParser;
 import org.deckfour.xes.info.XLogInfo;
 import org.deckfour.xes.info.XLogInfoFactory;
@@ -27,6 +28,8 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Transition
 import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetFactory;
 import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
+import org.processmining.plugins.petrinet.replayresult.PNRepResult;
+import org.processmining.plugins.petrinet.replayresult.StepTypes;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
 import nl.tue.alignment.Replayer;
@@ -38,24 +41,27 @@ import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 public class BasicCodeSnippet {
 
 	public static void main(String[] args) throws Exception {
-		String petrinetFile = "C:\\temp\\alignment\\test2\\test2";
-		String logFile = "C:\\temp\\alignment\\test2\\test2";
+		String petrinetFile = "C:\\temp\\alignment\\prAm6\\prAm6.pnml";
+		String logFile = "C:\\temp\\alignment\\prAm6\\prAm6.mxml";
 
-		Petrinet net = constructNet(petrinetFile + ".pnml");
+		Petrinet net = constructNet(petrinetFile);
 		Marking initialMarking = getInitialMarking(net);
 		Marking finalMarking = getFinalMarking(net);
 
 		XLog log;
 		XEventClassifier eventClassifier;
 
-		if (new File(logFile + ".mxml").exists()) {
+		if (new File(logFile).exists()) {
 			XMxmlParser parser = new XMxmlParser();
 			eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
-			log = parser.parse(new File(logFile + ".mxml")).get(0);
-		} else {
+			log = parser.parse(new File(logFile)).get(0);
+		} else if (new File(logFile).exists()) {
 			XesXmlParser parser = new XesXmlParser();
 			eventClassifier = new XEventNameClassifier();
-			log = parser.parse(new File(logFile + ".xes")).get(0);
+			log = parser.parse(new File(logFile)).get(0);
+		} else {
+			log = new XUniversalParser().parse(new File(logFile)).iterator().next();
+			eventClassifier = new XEventNameClassifier();
 		}
 
 		XEventClass dummyEvClass = new XEventClass("DUMMY", 99999);
@@ -63,21 +69,43 @@ public class BasicCodeSnippet {
 		XLogInfo summary = XLogInfoFactory.createLogInfo(log, eventClassifier);
 		XEventClasses classes = summary.getEventClasses();
 
-		doReplay(log, net, initialMarking, finalMarking, classes, mapping);
+		Map<Transition, Integer> costModelMove = new HashMap<>();
+		Map<Transition, Integer> costSyncMove = new HashMap<>();
+		Map<XEventClass, Integer> costLogMove = new HashMap<>();
+		for (Transition t : net.getTransitions()) {
+			costSyncMove.put(t, 0);
+			costModelMove.put(t, t.isInvisible() ? 0 : 2);
+		}
+		XEventClasses cls = summary.getEventClasses();
+		for (XEventClass c : cls.getClasses()) {
+			costLogMove.put(c, 5);
+		}
+
+		doReplay(log, net, initialMarking, finalMarking, classes, mapping, costModelMove, costSyncMove, costLogMove);
 
 	}
 
 	public static void doReplay(XLog log, Petrinet net, Marking initialMarking, Marking finalMarking,
-			XEventClasses classes, TransEvClassMapping mapping) {
+			XEventClasses classes, TransEvClassMapping mapping, Map<Transition, Integer> costModelMove,
+			Map<Transition, Integer> costSyncMove, Map<XEventClass, Integer> costLogMove) {
 
 		int nThreads = 2;
 		int costUpperBound = Integer.MAX_VALUE;
-
-		ReplayerParameters parameters = new ReplayerParameters.Default(nThreads, costUpperBound, Debug.NONE);
-		Replayer replayer = new Replayer(parameters, net, initialMarking, finalMarking, classes, mapping, false);
-
 		// timeout per trace in milliseconds
 		int timeoutMilliseconds = 10 * 1000;
+
+		int maximumNumberOfStates = Integer.MAX_VALUE;
+
+		//BPM2018: 
+		ReplayerParameters parameters = new ReplayerParameters.IncrementalAStar(false, nThreads, false, Debug.NONE,
+				timeoutMilliseconds, maximumNumberOfStates, costUpperBound, false, false);
+		//Traditional
+		//		ReplayerParameters parameters = new ReplayerParameters.AStar(true, true, true, nThreads, true, Debug.NONE,
+		//				timeoutMilliseconds, maximumNumberOfStates, costUpperBound, false);
+
+		Replayer replayer = new Replayer(parameters, net, initialMarking, finalMarking, classes, costModelMove,
+				costLogMove, costSyncMove, mapping, false);
+
 		// preprocessing time to be added to the statistics if necessary
 		long preProcessTimeNanoseconds = 0;
 
@@ -111,7 +139,6 @@ public class BasicCodeSnippet {
 				assert false;
 				throw new RuntimeException("Error while executing replayer in ExecutorService. Interrupted maybe?", e);
 			}
-
 			switch (result.getResult()) {
 				case DUPLICATE :
 					assert false; // cannot happen in this setting
@@ -126,6 +153,26 @@ public class BasicCodeSnippet {
 					if ((exitCode & Utils.OPTIMALALIGNMENT) == Utils.OPTIMALALIGNMENT) {
 						// Optimal alignment found.
 						fitting++;
+
+						System.out.println(String.format("Time (ms): %f",
+								result.getSuccesfulResult().getInfo().get(PNRepResult.TIME)));
+						//			System.out.println(result.getSuccesfulResult().getStepTypes());
+
+						int logMove = 0, syncMove = 0, modelMove = 0, tauMove = 0;
+						for (StepTypes step : result.getSuccesfulResult().getStepTypes()) {
+							if (step == StepTypes.L) {
+								logMove++;
+							} else if (step == StepTypes.LMGOOD) {
+								syncMove++;
+							} else if (step == StepTypes.MREAL) {
+								modelMove++;
+							} else if (step == StepTypes.MINVI) {
+								tauMove++;
+							}
+						}
+						System.out.println(String.format("Log %d, Model %d, Sync %d, tau %d", logMove, modelMove,
+								syncMove, tauMove));
+
 					} else if ((exitCode & Utils.FAILEDALIGNMENT) == Utils.FAILEDALIGNMENT) {
 						// failure in the alignment. Error code shows more details.
 						nonfitting++;
@@ -148,13 +195,12 @@ public class BasicCodeSnippet {
 					if ((exitCode & Utils.COSTLIMITREACHED) == Utils.COSTLIMITREACHED) {
 						// no optimal alignment found with cost less or equal to the given limit.
 					}
-					if ((exitCode & Utils.CANCELED) == Utils.CANCELED) {
+					if ((exitCode & Utils.CANCELLED) == Utils.CANCELLED) {
 						// user-cancelled.
 					}
 
 					break;
 			}
-
 		}
 		System.out.println("Fitting:     " + fitting);
 		System.out.println("Non-fitting: " + nonfitting);
