@@ -10,9 +10,7 @@ import java.util.concurrent.Future;
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
 import org.deckfour.xes.classification.XEventClassifier;
-import org.deckfour.xes.in.XMxmlParser;
 import org.deckfour.xes.in.XUniversalParser;
-import org.deckfour.xes.in.XesXmlParser;
 import org.deckfour.xes.info.XLogInfo;
 import org.deckfour.xes.info.XLogInfoFactory;
 import org.deckfour.xes.info.impl.XLogInfoImpl;
@@ -50,18 +48,10 @@ public class BasicCodeSnippet {
 		XLog log;
 		XEventClassifier eventClassifier;
 
-		if (new File(logFile).exists()) {
-			XMxmlParser parser = new XMxmlParser();
-			log = parser.parse(new File(logFile)).get(0);
-		} else if (new File(logFile).exists()) {
-			XesXmlParser parser = new XesXmlParser();
-			log = parser.parse(new File(logFile)).get(0);
-		} else {
-			log = new XUniversalParser().parse(new File(logFile)).iterator().next();
-		}
+		log = new XUniversalParser().parse(new File(logFile)).iterator().next();
 		// matching using A+Complete (typical for mxml files)
 		eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
-	
+
 		// matching using A (typical for xes files)
 		//	eventClassifier = new XEventNameClassifier();
 
