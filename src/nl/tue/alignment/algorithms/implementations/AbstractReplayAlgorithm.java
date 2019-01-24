@@ -324,6 +324,11 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 				if (canceller.isCanceled()) {
 					alignmentResult |= Utils.CANCELLED;
 				}
+				if (alignmentResult == Utils.FAILEDALIGNMENT && queue.isEmpty()) {
+					// no final marking found, no timeout, state limit, cost limit, or cancellation...
+					// queue must be empty because final marking is unreachable.
+					alignmentResult |= Utils.FINALMARKINGUNREACHABLE;
+				}
 				terminateIteration(alignment, markingsReachedInRun, closedActionsInRun);
 			}
 		} while ((alignmentResult & Utils.OPTIMALALIGNMENT) == 0 && //
