@@ -540,6 +540,11 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		//			System.out.println("Main locking " + b + "," + i);
 		try {
 			heuristic = getExactHeuristic(0, initialMarking, b, i);
+			if (isInfinite(heuristic)) {
+				alignmentResult |= Utils.FINALMARKINGUNREACHABLE;
+				alignmentResult |= Utils.FAILEDALIGNMENT;
+				return;
+			}
 			setHScore(b, i, heuristic, true);
 		} finally {
 			//			releaseLockForComputingEstimate(b, i);

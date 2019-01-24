@@ -115,8 +115,8 @@ public class BasicCodeSnippet {
 		// preprocessing time to be added to the statistics if necessary
 		long preProcessTimeNanoseconds = 0;
 
-		int fitting = 0;
-		int nonfitting = 0;
+		int success = 0;
+		int failed = 0;
 		ExecutorService service = Executors.newFixedThreadPool(parameters.nThreads);
 
 		@SuppressWarnings("unchecked")
@@ -158,7 +158,7 @@ public class BasicCodeSnippet {
 					int exitCode = replayResult.getInfo().get(Replayer.TRACEEXITCODE).intValue();
 					if ((exitCode & Utils.OPTIMALALIGNMENT) == Utils.OPTIMALALIGNMENT) {
 						// Optimal alignment found.
-						fitting++;
+						success++;
 
 						System.out.println(String.format("Time (ms): %f",
 								result.getSuccesfulResult().getInfo().get(PNRepResult.TIME)));
@@ -181,7 +181,7 @@ public class BasicCodeSnippet {
 
 					} else if ((exitCode & Utils.FAILEDALIGNMENT) == Utils.FAILEDALIGNMENT) {
 						// failure in the alignment. Error code shows more details.
-						nonfitting++;
+						failed++;
 					}
 					if ((exitCode & Utils.ENABLINGBLOCKEDBYOUTPUT) == Utils.ENABLINGBLOCKEDBYOUTPUT) {
 						// in some marking, there were too many tokens in a place, blocking the addition of more tokens. Current upper limit is 128
@@ -204,12 +204,16 @@ public class BasicCodeSnippet {
 					if ((exitCode & Utils.CANCELLED) == Utils.CANCELLED) {
 						// user-cancelled.
 					}
+					if ((exitCode & Utils.FINALMARKINGUNREACHABLE) == Utils.FINALMARKINGUNREACHABLE) {
+						// user-cancelled.
+						System.err.println("final marking unreachable.");
+					}
 
 					break;
 			}
 		}
-		System.out.println("Fitting:     " + fitting);
-		System.out.println("Non-fitting: " + nonfitting);
+		System.out.println("Successful: " + success);
+		System.out.println("Failed:     " + failed);
 
 	}
 

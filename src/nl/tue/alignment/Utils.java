@@ -24,6 +24,7 @@ public class Utils {
 	public static int STATELIMITREACHED = 64;
 	public static int COSTLIMITREACHED = 128;
 	public static int CANCELLED = 256;
+	public static int FINALMARKINGUNREACHABLE = 512;
 
 	/**
 	 * Default block size determines how many bytes are reserved top store markings.
