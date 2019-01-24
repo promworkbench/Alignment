@@ -264,15 +264,16 @@ public class AStar extends AbstractLPBasedAlgorithm {
 	@Override
 	protected void processedMarking(int marking, int blockMarking, int indexInBlock) {
 		super.processedMarking(marking, blockMarking, indexInBlock);
-		{
-			if (isDerivedLpSolution(marking)) {
-				debug.writeMarkingReached(this, marking, "color=blue,style=bold");
-			} else {
-				debug.writeMarkingReached(this, marking, "style=bold");
-			}
-			lpSolutionsSize -= 12 + 4 + lpSolutions.remove(marking).length; // object size
-			lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer
+
+		if (isDerivedLpSolution(marking)) {
+			debug.writeMarkingReached(this, marking, "color=blue,style=bold");
+		} else {
+			debug.writeMarkingReached(this, marking, "style=bold");
 		}
+		byte[] removed = lpSolutions.remove(marking);
+		lpSolutionsSize -= 12 + 4 + (removed != null ? removed.length : null); // object size
+		lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer
+
 	}
 
 }

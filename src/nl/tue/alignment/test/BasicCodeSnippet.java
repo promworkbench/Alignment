@@ -2,6 +2,7 @@ package nl.tue.alignment.test;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -10,6 +11,7 @@ import java.util.concurrent.Future;
 import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
 import org.deckfour.xes.classification.XEventClassifier;
+import org.deckfour.xes.classification.XEventNameClassifier;
 import org.deckfour.xes.in.XUniversalParser;
 import org.deckfour.xes.info.XLogInfo;
 import org.deckfour.xes.info.XLogInfoFactory;
@@ -38,8 +40,8 @@ import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 public class BasicCodeSnippet {
 
 	public static void main(String[] args) throws Exception {
-		String petrinetFile = "C:\\temp\\alignment\\prAm6\\prAm6.pnml";
-		String logFile = "C:\\temp\\alignment\\prAm6\\prAm6.mxml";
+		String petrinetFile = "C:\\temp\\alignment\\vincent\\model.pnml";
+		String logFile = "C:\\temp\\alignment\\vincent\\log.xes";
 
 		Petrinet net = constructNet(petrinetFile);
 		Marking initialMarking = getInitialMarking(net);
@@ -49,11 +51,19 @@ public class BasicCodeSnippet {
 		XEventClassifier eventClassifier;
 
 		log = new XUniversalParser().parse(new File(logFile)).iterator().next();
-		// matching using A+Complete (typical for mxml files)
-		eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
 
 		// matching using A (typical for xes files)
-		//	eventClassifier = new XEventNameClassifier();
+		eventClassifier = new XEventNameClassifier();
+
+		Iterator<Transition> it = net.getTransitions().iterator();
+		while (it.hasNext()) {
+			Transition t = it.next();
+			if (!t.isInvisible() && t.getLabel().endsWith("+complete")) {
+				// matching using A+Complete (typical for mxml files)
+				eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
+				break;
+			}
+		}
 
 		XEventClass dummyEvClass = new XEventClass("DUMMY", 99999);
 		TransEvClassMapping mapping = constructMappingBasedOnLabelEquality(net, log, dummyEvClass, eventClassifier);

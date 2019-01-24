@@ -294,7 +294,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 				Arrays.fill(col, 0);
 				n += random.nextDouble();
-//				col[1] = splitpoints.length - currentSplitpoint - n / net.numTransitions();
+				//				col[1] = splitpoints.length - currentSplitpoint - n / net.numTransitions();
 				col[1] = currentSplitpoint + n / net.numTransitions();
 
 				input = product.getInput(t);
@@ -593,7 +593,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
 		int var = move2col[splitIndex * net.numTransitions() + transition];
 
-		if (hasExactHeuristic(fromBlock, fromIndex) && var >= 0 && (getLpSolution(from, var) >= 1)) {
+		if (hasExactHeuristic(fromBlock, fromIndex) && var >= 0 && getHScore(fromBlock, fromIndex) != HEURISTICINFINITE
+				&& (getLpSolution(from, var) >= 1)) {
 			// from Marking has exact heuristic
 			// we can derive an exact heuristic from it
 
@@ -608,6 +609,10 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				maxRankMarking = to;
 				//				System.out.println("Explained event at rank " + r + " exactly.");
 			}
+		} else if (hasExactHeuristic(fromBlock, fromIndex) && getHScore(fromBlock, fromIndex) == HEURISTICINFINITE) {
+			// marking from which final state cannot be reached
+			setHScore(toBlock, toIndex, HEURISTICINFINITE, true);
+			heuristicsDerived++;
 		} else {
 			if (isFinal(to)) {
 				setHScore(toBlock, toIndex, 0, true);
@@ -722,7 +727,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 		} else {
 			debug.writeMarkingReached(this, marking, "style=bold");
 		}
-		lpSolutionsSize -= 12 + 4 + lpSolutions.remove(marking).length; // object size
+		byte[] removed = lpSolutions.remove(marking);
+		lpSolutionsSize -= 12 + 4 + (removed != null ? removed.length : 0); // object size
 		lpSolutionsSize -= 1 + 4 + 8; // used flag + key + value pointer
 	}
 
