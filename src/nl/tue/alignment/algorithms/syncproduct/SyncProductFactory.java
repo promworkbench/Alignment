@@ -104,15 +104,6 @@ public class SyncProductFactory {
 				new MapWrap<Transition>(0), initialMarking, finalMarking);
 	}
 
-	public static TObjectIntMap<XEventClass> createClass2ID(XEventClasses classes) {
-		TObjectIntHashMap<XEventClass> c2id = new TObjectIntHashMap<>(classes.size(), 0.75f, -1);
-		int id = 0;
-		for (XEventClass clazz : classes.getClasses()) {
-			c2id.put(clazz, id++);
-		}
-		return c2id;
-	}
-
 	private SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map, MapWrap<Transition> mapTrans2Cost, MapWrap<XEventClass> mapEvClass2Cost,
 			MapWrap<Transition> mapSync2Cost, Marking initialMarking, Marking finalMarking) {

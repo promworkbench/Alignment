@@ -2,12 +2,17 @@ package nl.tue.alignment;
 
 import java.io.PrintStream;
 
+import org.deckfour.xes.classification.XEventClass;
+import org.deckfour.xes.classification.XEventClasses;
+
 import gnu.trove.iterator.TIntIntIterator;
 import gnu.trove.iterator.TIntIterator;
 import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TIntIntMap;
+import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TIntIntHashMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
@@ -347,6 +352,15 @@ public class Utils {
 
 		stream.print(",shape=box];");
 		stream.print("\n");
+	}
+
+	public static TObjectIntMap<XEventClass> createClass2ID(XEventClasses classes) {
+		TObjectIntHashMap<XEventClass> c2id = new TObjectIntHashMap<>(classes.size(), 0.75f, -1);
+		int id = 0;
+		for (XEventClass clazz : classes.getClasses()) {
+			c2id.put(clazz, id++);
+		}
+		return c2id;
 	}
 
 }

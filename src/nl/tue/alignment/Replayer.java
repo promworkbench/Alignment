@@ -116,7 +116,7 @@ public class Replayer {
 		}
 		this.costMM = costMM;
 		this.costLM = costLM;
-		class2id = SyncProductFactory.createClass2ID(classes);
+		class2id = Utils.createClass2ID(classes);
 		if (parameters.preProcessUsingPlaceBasedConstraints) {
 			constraintSet = new ConstraintSet(net, initialMarking, classes, class2id, mapping);
 		} else {
