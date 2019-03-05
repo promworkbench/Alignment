@@ -6,6 +6,9 @@ public interface SyncProduct {
 	public static byte MODEL_MOVE = 2;
 	public static byte SYNC_MOVE = 3;
 	public static byte TAU_MOVE = 4;
+	
+	public static byte REDUCED_MODEL_MOVE = 5;
+	public static byte REDUCED_SYNC_MOVE = 6;
 
 	public static final int MAXTRANS = 0b01111111111111111111111111;
 	public static final int NOEVENT = -2;

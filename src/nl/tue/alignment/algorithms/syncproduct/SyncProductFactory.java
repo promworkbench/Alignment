@@ -39,98 +39,16 @@ import nl.tue.astar.util.PartiallyOrderedTrace;
 
 public class SyncProductFactory {
 
-	private static class MapWrap<K> {
-		private final Map<K, Integer> map1;
-		private final TObjectIntMap<K> map2;
-		private final int defaultValue;
-
-		private MapWrap(Map<K, Integer> map1, TObjectIntMap<K> map2, int defaultValue) {
-			this.map1 = map1;
-			this.map2 = map2;
-			this.defaultValue = defaultValue;
-		}
-
-		public MapWrap(Map<K, Integer> map1, int defaultValue) {
-			this(map1, null, defaultValue);
-		}
-
-		public MapWrap(TObjectIntMap<K> map2, int defaultValue) {
-			this(null, map2, defaultValue);
-		}
-
-		public MapWrap(int defaultValue) {
-			this(null, null, defaultValue);
-		}
-
-		public int get(K key) {
-			if (map1 != null && map1.containsKey(key)) {
-				return map1.get(key);
-			} else if (map2 != null && map2.containsKey(key)) {
-				return map2.get(key);
-			} else {
-				return defaultValue;
-			}
-		}
-	}
-
-	private static class StringList {
-		private String[] list;
-		int size = 0;
-
-		public StringList(int capacity) {
-			list = new String[capacity];
-		}
-
-		public void add(String s) {
-			ensureCapacity(size);
-			list[size] = s;
-			size++;
-		}
-
-		private void ensureCapacity(int insertAt) {
-			if (list.length <= insertAt) {
-				list = Arrays.copyOf(list, list.length * 2);
-			}
-		}
-
-		public void trunctate(int size) {
-			this.size = size;
-			Arrays.fill(list, size, list.length, null);
-		}
-
-		public String get(int index) {
-			return list[index];
-		}
-
-		public int size() {
-			return size;
-		}
-
-		public String[] asArray() {
-			return Arrays.copyOf(list, size);
-		}
-
-		public String toString() {
-
-			int iMax = size - 1;
-			if (iMax == -1)
-				return "[]";
-
-			StringBuilder b = new StringBuilder();
-			b.append('[');
-			for (int i = 0;; i++) {
-				b.append(list[i]);
-				if (i == iMax)
-					return b.append(']').toString();
-				b.append(", ");
-			}
-		}
-	}
-
 	private final int transitions;
+	
+	// transition to model moves
 	private final TIntList t2mmCost;
+	
+	// eventClassSequence 2 sync move cost
 	private final TIntList t2smCost;
-	private final TObjectIntMap<Object> t2id;
+	
+	// maps transitions to IDs
+	//	private final TObjectIntMap<Transition> t2id;
 	private final StringList t2name;
 	private final List<int[]> t2input;
 	private final List<int[]> t2output;
@@ -140,6 +58,7 @@ public class SyncProductFactory {
 
 	private final int classCount;
 	private final int[] c2lmCost;
+	// maps classes to sets of transitions representing these classes
 	private final TIntObjectMap<TIntSet> c2t;
 
 	private final int places;
@@ -233,14 +152,14 @@ public class SyncProductFactory {
 		places = net.getPlaces().size();
 		p2name = new StringList(places * 2);
 		TObjectIntMap<Place> p2id = new TObjectIntHashMap<>(net.getPlaces().size(), 0.75f, -1);
-		t2id = new TObjectIntHashMap<>(net.getTransitions().size(), 0.75f, -1);
+		//		t2id = new TObjectIntHashMap<>(net.getTransitions().size(), 0.75f, -1);
 
 		// build list of move_model transitions
 		Integer cost;
 		Iterator<Transition> it = net.getTransitions().iterator();
 		while (it.hasNext()) {
 			Transition t = it.next();
-			t2id.put(t, t2name.size());
+			//			t2id.put(t, t2name.size());
 			t2transition[t2name.size()] = t;
 			t2move.add(t2name.size());
 
@@ -264,7 +183,6 @@ public class SyncProductFactory {
 			t2type.add(t.isInvisible() ? SyncProduct.TAU_MOVE : SyncProduct.MODEL_MOVE);
 
 			TIntList input = new TIntArrayList(2 * net.getInEdges(t).size());
-			int i = 0;
 			for (PetrinetEdge<?, ?> e : net.getInEdges(t)) {
 				Place p = (Place) e.getSource();
 				int id = p2id.get(p);
@@ -275,13 +193,11 @@ public class SyncProductFactory {
 				}
 				for (int w = 0; w < ((Arc) e).getWeight(); w++) {
 					input.add(id);
-					i++;
 				}
 			}
 			t2input.add(input.toArray());
 
 			TIntList output = new TIntArrayList(2 * net.getOutEdges(t).size());
-			i = 0;
 			for (PetrinetEdge<?, ?> e : net.getOutEdges(t)) {
 				Place p = (Place) e.getTarget();
 				int id = p2id.get(p);
@@ -292,12 +208,12 @@ public class SyncProductFactory {
 				}
 				for (int w = 0; w < ((Arc) e).getWeight(); w++) {
 					output.add(id);
-					i++;
 				}
 			}
 			t2output.add(output.toArray());
 		}
 
+		// mark the initial places
 		initMarking = new byte[p2name.size()];
 		for (Place p : initialMarking) {
 			int id = p2id.get(p);
@@ -306,6 +222,7 @@ public class SyncProductFactory {
 			}
 		}
 
+		// indicate the desired final marking
 		finMarking = new byte[p2name.size()];
 		for (Place p : finalMarking) {
 			int id = p2id.get(p);
