@@ -40,8 +40,8 @@ import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 public class BasicCodeSnippet {
 
 	public static void main(String[] args) throws Exception {
-		String petrinetFile = "C:\\temp\\alignment\\vincent\\model.pnml";
-		String logFile = "C:\\temp\\alignment\\vincent\\log.xes";
+		String petrinetFile = "C:\\temp\\alignment\\prAm6\\prAm6.pnml";
+		String logFile = "C:\\temp\\alignment\\prAm6\\prAm6.mxml";
 
 		Petrinet net = constructNet(petrinetFile);
 		Marking initialMarking = getInitialMarking(net);

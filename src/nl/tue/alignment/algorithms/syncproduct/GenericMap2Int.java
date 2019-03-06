@@ -4,26 +4,34 @@ import java.util.Map;
 
 import gnu.trove.map.TObjectIntMap;
 
-class MapWrap<K> {
+/**
+ * wrapper around Map<K, Integer> and TObjectIntMap<K> to provide easy access to
+ * the get(K key) method
+ * 
+ * @author bfvdonge
+ *
+ * @param <K>
+ */
+public class GenericMap2Int<K> {
 	private final Map<K, Integer> map1;
 	private final TObjectIntMap<K> map2;
 	private final int defaultValue;
 
-	private MapWrap(Map<K, Integer> map1, TObjectIntMap<K> map2, int defaultValue) {
+	private GenericMap2Int(Map<K, Integer> map1, TObjectIntMap<K> map2, int defaultValue) {
 		this.map1 = map1;
 		this.map2 = map2;
 		this.defaultValue = defaultValue;
 	}
 
-	public MapWrap(Map<K, Integer> map1, int defaultValue) {
+	public GenericMap2Int(Map<K, Integer> map1, int defaultValue) {
 		this(map1, null, defaultValue);
 	}
 
-	public MapWrap(TObjectIntMap<K> map2, int defaultValue) {
+	public GenericMap2Int(TObjectIntMap<K> map2, int defaultValue) {
 		this(null, map2, defaultValue);
 	}
 
-	public MapWrap(int defaultValue) {
+	public GenericMap2Int(int defaultValue) {
 		this(null, null, defaultValue);
 	}
 

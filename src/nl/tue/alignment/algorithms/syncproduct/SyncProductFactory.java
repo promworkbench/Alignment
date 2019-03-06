@@ -71,42 +71,42 @@ public class SyncProductFactory {
 
 	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map, Marking initialMarking, Marking finalMarking) {
-		this(net, classes, c2id, map, new MapWrap<Transition>(1), new MapWrap<XEventClass>(1), //
-				new MapWrap<Transition>(0), initialMarking, finalMarking);
+		this(net, classes, c2id, map, new GenericMap2Int<Transition>(1), new GenericMap2Int<XEventClass>(1), //
+				new GenericMap2Int<Transition>(0), initialMarking, finalMarking);
 	}
 
 	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map, Map<Transition, Integer> mapTrans2Cost, Map<XEventClass, Integer> mapEvClass2Cost,
 			Map<Transition, Integer> mapSync2Cost, Marking initialMarking, Marking finalMarking) {
-		this(net, classes, c2id, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
-				new MapWrap<>(mapSync2Cost, 0), initialMarking, finalMarking);
+		this(net, classes, c2id, map, new GenericMap2Int<>(mapTrans2Cost, 1), new GenericMap2Int<>(mapEvClass2Cost, 1), //
+				new GenericMap2Int<>(mapSync2Cost, 0), initialMarking, finalMarking);
 	}
 
 	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map, TObjectIntMap<Transition> mapTrans2Cost,
 			TObjectIntMap<XEventClass> mapEvClass2Cost, TObjectIntMap<Transition> mapSync2Cost, Marking initialMarking,
 			Marking finalMarking) {
-		this(net, classes, c2id, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
-				new MapWrap<>(mapSync2Cost, 0), initialMarking, finalMarking);
+		this(net, classes, c2id, map, new GenericMap2Int<>(mapTrans2Cost, 1), new GenericMap2Int<>(mapEvClass2Cost, 1), //
+				new GenericMap2Int<>(mapSync2Cost, 0), initialMarking, finalMarking);
 	}
 
 	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map, Map<Transition, Integer> mapTrans2Cost, Map<XEventClass, Integer> mapEvClass2Cost,
 			Marking initialMarking, Marking finalMarking) {
-		this(net, classes, c2id, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
-				new MapWrap<Transition>(0), initialMarking, finalMarking);
+		this(net, classes, c2id, map, new GenericMap2Int<>(mapTrans2Cost, 1), new GenericMap2Int<>(mapEvClass2Cost, 1), //
+				new GenericMap2Int<Transition>(0), initialMarking, finalMarking);
 	}
 
 	public SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map, TObjectIntMap<Transition> mapTrans2Cost,
 			TObjectIntMap<XEventClass> mapEvClass2Cost, Marking initialMarking, Marking finalMarking) {
-		this(net, classes, c2id, map, new MapWrap<>(mapTrans2Cost, 1), new MapWrap<>(mapEvClass2Cost, 1), //
-				new MapWrap<Transition>(0), initialMarking, finalMarking);
+		this(net, classes, c2id, map, new GenericMap2Int<>(mapTrans2Cost, 1), new GenericMap2Int<>(mapEvClass2Cost, 1), //
+				new GenericMap2Int<Transition>(0), initialMarking, finalMarking);
 	}
 
 	private SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
-			TransEvClassMapping map, MapWrap<Transition> mapTrans2Cost, MapWrap<XEventClass> mapEvClass2Cost,
-			MapWrap<Transition> mapSync2Cost, Marking initialMarking, Marking finalMarking) {
+			TransEvClassMapping map, GenericMap2Int<Transition> mapTrans2Cost, GenericMap2Int<XEventClass> mapEvClass2Cost,
+			GenericMap2Int<Transition> mapSync2Cost, Marking initialMarking, Marking finalMarking) {
 
 		this.c2id = c2id;
 		this.classes = classes;
