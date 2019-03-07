@@ -1,8 +1,7 @@
 package nl.tue.alignment.algorithms.syncproduct;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.deckfour.xes.classification.XEventClass;
@@ -12,13 +11,30 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Transition
 import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 
+import gnu.trove.list.TByteList;
+import gnu.trove.list.TIntList;
+import gnu.trove.list.array.TByteArrayList;
+import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import nl.tue.alignment.algorithms.syncproduct.petrinet.ReducedPetriNet;
+import nl.tue.alignment.algorithms.syncproduct.petrinet.ReducedPlace;
+import nl.tue.alignment.algorithms.syncproduct.petrinet.ReducedTransition;
 
 public class ReducedSyncProductFactory {
 
 	private TObjectIntMap<XEventClass> c2id;
+	private ReducedPetriNet reducedNet;
+	private TObjectIntMap<Transition> trans2id;
+	private XEventClasses classes;
+
+	private List<String> transitionLabels = new ArrayList<>();
+	private List<String> placeLabels = new ArrayList<>();
+	private TIntList eventNumbers = new TIntArrayList();
+	private TIntList ranks = new TIntArrayList();
+	private TByteList types = new TByteArrayList();
+	private TIntList moves = new TIntArrayList();
+	private TIntList cost = new TIntArrayList();
 
 	public ReducedSyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
 			TransEvClassMapping map, Marking initialMarking, Marking finalMarking) {
@@ -59,42 +75,59 @@ public class ReducedSyncProductFactory {
 			TransEvClassMapping map, GenericMap2Int<Transition> mapTrans2Cost,
 			GenericMap2Int<XEventClass> mapEvClass2Cost, GenericMap2Int<Transition> mapSync2Cost,
 			Marking initialMarking, Marking finalMarking) {
+
 		this.c2id = c2id;
 
 		// setup internal structures
-		TObjectIntMap<Transition> trans2id = new TObjectIntHashMap<>();
+		trans2id = new TObjectIntHashMap<>();
 		int i = 0;
 		for (Transition t : net.getTransitions()) {
 			trans2id.put(t, i);
 			i++;
 		}
 
-		ReducedPetriNet reducedNet = new ReducedPetriNet(net, classes, trans2id, c2id, map, mapTrans2Cost,
-				mapEvClass2Cost, mapSync2Cost, initialMarking, finalMarking);
+		// produce a Petri net for reduction
+		reducedNet = new ReducedPetriNet(net, classes, trans2id, c2id, map, mapTrans2Cost, mapEvClass2Cost,
+				mapSync2Cost, initialMarking, finalMarking);
 
-		PrintStream writer;
-		try {
-			i = 0;
-			int step = 20;
-			do {
-				writer = new PrintStream(new File(String.format("c://temp//dot//model%03d.dot", i)));
-				reducedNet.toDot(writer);
-				writer.close();
-				i += step;
-			} while (reducedNet.reduce(step, 3));
-			writer = new PrintStream(new File(String.format("c://temp//dot//model%03d.dot", i)));
-			reducedNet.toDot(writer);
-			writer.close();
+		// reduce the net to a minimum
+		reducedNet.reduce(Integer.MAX_VALUE, 2);
 
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		System.exit(0);
+		//		PrintStream writer;
+		//		try {
+		//			i = 0;
+		//			int step = 20;
+		//			do {
+		//				writer = new PrintStream(new File(String.format("c://temp//dot//model%03d.dot", i)));
+		//				reducedNet.toDot(writer);
+		//				writer.close();
+		//				i += step;
+		//			} while (reducedNet.reduce(step, 2));
+		//			writer = new PrintStream(new File(String.format("c://temp//dot//model%03d.dot", i)));
+		//			reducedNet.toDot(writer);
+		//			writer.close();
+		//
+		//		} catch (FileNotFoundException e) {
+		//			// TODO Auto-generated catch block
+		//			e.printStackTrace();
+		//		}
+		//
+		//		System.exit(0);
 		// find transitions with identical input/output
 
 		// start reducing the model into a new model applying as many rules as possible.
+
+		// prepare Data Structures for synchronous product.
+		for (ReducedTransition t : reducedNet.getTransitions()) {
+			// transition label
+			transitionLabels.add(t.toIdString());
+		}
+		for (ReducedPlace p : reducedNet.getPlaces()) {
+			placeLabels.add(p.toIdString());
+		}
+		
+
+		//		SyncProductImpl(String label, int numClasses, String[] transitions, String[] places, int[] eventNumbers,int[] ranks, byte[] types, int[] moves, int[] cost)
 
 	}
 
@@ -114,8 +147,12 @@ public class ReducedSyncProductFactory {
 	//
 	//	}
 	//
-	//	public synchronized SyncProduct getSyncProductForEmptyTrace(List<Transition> transitionList) {
-	//		return getLinearSyncProduct(new LinearTrace("Empty", 0), transitionList);
-	//	}
+
+	/**
+	 * @param transitionList
+	 * @return
+	 */
+//	public synchronized SyncProduct getSyncProductForEmptyTrace() {
+//	}
 
 }

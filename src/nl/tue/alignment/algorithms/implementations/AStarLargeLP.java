@@ -848,7 +848,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 	protected void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, int transition, int toMarking,
 			String extra) {
 		if (debug == Debug.DOT && transition >= 0
-				&& Arrays.binarySearch(splitpoints, algorithm.getNet().getEventOf(transition) + 1) >= 0) {
+				&& Arrays.binarySearch(splitpoints, algorithm.getNet().getRankOf(transition) + 1) >= 0) {
 			debug.writeEdgeTraversed(algorithm, fromMarking, transition, toMarking,
 					extra + ",style=\"tapered\",penwidth=\"5\"");
 		} else {

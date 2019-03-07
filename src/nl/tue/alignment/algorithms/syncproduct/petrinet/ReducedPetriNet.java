@@ -50,8 +50,13 @@ public class ReducedPetriNet {
 		this.transitions = new ArrayList<>(net.getTransitions().size());
 		// then copy the transitions;
 		for (Transition t : net.getTransitions()) {
-			ReducedTransition rt = new ReducedTransition(trans2id.get(t), c2id.get(map.get(t)), mapTrans2Cost.get(t),
-					mapSync2Cost.get(t));
+			ReducedTransition rt;
+			if (t.isInvisible()) {
+				rt = new ReducedTransition(trans2id.get(t), mapTrans2Cost.get(t));
+			} else {
+				rt = new ReducedTransition(trans2id.get(t), c2id.get(map.get(t)), mapTrans2Cost.get(t),
+						mapSync2Cost.get(t));
+			}
 			transitions.add(rt);
 
 			// for each transition copy the input
@@ -64,6 +69,7 @@ public class ReducedPetriNet {
 					rp.addToOutput(rt, weight);
 				} else if (edge instanceof InhibitorArc) {
 					rt.addToInput(rp, ReducedTransition.INHIBITOR);
+					rp.addToOutput(rt,  ReducedTransition.INHIBITOR);
 				} else {
 					throw new UnsupportedOperationException("Unknown Arc type in Petrinet input of transition " + t);
 				}
@@ -243,6 +249,14 @@ public class ReducedPetriNet {
 
 		}
 		out.println("}");
+	}
+
+	public List<ReducedTransition> getTransitions() {
+		return transitions;
+	}
+
+	public List<ReducedPlace> getPlaces() {
+		return places;
 	}
 
 }

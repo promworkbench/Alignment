@@ -6,15 +6,12 @@ import org.deckfour.xes.classification.XEventClass;
 import org.deckfour.xes.classification.XEventClasses;
 
 import gnu.trove.iterator.TIntIntIterator;
-import gnu.trove.iterator.TIntIterator;
 import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TIntIntMap;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
-import gnu.trove.set.TIntSet;
-import gnu.trove.set.hash.TIntHashSet;
 import nl.tue.alignment.algorithms.syncproduct.SyncProduct;
 
 public class Utils {
@@ -175,9 +172,9 @@ public class Utils {
 			stream.print("}\n");
 
 			TIntIntIterator it;
-			TIntSet events = new TIntHashSet(product.numTransitions(), 0.5f, -3);
+//			TIntSet events = new TIntHashSet(product.numTransitions(), 0.5f, -3);
 			for (int t = 0; t < product.numTransitions(); t++) {
-				events.add(product.getEventOf(t));
+//				events.add(product.getEventOf(t));
 				transitionToDot(product, stream, t, t);
 
 				it = toBag(product.getInput(t)).iterator();
@@ -212,20 +209,20 @@ public class Utils {
 				}
 			}
 
-			events.remove(SyncProduct.NOEVENT);
+//			events.remove(SyncProduct.NOEVENT);
 
-			int e;
-			for (TIntIterator it2 = events.iterator(); it2.hasNext();) {
-				e = it2.next();
-				stream.print("{ rank=same;");
-				for (int t = 0; t < product.numTransitions(); t++) {
-					if (product.getEventOf(t) == e) {
-						stream.print("t" + t + "; ");
-					}
-				}
-				stream.print("}\n");
-
-			}
+//			int e;
+//			for (TIntIterator it2 = events.iterator(); it2.hasNext();) {
+//				e = it2.next();
+//				stream.print("{ rank=same;");
+//				for (int t = 0; t < product.numTransitions(); t++) {
+//					if (product.getEventOf(t) == e) {
+//						stream.print("t" + t + "; ");
+//					}
+//				}
+//				stream.print("}\n");
+//
+//			}
 
 			stream.print("}");
 			stream.flush();

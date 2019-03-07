@@ -34,6 +34,7 @@ import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 import nl.tue.alignment.algorithms.constraints.ConstraintSet;
+import nl.tue.alignment.algorithms.syncproduct.ReducedSyncProductFactory;
 import nl.tue.alignment.algorithms.syncproduct.SyncProductFactory;
 import nl.tue.astar.Trace;
 
@@ -85,7 +86,6 @@ public class Replayer {
 		this(parameters, net, initialMarking, finalMarking, classes, null, null, null, mapping, mergeDuplicateTraces);
 	}
 
-	
 	public Replayer(ReplayerParameters parameters, Petrinet net, Marking initialMarking, Marking finalMarking,
 			XEventClasses classes, Map<Transition, Integer> costMM, Map<XEventClass, Integer> costLM,
 			Map<Transition, Integer> costSM, TransEvClassMapping mapping, boolean mergeDuplicateTraces) {
@@ -122,6 +122,10 @@ public class Replayer {
 		} else {
 			constraintSet = null;
 		}
+
+		//TODO: REMOVE DEBUG CODE
+		ReducedSyncProductFactory reducedFactory = new ReducedSyncProductFactory(net, classes, class2id, mapping,
+				costMM, costLM, costSM, initialMarking, finalMarking);
 
 		factory = new SyncProductFactory(net, classes, class2id, mapping, costMM, costLM, costSM, initialMarking,
 				finalMarking);

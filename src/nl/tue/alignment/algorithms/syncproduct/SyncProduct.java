@@ -6,13 +6,13 @@ public interface SyncProduct {
 	public static byte MODEL_MOVE = 2;
 	public static byte SYNC_MOVE = 3;
 	public static byte TAU_MOVE = 4;
-	
+
 	public static byte REDUCED_MODEL_MOVE = 5;
 	public static byte REDUCED_SYNC_MOVE = 6;
 
 	public static final int MAXTRANS = 0b01111111111111111111111111;
-	public static final int NOEVENT = -2;
-	public static final int NORANK = NOEVENT;
+	public static final int[] NOEVENT = new int[0];
+	public static final int NORANK = -2;
 
 	/**
 	 * Returns the number of transitions. At most MAXTRANS transitions are allowed
@@ -109,14 +109,14 @@ public interface SyncProduct {
 	public String getLabel();
 
 	/**
-	 * returns the event number associated with this transitions. Events are assumed
-	 * numbered 0..(getNumEvents()-1) and for model-move transitions, this method
-	 * returns NOEVENT (getTypeOf should then return MODEL_MOVE or TAU_MOVE)
+	 * returns the sequence of event numbers associated with this transition. Events
+	 * are assumed numbered 0..(getNumEvents()-1) and for model-move transitions,
+	 * this method returns NOEVENT = [] (getTypeOf should then return MODEL_MOVE or TAU_MOVE)
 	 * 
 	 * @param transition
 	 * @return
 	 */
-	public int getEventOf(int transition);
+	public int[] getEventOf(int transition);
 
 	/**
 	 * returns the rank of the transition. If a transition is a Model Move, the rank
@@ -140,18 +140,6 @@ public interface SyncProduct {
 	 * @return
 	 */
 	public byte getTypeOf(int transition);
-
-	/**
-	 * returns the move to which the transition corresponds. If transition is a
-	 * MODEL_MOVE or TAU_MOVE, the transition itself is returned from 0..(N-1) where
-	 * N is the numModelMoves(). If the transition is a LOG_MOVE then N..(N+A-1) is
-	 * returned, where A is numEventClasses() and if the transition is a SYNC_MOVE
-	 * then (N+A)..(N+2*A-1) is returned.
-	 * 
-	 * @param transition
-	 * @return
-	 */
-	public int getMoveOf(int transition);
 
 	/**
 	 * returns the number of event classes known to this product

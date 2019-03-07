@@ -40,19 +40,19 @@ import nl.tue.astar.util.PartiallyOrderedTrace;
 public class SyncProductFactory {
 
 	private final int transitions;
-	
+
 	// transition to model moves
 	private final TIntList t2mmCost;
-	
+
 	// eventClassSequence 2 sync move cost
 	private final TIntList t2smCost;
-	
+
 	// maps transitions to IDs
 	//	private final TObjectIntMap<Transition> t2id;
 	private final StringList t2name;
 	private final List<int[]> t2input;
 	private final List<int[]> t2output;
-	private final TIntList t2eid;
+	private List<int[]> t2eid;
 	private final TByteList t2type;
 	private final Transition[] t2transition;
 
@@ -105,8 +105,9 @@ public class SyncProductFactory {
 	}
 
 	private SyncProductFactory(Petrinet net, XEventClasses classes, TObjectIntMap<XEventClass> c2id,
-			TransEvClassMapping map, GenericMap2Int<Transition> mapTrans2Cost, GenericMap2Int<XEventClass> mapEvClass2Cost,
-			GenericMap2Int<Transition> mapSync2Cost, Marking initialMarking, Marking finalMarking) {
+			TransEvClassMapping map, GenericMap2Int<Transition> mapTrans2Cost,
+			GenericMap2Int<XEventClass> mapEvClass2Cost, GenericMap2Int<Transition> mapSync2Cost,
+			Marking initialMarking, Marking finalMarking) {
 
 		this.c2id = c2id;
 		this.classes = classes;
@@ -132,7 +133,7 @@ public class SyncProductFactory {
 		transitions = net.getTransitions().size();
 		t2mmCost = new TIntArrayList(transitions * 2);
 		t2smCost = new TIntArrayList(transitions * 2);
-		t2eid = new TIntArrayList(transitions * 2);
+		t2eid = new ArrayList<>(transitions * 2);
 		t2type = new TByteArrayList(transitions * 2);
 		t2name = new StringList(transitions * 2);
 		t2input = new ArrayList<>(transitions * 2);
@@ -261,6 +262,11 @@ public class SyncProductFactory {
 		transitionList.clear();
 		// for this trace, compute the log-moves
 		// compute the sync moves
+		TIntList ranks = new TIntArrayList();
+		for (int t = 0; t < transitions; t++) {
+			ranks.add(SyncProduct.NORANK);
+		}
+
 		for (int e = 0; e < trace.getSize(); e++) {
 			//			XEventClass clazz = classes.getClassOf(trace.get(e));
 			int cid = trace.get(e); // c2id.get(clazz);
@@ -269,10 +275,10 @@ public class SyncProductFactory {
 			// add log move
 			t2name.add("e" + e + "(" + cid + ")");//clazz.toString());
 			t2mmCost.add(c2lmCost[cid]);
-			t2eid.add(e);
+			t2eid.add(new int[] { e });
 			t2type.add(SyncProduct.LOG_MOVE);
 			t2move.add(transitions + e);
-
+			ranks.add(e);
 			TIntSet set = c2t.get(cid);
 			if (set != null) {
 				TIntIterator it = set.iterator();
@@ -281,9 +287,10 @@ public class SyncProductFactory {
 					int t = it.next();
 					t2name.add(t2name.get(t) + " + e" + e + "(" + cid + ")");
 					t2mmCost.add(t2smCost.get(t));
-					t2eid.add(e);
+					t2eid.add(new int[] { e });
 					t2type.add(SyncProduct.SYNC_MOVE);
 					t2move.add(transitions + trace.getSize() + t);
+					ranks.add(e);
 				}
 			}
 		}
@@ -295,7 +302,8 @@ public class SyncProductFactory {
 				this.classCount, // number of classes
 				t2name.asArray(), //transition labels
 				p2name.asArray(), // place labels
-				t2eid.toArray(), //event numbers
+				t2eid.toArray(new int[t2eid.size()][]), //event numbers
+				ranks.toArray(), // ranks
 				t2type.toArray(), //types
 				t2move.toArray(), //moves
 				t2mmCost.toArray());
@@ -346,7 +354,7 @@ public class SyncProductFactory {
 		p2name.trunctate(places);
 		t2name.trunctate(transitions);
 		t2mmCost.remove(transitions, t2mmCost.size() - transitions);
-		t2eid.remove(transitions, t2eid.size() - transitions);
+		t2eid = t2eid.subList(0, transitions);//, t2eid.size() - transitions);
 		t2type.remove(transitions, t2type.size() - transitions);
 		t2move.remove(transitions, t2move.size() - transitions);
 
@@ -390,7 +398,7 @@ public class SyncProductFactory {
 			// add log move
 			t2name.add("e" + e + "(" + cid + ")");//clazz.toString());
 			t2mmCost.add(c2lmCost[cid]);
-			t2eid.add(e);
+			t2eid.add(new int[] { e });
 			t2type.add(SyncProduct.LOG_MOVE);
 			t2move.add(transitions + e);
 
@@ -402,7 +410,7 @@ public class SyncProductFactory {
 					int t = it.next();
 					t2name.add(t2name.get(t) + ",e" + e + "(" + cid + ")");
 					t2mmCost.add(t2smCost.get(t));
-					t2eid.add(e);
+					t2eid.add(new int[] { e });
 					t2type.add(SyncProduct.SYNC_MOVE);
 					t2move.add((transitions + trace.getSize() + t));
 				}
@@ -416,7 +424,7 @@ public class SyncProductFactory {
 				this.classCount, //number of event classes
 				t2name.asArray(), //transition labels
 				p2name.asArray(), // place labels
-				t2eid.toArray(), //event numbers
+				t2eid.toArray(new int[t2eid.size()][]), //event numbers
 				ranks, // ranks
 				t2type.toArray(), //types
 				t2move.toArray(), //moves
@@ -501,7 +509,8 @@ public class SyncProductFactory {
 		p2name.trunctate(places);
 		t2name.trunctate(transitions);
 		t2mmCost.remove(transitions, t2mmCost.size() - transitions);
-		t2eid.remove(transitions, t2eid.size() - transitions);
+		//		t2eid.remove(transitions, t2eid.size() - transitions);
+		t2eid = t2eid.subList(0, transitions);
 		t2type.remove(transitions, t2type.size() - transitions);
 		t2move.remove(transitions, t2move.size() - transitions);
 

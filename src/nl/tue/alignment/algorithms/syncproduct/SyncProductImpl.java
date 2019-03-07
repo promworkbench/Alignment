@@ -8,7 +8,7 @@ public class SyncProductImpl implements SyncProduct {
 
 	protected final String[] transitions;
 
-	protected final int[] eventNumbers;
+	protected final int[][] eventNumbers;
 
 	protected final int[] ranks;
 
@@ -36,12 +36,12 @@ public class SyncProductImpl implements SyncProduct {
 
 	private final int numModelMoves;
 
-	public SyncProductImpl(String label, int numClasses, String[] transitions, String[] places, int[] eventNumbers,
-			byte[] types, int[] moves, int[] cost) {
-		this(label, numClasses, transitions, places, eventNumbers, eventNumbers, types, moves, cost);
-	}
+//	public SyncProductImpl(String label, int numClasses, String[] transitions, String[] places, int[][] eventNumbers,
+//			byte[] types, int[] moves, int[] cost) {
+//		this(label, numClasses, transitions, places, eventNumbers, eventNumbers, types, moves, cost);
+//	}
 
-	public SyncProductImpl(String label, int numClasses, String[] transitions, String[] places, int[] eventNumbers,
+	public SyncProductImpl(String label, int numClasses, String[] transitions, String[] places, int[][] eventNumbers,
 			int[] ranks, byte[] types, int[] moves, int[] cost) {
 		this.eventNumbers = eventNumbers;
 		this.label = label;
@@ -54,8 +54,8 @@ public class SyncProductImpl implements SyncProduct {
 
 		int mx = 0;
 		for (int e = 0; e < eventNumbers.length; e++) {
-			if (eventNumbers[e] > mx) {
-				mx = eventNumbers[e];
+			if (eventNumbers[e] != NOEVENT && eventNumbers[e][eventNumbers[e].length - 1] > mx) {
+				mx = eventNumbers[e][eventNumbers[e].length - 1];
 			}
 		}
 		this.numEvents = (mx + 1);
@@ -199,11 +199,11 @@ public class SyncProductImpl implements SyncProduct {
 		return label;
 	}
 
-	public int getEventOf(int transition) {
+	public int[] getEventOf(int transition) {
 		return eventNumbers[transition];
 	}
 
-	public void setEventOf(int transition, int event) {
+	public void setEventOf(int transition, int[] event) {
 		eventNumbers[transition] = event;
 	}
 

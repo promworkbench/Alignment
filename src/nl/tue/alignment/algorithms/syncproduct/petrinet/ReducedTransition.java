@@ -4,7 +4,7 @@ import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import gnu.trove.procedure.TObjectIntProcedure;
 
-class ReducedTransition {
+public class ReducedTransition {
 
 	private static int nextID = 0;
 
@@ -183,6 +183,16 @@ class ReducedTransition {
 		maxSequenceLength = 1;
 		// transition can be mapped to sequence <id> with cost minimum of existing and syncmove cost on s.
 		sequence2cost.put(new TransitionEventClassList(transitionId, eventClassId), syncMoveCost);
+		sequence2cost.put(new TransitionEventClassList(transitionId), modelMoveCost);
+		this.type = Type.BASIC;
+	}
+
+	public ReducedTransition(int transitionId, int modelMoveCost) {
+		synchronized (ReducedTransition.class) {
+			this.id = nextID++;
+		}
+		maxSequenceLength = 1;
+		// tau transition..
 		sequence2cost.put(new TransitionEventClassList(transitionId), modelMoveCost);
 		this.type = Type.BASIC;
 	}

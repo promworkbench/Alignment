@@ -179,18 +179,25 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		for (int i = 0; i < alignment.length; i++) {
 			int t = alignment[i];
 			if (product.getTypeOf(t) == SyncProduct.LOG_MOVE) {
-				nodeInstance.add(replayer.classes.getClassOf(trace.get(product.getEventOf(t))));
-				stepTypes.add(StepTypes.L);
-				lm += product.getCost(t);
+				int[] events = product.getEventOf(t);
+				for (int e : events) {
+					// a log move is a list of events. Most likely just one.
+					nodeInstance.add(replayer.classes.getClassOf(trace.get(e)));
+					stepTypes.add(StepTypes.L);
+					lm += product.getCost(t);
+				}
 			} else {
 				nodeInstance.add(transitionList.get(t));
 				if (product.getTypeOf(t) == SyncProduct.MODEL_MOVE) {
 					stepTypes.add(StepTypes.MREAL);
 					mm += product.getCost(t);
 				} else if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
-					stepTypes.add(StepTypes.LMGOOD);
-					smm += replayer.getCostMM(transitionList.get(t));
-					slm += replayer.getCostLM(replayer.classes.getClassOf(trace.get(product.getEventOf(t))));
+					int[] events = product.getEventOf(t);
+					for (int e : events) {
+						stepTypes.add(StepTypes.LMGOOD);
+						smm += replayer.getCostMM(transitionList.get(t));
+						slm += replayer.getCostLM(replayer.classes.getClassOf(trace.get(e)));
+					}
 				} else if (product.getTypeOf(t) == SyncProduct.TAU_MOVE) {
 					stepTypes.add(StepTypes.MINVI);
 					mm += product.getCost(t);

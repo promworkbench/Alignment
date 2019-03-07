@@ -20,6 +20,8 @@ public class SmallTests {
 	public static byte MM = SyncProduct.MODEL_MOVE;
 	public static byte SM = SyncProduct.SYNC_MOVE;
 	public static byte TM = SyncProduct.TAU_MOVE;
+	public static int[] NE = SyncProduct.NOEVENT;
+	public static int NR = SyncProduct.NORANK;
 
 	public static class SyncProductExampleBook extends SyncProductImpl {
 
@@ -30,7 +32,9 @@ public class SmallTests {
 							"-,As", "-,Aa", "-,Sso", "-,Ro", "-,Ao", "-,Aaa1", "-,Aaa2" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
 							"p13", "p14", "p15", "p16", "p17", "p18" }, //
-					new int[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5,
+					new int[][] { NE, NE, NE, NE, NE, NE, NE, NE, NE, NE, NE, NE, { 0 }, { 1 }, { 2 }, { 3 }, { 4 },
+							{ 5 }, { 6 }, { 0 }, { 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 } }, //
+					new int[] { NR, NR, NR, NR, NR, NR, NR, NR, NR, NR, NR, NR, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5,
 							6 }, //
 					new byte[] { MM, MM, MM, MM, MM, MM, TM, MM, MM, MM, MM, MM, SM, SM, SM, SM, SM, SM, SM, LM, LM, LM,
 							LM, LM, LM, LM }, //
@@ -118,7 +122,8 @@ public class SmallTests {
 							"K,K", "L,L", "-,L", "-,K" }, //
 					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
 							"p13", "p14" }, //
-					new int[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 0, 1 }, //
+					new int[][] { NE, NE, NE, NE, NE, NE, NE, NE, NE, NE, NE, NE, { 1 }, { 0 }, { 0 }, { 1 } }, //
+					new int[] { NR, NR, NR, NR, NR, NR, NR, NR, NR, NR, NR, NR, 1, 0, 0, 1 }, //
 					new byte[] { MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, SM, SM, LM, LM }, //
 					new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, /**/ 34, 35, /**/ 23, 22 }, //
 					new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1 }//
@@ -183,7 +188,7 @@ public class SmallTests {
 	//					new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
 	//							"E,E", "F,F", "G,-", "G,G", "-,X" }, //
 	//					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
-	//					new int[] { -1, -1, -1, 1, 2, 3, 2, 3, -1, -1, 4, 5, 4, 5, -1, 1, 0 }, //
+	//					new int[] { NR, NR, NR, 1, 2, 3, 2, 3, NR, NR, 4, 5, 4, 5, NR, 1, 0 }, //
 	//					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, MM, SM, LM }, //
 	//					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1 }//
 	//			);
@@ -251,7 +256,7 @@ public class SmallTests {
 	//					new String[] { "A,-", "D,-", "C,-", "-,G", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
 	//							"E,E", "F,F", "G,-", "G,G", "tau" }, //
 	//					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
-	//					new int[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4, -1, 0, -1 }, //
+	//					new int[] { NR, NR, NR, 0, 1, 2, 1, 2, NR, NR, 3, 4, 3, 4, NR, 0, -1 }, //
 	//					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, MM, SM, TM }, //
 	//					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0 }//
 	//			);
@@ -318,7 +323,7 @@ public class SmallTests {
 	//					new String[] { "A,-", "D,-", "C,-", "-,B", "-,C", "-,D", "C,C", "D,D", "F,-", "E,-", "-,E", "-,F",
 	//							"E,E", "F,F", "-,G" }, //
 	//					new String[] { "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12" }, //
-	//					new int[] { -1, -1, -1, 0, 1, 2, 1, 2, -1, -1, 3, 4, 3, 4, 5 }, //
+	//					new int[] { NR, NR, NR, 0, 1, 2, 1, 2, NR, NR, 3, 4, 3, 4, 5 }, //
 	//					new byte[] { MM, MM, MM, LM, LM, LM, SM, SM, MM, MM, LM, LM, SM, SM, LM }, //
 	//					new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1 }//
 	//			);
@@ -379,9 +384,10 @@ public class SmallTests {
 		int[] alignment;
 		//		SyncProduct net = new SyncProductExampleBook();
 		SyncProduct net = new NastySyncProductExample();
+		Utils.toDot(net, System.out);
 
 		alignment = testSingleGraph(net, Debug.DOT);
-		Utils.toDot(net, System.out);
+		//		Utils.toDot(net, System.out);
 		if (alignment != null) {
 			Utils.toDot(net, alignment, System.out);
 		}
