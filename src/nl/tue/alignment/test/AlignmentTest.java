@@ -45,7 +45,7 @@ import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 
 public class AlignmentTest {
 
-	private static final int THREADS = Math.max(1, Runtime.getRuntime().availableProcessors() / 4);
+	private static final int THREADS = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
 
 	private static String FOLDER = "c:/temp/alignment/";
 	private static String SEP = Utils.SEP;
@@ -120,7 +120,7 @@ public class AlignmentTest {
 		//April 2018:
 		int timeout = 5;
 		//
-		mainFileFolder(Debug.STATS, timeout, "prCm6", "prAm6", "prEm6", "prBm6", "prFm6", "prGm6", "prDm6"); // Planner runs out of memory
+		mainFileFolder(Debug.STATS, timeout, "prAm6", "prEm6", "prBm6", "prCm6", "prFm6", "prGm6", "prDm6"); // Planner runs out of memory
 		//		mainFileFolder(Debug.STATS, timeout, "bpi12");
 		//		mainFileFolder(Debug.STATS, timeout, "pr1151_l4_noise", "pr1912_l4_noise");
 		//
@@ -258,6 +258,9 @@ public class AlignmentTest {
 				log = parser.parse(new File(folder + ".xes")).get(0);
 			}
 
+			for (int i = log.size(); i-- > 100;) {
+				log.remove(i);
+			}
 			/////////////////
 			//			java.util.Iterator<XTrace> it = log.iterator();
 			//			while (it.hasNext()) {

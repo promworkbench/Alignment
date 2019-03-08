@@ -300,7 +300,7 @@ public class ReducedTransition {
 
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("t");
+		builder.append("rt");
 		builder.append(id);
 		builder.append("\n");
 		for (TransitionEventClassList seq : sequence2cost.keySet()) {
@@ -314,7 +314,7 @@ public class ReducedTransition {
 
 	public String toHTMLString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("t");
+		builder.append("rt");
 		builder.append(id);
 		builder.append("<BR/>");
 		for (TransitionEventClassList seq : sequence2cost.keySet()) {
@@ -327,7 +327,7 @@ public class ReducedTransition {
 	}
 
 	public String toIdString() {
-		return "t" + id;
+		return "rt" + id;
 	}
 
 	public void forEachOutputArc(TObjectIntProcedure<ReducedPlace> procedure) {

@@ -138,32 +138,28 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 		reducedNet = new ReducedPetriNet(net, classes, trans2id, c2id, map, mapTrans2Cost, mapEvClass2Cost,
 				mapSync2Cost, initialMarking, finalMarking);
 
+		// start reducing the model into a new model applying as many rules as possible.
 		// reduce the net to a minimum
 		reducedNet.reduce(Integer.MAX_VALUE, maxSequenceLength);
 
-		//		PrintStream writer;
-		//		try {
-		//			i = 0;
-		//			int step = 1;
-		//			do {
-		//				writer = new PrintStream(new File(String.format("c://temp//dot//model%03d.dot", i)));
-		//				reducedNet.toDot(writer);
-		//				writer.close();
-		//				i += step;
-		//			} while (reducedNet.reduce(step, maxSequenceLength));
-		//			writer = new PrintStream(new File(String.format("c://temp//dot//model%03d.dot", i)));
-		//			reducedNet.toDot(writer);
-		//			writer.close();
-		//
-		//		} catch (FileNotFoundException e) {
-		//			// TODO Auto-generated catch block
-		//			e.printStackTrace();
-		//		}
-		//
-		//		System.exit(0);
-		// find transitions with identical input/output
-
-		// start reducing the model into a new model applying as many rules as possible.
+		//				PrintStream writer;
+		//				try {
+		//					i = 0;
+		//					int step = 1;
+		//					do {
+		//						writer = new PrintStream(new File(String.format("c://temp//dot//model%03d.dot", i)));
+		//						reducedNet.toDot(writer);
+		//						writer.close();
+		//						i += step;
+		//					} while (reducedNet.reduce(step, maxSequenceLength));
+		//					writer = new PrintStream(new File(String.format("c://temp//dot//model%03d.dot", i)));
+		//					reducedNet.toDot(writer);
+		//					writer.close();
+		//		
+		//				} catch (FileNotFoundException e) {
+		//					// TODO Auto-generated catch block
+		//					e.printStackTrace();
+		//				}
 
 		// prepare Data Structures for synchronous product.
 		this.transitions = reducedNet.getTransitions().size();
@@ -299,9 +295,9 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 		for (int e = 0; e < trace.getSize(); e++) {
 			// add a place
 			int cid = trace.get(e);
-			p2name.add("e_" + e);
+			p2name.add("e" + e);
 			// add log move
-			t2name.add("e" + e + "(" + cid + ")");//clazz.toString());
+			t2name.add("e" + e + " (" + cid + ")");//clazz.toString());
 			t2mmCost.add(c2lmCost[cid]);
 			t2eid.add(new int[] { e });
 			t2type.add(SyncProduct.LOG_MOVE);
@@ -314,7 +310,7 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 			pathLengths.add(1);
 		}
 		if (trace.getSize() > 0) {
-			p2name.add("e_" + trace.getSize());
+			p2name.add("e" + trace.getSize());
 		}
 		transitionList.addAll(reducedNet.getTransitions());
 
@@ -324,9 +320,9 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 			rt.forEachSynchronousSequence(new TObjectIntProcedure<TransitionEventClassList>() {
 
 				ReducedTransition[] split;
-				int currentPlace = -1;
 
-				private void match(TransitionEventClassList list, int cost, int seqIndex, int eventIndex) {
+				private void match(TransitionEventClassList list, int placeToProduceIn, int cost, int seqIndex,
+						int eventIndex) {
 					if (eventIndex < 0 || seqIndex < 0 || seqIndex > eventIndex) {
 						// base case, we're done.
 						return;
@@ -336,11 +332,11 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 						t2name.add("t" + t2name.size() + "<br/>" + Arrays.toString(list.getEventClassSequence()) + "["
 								+ seqIndex + "]");
 						t2mmCost.add(seqIndex == 0 ? cost : 0);
-						t2eid.add(new int[] { trace.get(eventIndex) });
+						t2eid.add(new int[] { eventIndex });
 						t2type.add(SyncProduct.SYNC_MOVE);
 						transitionList.add(split[seqIndex]);
 						ranks.add(eventIndex);
-						pathLengths.add(list.getTransitionSequenceLength());
+						pathLengths.add(1);
 
 						if (seqIndex == list.getEventClassSequence().length - 1) {
 							// this is the final transition in the sequence
@@ -352,8 +348,8 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 						} else {
 							// output is simply the place in the sequence,
 							// plus the trace
-							assert currentPlace > places + trace.getSize();
-							t2output.add(new int[] { currentPlace, places + eventIndex + 1 });
+							assert placeToProduceIn > places + trace.getSize();
+							t2output.add(new int[] { placeToProduceIn, places + eventIndex + 1 });
 						}
 						if (seqIndex == 0) {
 							// this is the first transition in the sequence.
@@ -364,23 +360,19 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 							t2input.add(input);
 						} else {
 							// add an input place
-							currentPlace = p2name.size();
+							int newPlaceToProduceIn = p2name.size();
 							p2name.add("i_" + (t2name.size() - 1) + "-" + eventIndex);
-							t2input.add(new int[] { currentPlace, places + eventIndex });
-						}
+							t2input.add(new int[] { newPlaceToProduceIn, places + eventIndex });
 
-						// and continue with predecessor either
-						// by matching predecessor events
-						int oldCurrentPlace = currentPlace;
-						for (int i = 1; i <= seqIndex; i++) {
-							match(list, cost, seqIndex - i, eventIndex - 1);
-							// if the recursion finishes,
-							// reset the current place
-							currentPlace = oldCurrentPlace;
+							// and continue with predecessor either
+							// by matching predecessor events
+							for (int i = 1; i <= seqIndex; i++) {
+								match(list, newPlaceToProduceIn, cost, seqIndex - i, eventIndex - 1);
+							}
 						}
 
 					}
-					match(list, cost, seqIndex, eventIndex - 1);
+					match(list, placeToProduceIn, cost, seqIndex, eventIndex - 1);
 
 				}
 
@@ -389,10 +381,10 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 					while (e >= list.getEventClassSequence().length && !list.endsWith(trace.get(e))) {
 						e--;
 					}
-					if (e >= list.getEventClassSequence().length) {
+					if (e >= 0 && e + 1 >= list.getEventClassSequence().length) {
 						split = ReducedTransition.createList(list, cost, rt.getModelMoveCost());
 
-						match(list, cost, list.getEventClassSequence().length - 1, e);
+						match(list, -1, cost, list.getEventClassSequence().length - 1, e);
 					}
 					return true;
 				}
