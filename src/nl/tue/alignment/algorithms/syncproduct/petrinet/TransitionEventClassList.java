@@ -2,25 +2,44 @@ package nl.tue.alignment.algorithms.syncproduct.petrinet;
 
 import java.util.Arrays;
 
-class TransitionEventClassList {
-	public static final int NOMOVE = Integer.MIN_VALUE;
+/**
+ * Keeps two lists. First a list of transition firings belonging to a reduced
+ * transition, second a list of event classes (potentially shorter)
+ * 
+ * @author bfvdonge
+ *
+ */
+public class TransitionEventClassList {
+	private static int[] EMPTYARRAY = new int[0];
+
+	public static class Wrap extends TransitionEventClassList {
+		public Wrap(int[] eventClasses) {
+			super(EMPTYARRAY, eventClasses);
+		}
+	}
 
 	public static final TransitionEventClassList EMPTY = new TransitionEventClassList();
 
 	private final int[] transitions;
 	private final int[] eventClasses;
 
+	private TransitionEventClassList(int[] transitions, int[] eventClasses) {
+		this.transitions = transitions;
+		this.eventClasses = eventClasses;
+	}
+
 	private TransitionEventClassList() {
-		transitions = new int[] {};
-		eventClasses = new int[] {};
+		this(EMPTYARRAY, EMPTYARRAY);
 	}
 
 	public TransitionEventClassList(int transition) {
-		transitions = new int[] { transition };
-		eventClasses = new int[] { NOMOVE };
+		// model move, store as negative number
+		transitions = new int[] { -transition - 1 };
+		eventClasses = new int[] {};
 	}
 
 	public TransitionEventClassList(int transition, int eventClass) {
+		// sync move, store as non-negative number.
 		transitions = new int[] { transition };
 		eventClasses = new int[] { eventClass };
 	}
@@ -48,12 +67,38 @@ class TransitionEventClassList {
 		StringBuilder b = new StringBuilder();
 		b.append('[');
 		for (int i = 0; i < eventClasses.length; i++) {
-			if (eventClasses[i] != NOMOVE) {
-				b.append(eventClasses[i]);
-				b.append(", ");
-			}
+			b.append(eventClasses[i]);
+			b.append(",");
 		}
 		return b.append(']').toString();
+	}
+
+	public boolean endsWith(int cid) {
+		return eventClasses.length > 0 && eventClasses[eventClasses.length - 1] == cid;
+	}
+
+	public int[] getEventClassSequence() {
+		return eventClasses;
+	}
+
+	public int[] getTransitionSequence() {
+		int[] result = new int[transitions.length];
+		for (int i = result.length; i-- > 0;) {
+			if (transitions[i] > 0) {
+				result[i] = transitions[i];
+			} else {
+				result[i] = -transitions[i] - 1;
+			}
+		}
+		return result;
+	}
+
+	public TransitionEventClassList subList(int eventClass, int from, int to) {
+		return new TransitionEventClassList(Arrays.copyOfRange(transitions, from, to), new int[] { eventClass });
+	}
+
+	public int getTransitionSequenceLength() {
+		return transitions.length;
 	}
 
 }

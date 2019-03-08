@@ -30,25 +30,25 @@ public class SyncProductImpl implements SyncProduct {
 
 	private final int numEvents;
 
-	private final int[] moves;
-
 	private final int numClasses;
 
 	private final int numModelMoves;
 
-//	public SyncProductImpl(String label, int numClasses, String[] transitions, String[] places, int[][] eventNumbers,
-//			byte[] types, int[] moves, int[] cost) {
-//		this(label, numClasses, transitions, places, eventNumbers, eventNumbers, types, moves, cost);
-//	}
+	private final int[] pathLengths;
+
+	//	public SyncProductImpl(String label, int numClasses, String[] transitions, String[] places, int[][] eventNumbers,
+	//			byte[] types, int[] moves, int[] cost) {
+	//		this(label, numClasses, transitions, places, eventNumbers, eventNumbers, types, moves, cost);
+	//	}
 
 	public SyncProductImpl(String label, int numClasses, String[] transitions, String[] places, int[][] eventNumbers,
-			int[] ranks, byte[] types, int[] moves, int[] cost) {
+			int[] ranks, int[] pathLengths, byte[] types, int[] cost) {
 		this.eventNumbers = eventNumbers;
 		this.label = label;
 		this.transitions = transitions;
 		this.places = places;
+		this.pathLengths = pathLengths;
 		this.types = types;
-		this.moves = moves;
 		this.cost = cost;
 		this.ranks = ranks;
 
@@ -61,7 +61,7 @@ public class SyncProductImpl implements SyncProduct {
 		this.numEvents = (mx + 1);
 
 		mx = 0;
-		for (int e = 0; e < moves.length; e++) {
+		for (int e = 0; e < types.length; e++) {
 			if (types[e] == MODEL_MOVE || types[e] == TAU_MOVE) {
 				mx++;
 			}
@@ -223,16 +223,16 @@ public class SyncProductImpl implements SyncProduct {
 		ranks[transition] = rank;
 	}
 
-	public int getMoveOf(int transition) {
-		return moves[transition];
-	}
-
 	public int numEventClasses() {
 		return numClasses;
 	}
 
 	public int numModelMoves() {
 		return numModelMoves;
+	}
+
+	public int getTransitionPathLength(int transition) {
+		return pathLengths[transition];
 	}
 
 }

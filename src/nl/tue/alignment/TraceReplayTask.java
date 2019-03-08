@@ -2,16 +2,12 @@ package nl.tue.alignment;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.deckfour.xes.extension.std.XConceptExtension;
 import org.deckfour.xes.factory.XFactoryRegistry;
 import org.deckfour.xes.model.XEvent;
 import org.deckfour.xes.model.XTrace;
-import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
-import org.processmining.plugins.petrinet.replayresult.PNRepResult;
-import org.processmining.plugins.petrinet.replayresult.StepTypes;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
 import gnu.trove.map.TObjectIntMap;
@@ -122,7 +118,7 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		}
 		if (original < 0) {
 			//			System.out.println("Starting trace: " + traceIndex);
-			List<Transition> transitionList = new ArrayList<Transition>();
+			ArrayList<Object> transitionList = new ArrayList<>();
 			long pt;
 			synchronized (this.replayer.factory) {
 				long startSP = System.nanoTime();
@@ -150,7 +146,8 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 				}
 				TObjectIntMap<Statistic> stats = algorithm.getStatistics();
 
-				srr = toSyncReplayResult(product, stats, alignment, trace, traceIndex, transitionList);
+				srr = this.replayer.factory.toSyncReplayResult(replayer, product, stats, alignment, trace, traceIndex,
+						transitionList);
 				this.replayer.getProgress().inc();
 				result = TraceReplayResult.SUCCESS;
 			} else {
@@ -169,64 +166,6 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 		product = null;
 
 		return this;
-	}
-
-	private SyncReplayResult toSyncReplayResult(SyncProduct product, TObjectIntMap<Statistic> statistics,
-			int[] alignment, XTrace trace, int traceIndex, List<Transition> transitionList) {
-		List<Object> nodeInstance = new ArrayList<>(alignment.length);
-		List<StepTypes> stepTypes = new ArrayList<>(alignment.length);
-		int mm = 0, lm = 0, smm = 0, slm = 0;
-		for (int i = 0; i < alignment.length; i++) {
-			int t = alignment[i];
-			if (product.getTypeOf(t) == SyncProduct.LOG_MOVE) {
-				int[] events = product.getEventOf(t);
-				for (int e : events) {
-					// a log move is a list of events. Most likely just one.
-					nodeInstance.add(replayer.classes.getClassOf(trace.get(e)));
-					stepTypes.add(StepTypes.L);
-					lm += product.getCost(t);
-				}
-			} else {
-				nodeInstance.add(transitionList.get(t));
-				if (product.getTypeOf(t) == SyncProduct.MODEL_MOVE) {
-					stepTypes.add(StepTypes.MREAL);
-					mm += product.getCost(t);
-				} else if (product.getTypeOf(t) == SyncProduct.SYNC_MOVE) {
-					int[] events = product.getEventOf(t);
-					for (int e : events) {
-						stepTypes.add(StepTypes.LMGOOD);
-						smm += replayer.getCostMM(transitionList.get(t));
-						slm += replayer.getCostLM(replayer.classes.getClassOf(trace.get(e)));
-					}
-				} else if (product.getTypeOf(t) == SyncProduct.TAU_MOVE) {
-					stepTypes.add(StepTypes.MINVI);
-					mm += product.getCost(t);
-				}
-			}
-		}
-
-		SyncReplayResult srr = new SyncReplayResult(nodeInstance, stepTypes, traceIndex);
-		srr.addInfo(PNRepResult.RAWFITNESSCOST, 1.0 * statistics.get(Statistic.COST));
-		srr.addInfo(PNRepResult.TIME, (statistics.get(Statistic.TOTALTIME)) / 1000.0);
-		srr.addInfo(PNRepResult.QUEUEDSTATE, 1.0 * statistics.get(Statistic.QUEUEACTIONS));
-		if (lm + slm == 0) {
-			srr.addInfo(PNRepResult.MOVELOGFITNESS, 1.0);
-		} else {
-			srr.addInfo(PNRepResult.MOVELOGFITNESS, 1.0 - (1.0 * lm) / (lm + slm));
-		}
-		if (mm + smm == 0) {
-			srr.addInfo(PNRepResult.MOVEMODELFITNESS, 1.0);
-		} else {
-			srr.addInfo(PNRepResult.MOVEMODELFITNESS, 1.0 - (1.0 * mm) / (mm + smm));
-		}
-		srr.addInfo(PNRepResult.NUMSTATEGENERATED, 1.0 * statistics.get(Statistic.MARKINGSREACHED));
-		srr.addInfo(PNRepResult.ORIGTRACELENGTH, 1.0 * trace.size());
-		srr.addInfo(Replayer.TRACEEXITCODE, new Double(statistics.get(Statistic.EXITCODE)));
-		srr.addInfo(Replayer.MEMORYUSED, new Double(statistics.get(Statistic.MEMORYUSED)));
-		srr.addInfo(Replayer.PREPROCESSTIME, (statistics.get(Statistic.PREPROCESSTIME)) / 1000.0);
-		srr.addInfo(Replayer.HEURISTICSCOMPUTED, (double) statistics.get(Statistic.HEURISTICSCOMPUTED));
-		srr.setReliable(statistics.get(Statistic.EXITCODE) == Utils.OPTIMALALIGNMENT);
-		return srr;
 	}
 
 	private ReplayAlgorithm getAlgorithm(SyncProduct product) throws LPMatrixException {

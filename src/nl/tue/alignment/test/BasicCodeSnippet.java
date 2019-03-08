@@ -31,6 +31,7 @@ import org.processmining.plugins.petrinet.replayresult.PNRepResult;
 import org.processmining.plugins.petrinet.replayresult.StepTypes;
 import org.processmining.plugins.replayer.replayresult.SyncReplayResult;
 
+import lpsolve.LpSolve;
 import nl.tue.alignment.Replayer;
 import nl.tue.alignment.ReplayerParameters;
 import nl.tue.alignment.TraceReplayTask;
@@ -40,8 +41,11 @@ import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 public class BasicCodeSnippet {
 
 	public static void main(String[] args) throws Exception {
-		String petrinetFile = "C:\\temp\\alignment\\prAm6\\prAm6.pnml";
-		String logFile = "C:\\temp\\alignment\\prAm6\\prAm6.mxml";
+		// INITIALIZE LpSolve for stdout
+		LpSolve.lpSolveVersion();
+
+		String petrinetFile = "C:\\temp\\dot\\test.pnml";
+		String logFile = "C:\\temp\\dot\\test.mxml";
 
 		Petrinet net = constructNet(petrinetFile);
 		Marking initialMarking = getInitialMarking(net);
@@ -101,12 +105,15 @@ public class BasicCodeSnippet {
 		int timeoutMilliseconds = 10 * 1000;
 
 		int maximumNumberOfStates = Integer.MAX_VALUE;
-
-		//BPM2018: 
-		ReplayerParameters parameters = new ReplayerParameters.IncrementalAStar(false, nThreads, false, Debug.NONE,
-				timeoutMilliseconds, maximumNumberOfStates, costUpperBound, false, false);
+		ReplayerParameters parameters;
+		//Current: 
+		parameters = new ReplayerParameters.IncrementalAStar(false, nThreads, false, Debug.DOT, timeoutMilliseconds,
+				maximumNumberOfStates, costUpperBound, false, false, 0, 2);
+		//		//BPM2018: 
+//		parameters = new ReplayerParameters.IncrementalAStar(false, nThreads, false, Debug.DOT,
+//						timeoutMilliseconds, maximumNumberOfStates, costUpperBound, false, false);
 		//Traditional
-		//		ReplayerParameters parameters = new ReplayerParameters.AStar(true, true, true, nThreads, true, Debug.NONE,
+		//		parameters = new ReplayerParameters.AStar(true, true, true, nThreads, true, Debug.NONE,
 		//				timeoutMilliseconds, maximumNumberOfStates, costUpperBound, false);
 
 		Replayer replayer = new Replayer(parameters, net, initialMarking, finalMarking, classes, costModelMove,
@@ -142,7 +149,6 @@ public class BasicCodeSnippet {
 				result = futures[i].get();
 			} catch (Exception e) {
 				// execution os the service has terminated.
-				assert false;
 				throw new RuntimeException("Error while executing replayer in ExecutorService. Interrupted maybe?", e);
 			}
 			switch (result.getResult()) {

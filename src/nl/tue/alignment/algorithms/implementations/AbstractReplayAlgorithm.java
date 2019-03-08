@@ -948,8 +948,9 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		if (marking == NOPREDECESSOR) {
 			return 0;
 		} else {
-			return 1 + getPathLength(getPredecessor(marking));
+			return net.getTransitionPathLength(getPredecessorTransition(marking)) + getPathLength(getPredecessor(marking));
 		}
 	}
 
+	
 }

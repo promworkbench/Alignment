@@ -70,6 +70,9 @@ public class ReducedTransition {
 				public boolean execute(TransitionEventClassList a, int b) {
 					// copy the sequence, but only if the new cost are smaller
 					if (result.sequence2cost.get(a) > b) {
+						// remove key to ensure replacement of the key by "a"
+						result.sequence2cost.remove(a);
+						// put key "a" back in
 						result.sequence2cost.put(a, b);
 					}
 					return true;
@@ -166,6 +169,41 @@ public class ReducedTransition {
 		return type == null ? Type.BASIC : type;
 	}
 
+	/**
+	 * Split a list of transitionEventClasses into a list of reduced transitions,
+	 * each corresponding to exactly one event. Costs are attributed to the first
+	 * transition.
+	 * 
+	 * @param list
+	 * @param syncMoveCost
+	 * @return
+	 */
+	public static ReducedTransition[] createList(TransitionEventClassList list, int syncMoveCost, int modelMoveCost) {
+		ReducedTransition[] result = new ReducedTransition[list.getEventClassSequence().length];
+		int[] transitions = list.getTransitionSequence();
+		int[] events = list.getEventClassSequence();
+		int start = 0;
+		int it = 0, ik = 0;
+		do {
+			while (it < transitions.length && (transitions[it] < 0 || ik == events.length - 1)) {
+				// skip the initial model moves
+				it++;
+			}
+			if (it < transitions.length) {
+				// not yet the last one.
+				it++;
+			}
+			result[ik] = new ReducedTransition(Type.SEQUENCE, it - start);
+			result[ik].sequence2cost.put(list.subList(events[ik], start, it), ik == 0 ? syncMoveCost : 0);
+			result[ik].sequence2cost.put(TransitionEventClassList.EMPTY, ik == 0 ? modelMoveCost : 0);
+
+			start = it;
+			ik++;
+		} while (ik < events.length);
+
+		return result;
+	}
+
 	private final Type type;
 
 	// each reduced transition corresponds to an exclusive choice of a variety of sequences of original 
@@ -203,35 +241,40 @@ public class ReducedTransition {
 		}
 		this.type = type;
 		this.maxSequenceLength = maxSequenceLength;
-		sequence2cost.put(TransitionEventClassList.EMPTY, 0);
+		//		sequence2cost.put(TransitionEventClassList.EMPTY, 0);
 	}
 
 	private void addSequences(ReducedTransition t) {
 		final Sequence2SyncMoveCost newSequences = new Sequence2SyncMoveCost();
 
-		// for each entry in the transition to add.
-		t.sequence2cost.forEachEntry(new TObjectIntProcedure<TransitionEventClassList>() {
+		if (sequence2cost.isEmpty()) {
+			newSequences.putAll(t.sequence2cost);
+		} else {
 
-			// for each entry in the existing sequence list
-			public boolean execute(final TransitionEventClassList a, final int b) {
+			// for each entry in the transition to add.
+			t.sequence2cost.forEachEntry(new TObjectIntProcedure<TransitionEventClassList>() {
 
-				sequence2cost.forEachEntry(new TObjectIntProcedure<TransitionEventClassList>() {
+				// for each entry in the existing sequence list
+				public boolean execute(final TransitionEventClassList a, final int b) {
 
-					public boolean execute(TransitionEventClassList c, int d) {
+					sequence2cost.forEachEntry(new TObjectIntProcedure<TransitionEventClassList>() {
 
-						// newSeq is the concatenation of c and a.
-						TransitionEventClassList newSeq = new TransitionEventClassList(c, a);
+						public boolean execute(TransitionEventClassList c, int d) {
 
-						// store the minimum cost of doing a sync move sequence on them
-						newSequences.put(newSeq, b + d);
-						// continue with the next.
-						return true;
-					}
-				});
-				// continue with the next.
-				return true;
-			}
-		});
+							// newSeq is the concatenation of c and a.
+							TransitionEventClassList newSeq = new TransitionEventClassList(c, a);
+
+							// store the minimum cost of doing a sync move sequence on them
+							newSequences.put(newSeq, b + d);
+							// continue with the next.
+							return true;
+						}
+					});
+					// continue with the next.
+					return true;
+				}
+			});
+		}
 		this.sequence2cost = newSequences;
 	}
 
@@ -301,6 +344,22 @@ public class ReducedTransition {
 
 	public boolean equals(Object o) {
 		return o != null && o instanceof ReducedTransition ? ((ReducedTransition) o).id == id : false;
+	}
+
+	public int getModelMoveCost() {
+		return sequence2cost.get(TransitionEventClassList.EMPTY);
+	}
+
+	public boolean mapsTo(int[] seq) {
+		return sequence2cost.containsKey(new TransitionEventClassList.Wrap(seq));
+	}
+
+	public int getCostFor(int[] seq) {
+		return sequence2cost.get(new TransitionEventClassList.Wrap(seq));
+	}
+
+	public void forEachSynchronousSequence(TObjectIntProcedure<TransitionEventClassList> procedure) {
+		sequence2cost.forEachEntry(procedure);
 	}
 
 }

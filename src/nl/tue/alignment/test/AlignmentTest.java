@@ -57,8 +57,10 @@ public class AlignmentTest {
 	public static enum Type {
 		DIJKSTRA(false), //
 		ASTAR(false), //
+		ASTARRED(false), //
 		INC0(true), //
-		INC3(true), //
+		INC0RED(true), //
+		INC3(false), //
 		INC10(false), //
 		INC_PLUS(false), //
 		PLANNING(false);
@@ -85,6 +87,7 @@ public class AlignmentTest {
 	}
 
 	public static void main(String[] args) throws Exception {
+
 		if (Type.PLANNING.include()) {
 			frame.setVisible(true);
 		}
@@ -105,32 +108,30 @@ public class AlignmentTest {
 		//Initialize internal structures...
 
 		//		mainFileFolder(Debug.NONE, 100000, "test", "test2", "alifah", "alifah2");
-	
-		mainFileFolder(Debug.DOT, Integer.MAX_VALUE, "alifah3");
-		
+
+		//		mainFileFolder(Debug.DOT, Integer.MAX_VALUE, "alifah3");
+
 		// mainFileFolder(Debug.STATS, Integer.MAX_VALUE, "BPIC15_1_start_end_IMfa");
-		System.exit(0);
 		//		mainFileFolder(Debug.STATS, 30, "pr1151_l4_noise");
 		//		mainFileFolder(Debug.STATS, 15, "prCm6");
 
 		//		mainFileFolder(Debug.STATS, 30, "prAm6", "prBm6", "prEm6", "prCm6", "prDm6", "prFm6", "prGm6");
 
 		//April 2018:
-		int timeout = 10;
+		int timeout = 5;
 		//
-		mainFileFolder(Debug.STATS, timeout, "prCm6", "prBm6", "prAm6");
-		mainFileFolder(Debug.STATS, timeout, "prEm6", "prFm6", "prGm6", "prDm6"); // Planner runs out of memory
-		mainFileFolder(Debug.STATS, timeout, "bpi12");
-		mainFileFolder(Debug.STATS, timeout, "pr1151_l4_noise", "pr1912_l4_noise");
-
-		mainFolder(Debug.NONE, timeout, "laura/");//
-		mainFolder(Debug.NONE, timeout, "isbpm2013/");
-
-		mainFileFolder(Debug.NONE, timeout, "d53_rad1", "d62_rad1", "d63_rad1", "d64_rad1", //
-				"d53_rad1_10_noise", "d62_rad1_10_noise");
-		mainFileFolder(Debug.NONE, timeout, "test", "d63_rad1_10_noise", "d64_rad1_10_noise", //
-				"d53_rad1_20_noise", "d62_rad1_20_noise", "d63_rad1_20_noise", "d64_rad1_20_noise", //
-				"d53_rad1_30_noise", "d62_rad1_30_noise", "d63_rad1_30_noise", "d64_rad1_30_noise");
+		mainFileFolder(Debug.STATS, timeout, "prCm6", "prAm6", "prEm6", "prBm6", "prFm6", "prGm6", "prDm6"); // Planner runs out of memory
+		//		mainFileFolder(Debug.STATS, timeout, "bpi12");
+		//		mainFileFolder(Debug.STATS, timeout, "pr1151_l4_noise", "pr1912_l4_noise");
+		//
+		//		mainFolder(Debug.NONE, timeout, "laura/");//
+		//		mainFolder(Debug.NONE, timeout, "isbpm2013/");
+		//
+		//		mainFileFolder(Debug.NONE, timeout, "d53_rad1", "d62_rad1", "d63_rad1", "d64_rad1", //
+		//				"d53_rad1_10_noise", "d62_rad1_10_noise");
+		//		mainFileFolder(Debug.NONE, timeout, "test", "d63_rad1_10_noise", "d64_rad1_10_noise", //
+		//				"d53_rad1_20_noise", "d62_rad1_20_noise", "d63_rad1_20_noise", "d64_rad1_20_noise", //
+		//				"d53_rad1_30_noise", "d62_rad1_30_noise", "d63_rad1_30_noise", "d64_rad1_30_noise");
 
 		if (Type.PLANNING.include()) {
 			frame.setVisible(false);
@@ -312,6 +313,7 @@ public class AlignmentTest {
 		boolean queueSort = true;
 		ReplayerParameters parameters;
 		boolean preProcessUsingPlaceBasedConstraints = true;
+		int maxReducedSequenceLength = 2;
 
 		switch (type) {
 			case DIJKSTRA :
@@ -331,12 +333,28 @@ public class AlignmentTest {
 							parameters);
 				}
 				break;
+			case ASTARRED :
+				if (type.include()) {
+					parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug,
+							timeout, maxNumberOfStates, Integer.MAX_VALUE, partialOrder, maxReducedSequenceLength);
+					doReplay(debug, folder, "AStarReduced", net, initialMarking, finalMarking, log, mapping, classes,
+							parameters);
+				}
+				break;
 
 			case INC0 :
 				if (type.include()) {
 					parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, debug, timeout,
 							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, 0);
 					doReplay(debug, folder, "Incre0", net, initialMarking, finalMarking, log, mapping, classes,
+							parameters);
+				}
+				break;
+			case INC0RED :
+				if (type.include()) {
+					parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, debug, timeout,
+							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, false, 0, maxReducedSequenceLength);
+					doReplay(debug, folder, "Incre0Reduced", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
 				}
 				break;

@@ -22,6 +22,7 @@ import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.connectionfactories.logpetrinet.TransEvClassMapping;
 
 import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import gnu.trove.procedure.TObjectIntProcedure;
 import nl.tue.alignment.algorithms.syncproduct.GenericMap2Int;
 import nl.tue.alignment.algorithms.syncproduct.petrinet.ReducedTransition.Type;
@@ -31,6 +32,9 @@ public class ReducedPetriNet {
 	private final List<ReducedTransition> transitions;
 	private List<ReducedPlace> places;
 
+	private final TObjectIntMap<ReducedPlace> initialMarking;
+	private final TObjectIntMap<ReducedPlace> finalMarking;
+
 	public ReducedPetriNet(Petrinet net, XEventClasses classes, TObjectIntMap<Transition> trans2id,
 			TObjectIntMap<XEventClass> c2id, TransEvClassMapping map, GenericMap2Int<Transition> mapTrans2Cost,
 			GenericMap2Int<XEventClass> mapEvClass2Cost, GenericMap2Int<Transition> mapSync2Cost,
@@ -39,19 +43,24 @@ public class ReducedPetriNet {
 		Map<Place, ReducedPlace> places = new HashedMap<>(net.getPlaces().size());
 
 		this.places = new ArrayList<>(net.getPlaces().size());
+		this.initialMarking = new TObjectIntHashMap<>(3, 0.5f, 0);
+		this.finalMarking = new TObjectIntHashMap<>(3, 0.5f, 0);
+
 		// copy the places and keep local map
 		int i = 0;
 		for (Place p : net.getPlaces()) {
 			ReducedPlace rp = new ReducedPlace(i++);
 			this.places.add(rp);
 			places.put(p, rp);
+			this.getInitialMarking().put(rp, initialMarking.occurrences(p));
+			this.getFinalMarking().put(rp, finalMarking.occurrences(p));
 		}
 
 		this.transitions = new ArrayList<>(net.getTransitions().size());
 		// then copy the transitions;
 		for (Transition t : net.getTransitions()) {
 			ReducedTransition rt;
-			if (t.isInvisible()) {
+			if (t.isInvisible() || c2id.get(map.get(t)) < 0) {
 				rt = new ReducedTransition(trans2id.get(t), mapTrans2Cost.get(t));
 			} else {
 				rt = new ReducedTransition(trans2id.get(t), c2id.get(map.get(t)), mapTrans2Cost.get(t),
@@ -69,7 +78,7 @@ public class ReducedPetriNet {
 					rp.addToOutput(rt, weight);
 				} else if (edge instanceof InhibitorArc) {
 					rt.addToInput(rp, ReducedTransition.INHIBITOR);
-					rp.addToOutput(rt,  ReducedTransition.INHIBITOR);
+					rp.addToOutput(rt, ReducedTransition.INHIBITOR);
 				} else {
 					throw new UnsupportedOperationException("Unknown Arc type in Petrinet input of transition " + t);
 				}
@@ -257,6 +266,14 @@ public class ReducedPetriNet {
 
 	public List<ReducedPlace> getPlaces() {
 		return places;
+	}
+
+	public TObjectIntMap<ReducedPlace> getInitialMarking() {
+		return initialMarking;
+	}
+
+	public TObjectIntMap<ReducedPlace> getFinalMarking() {
+		return finalMarking;
 	}
 
 }

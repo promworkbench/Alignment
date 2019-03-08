@@ -34,6 +34,7 @@ import nl.tue.alignment.TraceReplayTask.TraceReplayResult;
 import nl.tue.alignment.Utils.Statistic;
 import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 import nl.tue.alignment.algorithms.constraints.ConstraintSet;
+import nl.tue.alignment.algorithms.syncproduct.BasicSyncProductFactory;
 import nl.tue.alignment.algorithms.syncproduct.ReducedSyncProductFactory;
 import nl.tue.alignment.algorithms.syncproduct.SyncProductFactory;
 import nl.tue.astar.Trace;
@@ -51,7 +52,7 @@ public class Replayer {
 	private final ReplayerParameters parameters;
 	//	private final XLog log;
 	private final Map<XEventClass, Integer> costLM;
-	final SyncProductFactory factory;
+	final SyncProductFactory<?> factory;
 	final XEventClasses classes;
 	final private Map<Transition, Integer> costMM;
 	private Progress progress;
@@ -124,11 +125,13 @@ public class Replayer {
 		}
 
 		//TODO: REMOVE DEBUG CODE
-		ReducedSyncProductFactory reducedFactory = new ReducedSyncProductFactory(net, classes, class2id, mapping,
-				costMM, costLM, costSM, initialMarking, finalMarking);
-
-		factory = new SyncProductFactory(net, classes, class2id, mapping, costMM, costLM, costSM, initialMarking,
-				finalMarking);
+		if (parameters.maxReducedSequenceLength > 1) {
+			factory = new ReducedSyncProductFactory(net, classes, class2id, mapping, costMM, costLM, costSM,
+					initialMarking, finalMarking, parameters.maxReducedSequenceLength);
+		} else {
+			factory = new BasicSyncProductFactory(net, classes, class2id, mapping, costMM, costLM, costSM,
+					initialMarking, finalMarking);
+		}
 
 		if (mergeDuplicateTraces) {
 			trace2FirstIdenticalTrace = new TObjectIntHashMap<>(10, 0.7f, -1);
@@ -274,11 +277,11 @@ public class Replayer {
 		return getProgress().isCanceled();
 	}
 
-	int getCostLM(XEventClass classOf) {
+	public int getCostLM(XEventClass classOf) {
 		return costLM != null && costLM.containsKey(classOf) ? costLM.get(classOf) : 1;
 	}
 
-	int getCostMM(Transition transition) {
+	public int getCostMM(Transition transition) {
 		return costMM != null && costMM.containsKey(transition) ? costMM.get(transition) : 1;
 	}
 

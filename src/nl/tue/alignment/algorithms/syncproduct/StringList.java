@@ -2,15 +2,16 @@ package nl.tue.alignment.algorithms.syncproduct;
 
 import java.util.Arrays;
 
-class StringList {
-	private String[] list;
-	int size = 0;
+class ObjectList<T> {
 
-	public StringList(int capacity) {
-		list = new String[capacity];
+	private Object[] list;
+	private int size = 0;
+
+	public ObjectList(int capacity) {
+		list = new Object[capacity];
 	}
 
-	public void add(String s) {
+	public void add(T s) {
 		ensureCapacity(size);
 		list[size] = s;
 		size++;
@@ -22,21 +23,27 @@ class StringList {
 		}
 	}
 
-	public void trunctate(int size) {
+	public void truncate(int size) {
 		this.size = size;
 		Arrays.fill(list, size, list.length, null);
 	}
 
-	public String get(int index) {
-		return list[index];
+	public T get(int index) {
+		return (T) list[index];
 	}
 
 	public int size() {
 		return size;
 	}
 
-	public String[] asArray() {
-		return Arrays.copyOf(list, size);
+	public T[] toArray(T[] a) {
+		if (a.length < size)
+			// Make a new array of a's runtime type, but my contents:
+			return (T[]) Arrays.copyOf(list, size, a.getClass());
+		System.arraycopy(list, 0, a, 0, size);
+		if (a.length > size)
+			a[size] = null;
+		return a;
 	}
 
 	public String toString() {
@@ -54,4 +61,5 @@ class StringList {
 			b.append(", ");
 		}
 	}
+
 }
