@@ -258,9 +258,9 @@ public class AlignmentTest {
 				log = parser.parse(new File(folder + ".xes")).get(0);
 			}
 
-			for (int i = log.size(); i-- > 100;) {
-				log.remove(i);
-			}
+			//			for (int i = log.size(); i-- > 100;) {
+			//				log.remove(i);
+			//			}
 			/////////////////
 			//			java.util.Iterator<XTrace> it = log.iterator();
 			//			while (it.hasNext()) {
