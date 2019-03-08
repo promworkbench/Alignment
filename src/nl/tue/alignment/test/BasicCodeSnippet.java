@@ -108,7 +108,7 @@ public class BasicCodeSnippet {
 		ReplayerParameters parameters;
 		//Current: 
 		parameters = new ReplayerParameters.IncrementalAStar(false, nThreads, false, Debug.DOT, timeoutMilliseconds,
-				maximumNumberOfStates, costUpperBound, false, false, 0, 2);
+				maximumNumberOfStates, costUpperBound, false, false, 0, 3);
 		//		//BPM2018: 
 //		parameters = new ReplayerParameters.IncrementalAStar(false, nThreads, false, Debug.DOT,
 //						timeoutMilliseconds, maximumNumberOfStates, costUpperBound, false, false);

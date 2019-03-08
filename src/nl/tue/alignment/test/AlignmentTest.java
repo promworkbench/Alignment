@@ -118,9 +118,9 @@ public class AlignmentTest {
 		//		mainFileFolder(Debug.STATS, 30, "prAm6", "prBm6", "prEm6", "prCm6", "prDm6", "prFm6", "prGm6");
 
 		//April 2018:
-		int timeout = 5;
+		int timeout = 10;
 		//
-		mainFileFolder(Debug.STATS, timeout, "prAm6", "prEm6", "prBm6", "prCm6", "prFm6", "prGm6", "prDm6"); // Planner runs out of memory
+		mainFileFolder(Debug.STATS, timeout, "prCm6","prAm6", "prEm6", "prBm6",  "prFm6", "prGm6", "prDm6"); // Planner runs out of memory
 		//		mainFileFolder(Debug.STATS, timeout, "bpi12");
 		//		mainFileFolder(Debug.STATS, timeout, "pr1151_l4_noise", "pr1912_l4_noise");
 		//
@@ -136,7 +136,7 @@ public class AlignmentTest {
 		if (Type.PLANNING.include()) {
 			frame.setVisible(false);
 		}
-
+		
 	}
 
 	public static void mainFolder(Debug debug, int timeoutSecondsPerTrace, String... eval) throws Exception {
@@ -199,7 +199,6 @@ public class AlignmentTest {
 					}
 
 				}
-				System.out.flush();
 				System.out.println();
 			}
 		}
@@ -258,9 +257,9 @@ public class AlignmentTest {
 				log = parser.parse(new File(folder + ".xes")).get(0);
 			}
 
-			//			for (int i = log.size(); i-- > 100;) {
-			//				log.remove(i);
-			//			}
+			for (int i = log.size(); i-- > 20;) {
+				log.remove(i);
+			}
 			/////////////////
 			//			java.util.Iterator<XTrace> it = log.iterator();
 			//			while (it.hasNext()) {
@@ -285,6 +284,7 @@ public class AlignmentTest {
 			System.out.flush();
 			System.out.println();
 		}
+		System.exit(0);
 	}
 
 	private static void doReplayExperiment(Debug debug, String folder, Petrinet net, Marking initialMarking,

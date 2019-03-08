@@ -140,26 +140,26 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 
 		// start reducing the model into a new model applying as many rules as possible.
 		// reduce the net to a minimum
-		reducedNet.reduce(Integer.MAX_VALUE, maxSequenceLength);
+				reducedNet.reduce(Integer.MAX_VALUE, maxSequenceLength);
 
-		//				PrintStream writer;
-		//				try {
-		//					i = 0;
-		//					int step = 1;
-		//					do {
-		//						writer = new PrintStream(new File(String.format("c://temp//dot//model%03d.dot", i)));
-		//						reducedNet.toDot(writer);
-		//						writer.close();
-		//						i += step;
-		//					} while (reducedNet.reduce(step, maxSequenceLength));
-		//					writer = new PrintStream(new File(String.format("c://temp//dot//model%03d.dot", i)));
-		//					reducedNet.toDot(writer);
-		//					writer.close();
-		//		
-		//				} catch (FileNotFoundException e) {
-		//					// TODO Auto-generated catch block
-		//					e.printStackTrace();
-		//				}
+		//		PrintStream writer;
+		//		try {
+		//			i = 0;
+		//			int step = 1;
+		//			do {
+		//				writer = new PrintStream(new File(String.format("c://temp//dot//model%03d.dot", i)));
+		//				reducedNet.toDot(writer);
+		//				writer.close();
+		//				i += step;
+		//			} while (reducedNet.reduce(step, maxSequenceLength));
+		//			writer = new PrintStream(new File(String.format("c://temp//dot//model%03d.dot", i)));
+		//			reducedNet.toDot(writer);
+		//			writer.close();
+		//
+		//		} catch (FileNotFoundException e) {
+		//			// TODO Auto-generated catch block
+		//			e.printStackTrace();
+		//		}
 
 		// prepare Data Structures for synchronous product.
 		this.transitions = reducedNet.getTransitions().size();
@@ -366,8 +366,8 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 
 							// and continue with predecessor either
 							// by matching predecessor events
-							for (int i = 1; i <= seqIndex; i++) {
-								match(list, newPlaceToProduceIn, cost, seqIndex - i, eventIndex - 1);
+							for (int i = 1; i <= eventIndex; i++) {
+								match(list, newPlaceToProduceIn, cost, seqIndex - 1, eventIndex - i);
 							}
 						}
 
