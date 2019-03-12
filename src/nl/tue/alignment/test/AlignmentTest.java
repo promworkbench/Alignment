@@ -56,10 +56,10 @@ public class AlignmentTest {
 
 	public static enum Type {
 		DIJKSTRA(false), //
-		ASTAR(false), //
+		ASTAR(true), //
 		ASTARRED(false), //
 		INC0(true), //
-		INC0RED(true), //
+		INC0RED(false), //
 		INC3(false), //
 		INC10(false), //
 		INC_PLUS(false), //
@@ -91,6 +91,8 @@ public class AlignmentTest {
 		if (Type.PLANNING.include()) {
 			frame.setVisible(true);
 		}
+		mainFileFolder(Debug.DOT, Integer.MAX_VALUE, "CCC19-complete", "CCC19"); // Planner runs out of memory
+		System.exit(0);
 
 		//		mainFileFolder(Debug.STATS, "bpi12");//"pr1151_l4_noise","pr1912_l4_noise");
 		//		mainFileFolder(Debug.STATS, "test");//"pr1151_l4_noise","pr1912_l4_noise");
@@ -120,7 +122,7 @@ public class AlignmentTest {
 		//April 2018:
 		int timeout = 10;
 		//
-		mainFileFolder(Debug.STATS, timeout, "prCm6","prAm6", "prEm6", "prBm6",  "prFm6", "prGm6", "prDm6"); // Planner runs out of memory
+		mainFileFolder(Debug.STATS, timeout, "prCm6", "prAm6", "prEm6", "prBm6", "prFm6", "prGm6", "prDm6"); // Planner runs out of memory
 		//		mainFileFolder(Debug.STATS, timeout, "bpi12");
 		//		mainFileFolder(Debug.STATS, timeout, "pr1151_l4_noise", "pr1912_l4_noise");
 		//
@@ -136,7 +138,7 @@ public class AlignmentTest {
 		if (Type.PLANNING.include()) {
 			frame.setVisible(false);
 		}
-		
+
 	}
 
 	public static void mainFolder(Debug debug, int timeoutSecondsPerTrace, String... eval) throws Exception {
@@ -254,20 +256,37 @@ public class AlignmentTest {
 			} else {
 				XesXmlParser parser = new XesXmlParser();
 				eventClassifier = new XEventNameClassifier();
+				//				eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
 				log = parser.parse(new File(folder + ".xes")).get(0);
 			}
 
-			for (int i = log.size(); i-- > 20;) {
-				log.remove(i);
-			}
-			/////////////////
+			//			for (XTrace trace : log) {
+			//				for (XEvent event : trace) {
+			//					long time = XTimeExtension.instance().extractTimestamp(event).getTime();
+			//					if (XLifecycleExtension.instance().extractTransition(event).equals("complete")) {
+			//						XTimeExtension.instance().assignTimestamp(event, time + 1);
+			//					}
+			//				}
+			//				trace.sort(new Comparator<XEvent>() {
+			//
+			//					public int compare(XEvent o1, XEvent o2) {
+			//						return XTimeExtension.instance().extractTimestamp(o1)
+			//								.compareTo(XTimeExtension.instance().extractTimestamp(o2));
+			//					}
+			//				});
+			//			}
+
+			//			for (int i = log.size(); i-- > 20;) {
+			//				log.remove(i);
+			//			}
+			///////////////
 			//			java.util.Iterator<XTrace> it = log.iterator();
 			//			while (it.hasNext()) {
-			//				if (!XConceptExtension.instance().extractName(it.next()).equals("414")) {
+			//				if (!XConceptExtension.instance().extractName(it.next()).equals("1547915248799-video_1.g_CVC")) {
 			//					it.remove();
 			//				}
 			//			}
-			/////////////////
+			///////////////
 
 			System.out.print(folder + SEP);
 			System.out.print((log.size() + 1) + SEP);
@@ -311,7 +330,7 @@ public class AlignmentTest {
 
 		boolean moveSort = false;
 		boolean useInt = false;
-		boolean partialOrder = false;
+		boolean partialOrder = true;
 		boolean preferExact = true;
 		boolean queueSort = true;
 		ReplayerParameters parameters;
@@ -340,8 +359,8 @@ public class AlignmentTest {
 				if (type.include()) {
 					parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug,
 							timeout, maxNumberOfStates, Integer.MAX_VALUE, partialOrder, maxReducedSequenceLength);
-					doReplay(debug, folder, "AStarReduced", net, initialMarking, finalMarking, log, mapping, classes,
-							parameters);
+					doReplay(debug, folder, "AStarReduced-" + maxReducedSequenceLength, net, initialMarking,
+							finalMarking, log, mapping, classes, parameters);
 				}
 				break;
 
@@ -357,8 +376,8 @@ public class AlignmentTest {
 				if (type.include()) {
 					parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, debug, timeout,
 							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, false, 0, maxReducedSequenceLength);
-					doReplay(debug, folder, "Incre0Reduced", net, initialMarking, finalMarking, log, mapping, classes,
-							parameters);
+					doReplay(debug, folder, "Incre0Reduced" + maxReducedSequenceLength, net, initialMarking,
+							finalMarking, log, mapping, classes, parameters);
 				}
 				break;
 			case INC3 :

@@ -131,7 +131,8 @@ public class Utils {
 			for (int t = 0; t < product.numTransitions(); t++) {
 				stream.print("trans \"t_" + t);
 				stream.print("\"~\"");
-				stream.print(product.getTransitionLabel(t));
+				stream.print(
+						product.getTypeOf(t) != SyncProduct.TAU_MOVE ? product.getTransitionLabel(t) : "invisible");
 				stream.print("\" in ");
 				for (int p : product.getInput(t)) {
 					stream.print(" \"place_" + p);
@@ -143,6 +144,61 @@ public class Utils {
 					stream.print("\"");
 				}
 				stream.print(";\n");
+			}
+			stream.flush();
+		}
+
+	}
+
+	public static void toTpnSplitStartComplete(SyncProduct product, PrintStream stream) {
+		synchronized (stream) {
+			for (int p = 0; p < product.numPlaces(); p++) {
+				stream.print("place \"place_" + p);
+				stream.print("\"");
+				if (product.getInitialMarking()[p] > 0) {
+					stream.print("init " + product.getInitialMarking()[p]);
+				}
+				stream.print(";\n");
+			}
+			for (int t = 0; t < product.numTransitions(); t++) {
+				if (product.getTypeOf(t) != SyncProduct.TAU_MOVE) {
+					stream.print("place \"internal_" + t);
+					stream.print("\";\n");
+				}
+			}
+			for (int t = 0; t < product.numTransitions(); t++) {
+				stream.print("trans \"t_" + 2 * t);
+				stream.print("\"");
+				stream.print("~\"");
+				stream.print(product.getTypeOf(t) != SyncProduct.TAU_MOVE ? product.getTransitionLabel(t) + "+start"
+						: "invisible");
+				stream.print("\"");
+				stream.print(" in ");
+				for (int p : product.getInput(t)) {
+					stream.print(" \"place_" + p);
+					stream.print("\"");
+				}
+				if (product.getTypeOf(t) != SyncProduct.TAU_MOVE) {
+					stream.print(" out ");
+					stream.print(" \"internal_" + t);
+					stream.print("\"");
+					stream.print(";\n");
+
+					stream.print("trans \"t_" + (2 * t + 1));
+					stream.print("\"~\"");
+					stream.print(product.getTransitionLabel(t));
+					stream.print("+complete");
+					stream.print("\" in ");
+					stream.print(" \"internal_" + t);
+					stream.print("\"");
+				}
+				stream.print(" out ");
+				for (int p : product.getOutput(t)) {
+					stream.print(" \"place_" + p);
+					stream.print("\"");
+				}
+				stream.print(";\n");
+
 			}
 			stream.flush();
 		}
@@ -172,9 +228,9 @@ public class Utils {
 			stream.print("}\n");
 
 			TIntIntIterator it;
-//			TIntSet events = new TIntHashSet(product.numTransitions(), 0.5f, -3);
+			//			TIntSet events = new TIntHashSet(product.numTransitions(), 0.5f, -3);
 			for (int t = 0; t < product.numTransitions(); t++) {
-//				events.add(product.getEventOf(t));
+				//				events.add(product.getEventOf(t));
 				transitionToDot(product, stream, t, t);
 
 				it = toBag(product.getInput(t)).iterator();
@@ -209,20 +265,20 @@ public class Utils {
 				}
 			}
 
-//			events.remove(SyncProduct.NOEVENT);
+			//			events.remove(SyncProduct.NOEVENT);
 
-//			int e;
-//			for (TIntIterator it2 = events.iterator(); it2.hasNext();) {
-//				e = it2.next();
-//				stream.print("{ rank=same;");
-//				for (int t = 0; t < product.numTransitions(); t++) {
-//					if (product.getEventOf(t) == e) {
-//						stream.print("t" + t + "; ");
-//					}
-//				}
-//				stream.print("}\n");
-//
-//			}
+			//			int e;
+			//			for (TIntIterator it2 = events.iterator(); it2.hasNext();) {
+			//				e = it2.next();
+			//				stream.print("{ rank=same;");
+			//				for (int t = 0; t < product.numTransitions(); t++) {
+			//					if (product.getEventOf(t) == e) {
+			//						stream.print("t" + t + "; ");
+			//					}
+			//				}
+			//				stream.print("}\n");
+			//
+			//			}
 
 			stream.print("}");
 			stream.flush();

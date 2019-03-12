@@ -140,7 +140,7 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 
 		// start reducing the model into a new model applying as many rules as possible.
 		// reduce the net to a minimum
-				reducedNet.reduce(Integer.MAX_VALUE, maxSequenceLength);
+		reducedNet.reduce(Integer.MAX_VALUE, maxSequenceLength);
 
 		//		PrintStream writer;
 		//		try {
@@ -247,7 +247,8 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 	}
 
 	public synchronized SyncProduct getSyncProductForEmptyTrace(ArrayList<? super ReducedTransition> transitionList) {
-		return getLinearSyncProduct(new LinearTrace("Empty", 0), transitionList);
+		SyncProduct result = getLinearSyncProduct(new LinearTrace("Empty", 0), transitionList);
+		return result;
 	}
 
 	public Trace getTrace(XTrace xTrace, boolean partiallyOrderSameTimestamp) {
@@ -275,7 +276,8 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 			throw new UnsupportedOperationException("Cannot handle partially ordered traces yet");
 			//			return getPartiallyOrderedSyncProduct(trace, transitionList);
 		} else {
-			return getLinearSyncProduct(getLinearTrace(xTrace, traceLabel), transitionList);
+			SyncProduct result = getLinearSyncProduct(getLinearTrace(xTrace, traceLabel), transitionList);
+			return result;
 		}
 
 	}

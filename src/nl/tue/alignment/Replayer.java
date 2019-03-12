@@ -124,7 +124,6 @@ public class Replayer {
 			constraintSet = null;
 		}
 
-		//TODO: REMOVE DEBUG CODE
 		if (parameters.maxReducedSequenceLength > 1) {
 			factory = new ReducedSyncProductFactory(net, classes, class2id, mapping, costMM, costLM, costSM,
 					initialMarking, finalMarking, parameters.maxReducedSequenceLength);

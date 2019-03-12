@@ -256,7 +256,9 @@ public class BasicSyncProductFactory implements SyncProductFactory<Transition> {
 			// Do the ranking on this trace.
 			return getPartiallyOrderedSyncProduct(trace, transitionList);
 		} else {
-			return getLinearSyncProduct(getLinearTrace(xTrace, traceLabel), transitionList);
+			SyncProduct result = getLinearSyncProduct(getLinearTrace(xTrace, traceLabel), transitionList);
+			//			Utils.toTpnSplitStartComplete(result, System.out);
+			return result;
 		}
 
 	}
@@ -381,6 +383,8 @@ public class BasicSyncProductFactory implements SyncProductFactory<Transition> {
 
 		// for this trace, compute the log-moves
 		// compute the sync moves
+		int[] outputPlaces = new int[trace.getSize()];
+
 		for (int e = 0; e < trace.getSize(); e++) {
 			//			XEventClass clazz = classes.getClassOf(trace.get(e));
 			int cid = trace.get(e); // c2id.get(clazz);
@@ -392,6 +396,8 @@ public class BasicSyncProductFactory implements SyncProductFactory<Transition> {
 			} else {
 				for (int pi = 0; pi < predecessors.length; pi++) {
 					// add a place
+					// and record this as one of the output places of predecessors[pi]
+					outputPlaces[predecessors[pi]] = p2name.size();
 					p2name.add("p_" + predecessors[pi] + "-" + e);
 				}
 			}
@@ -416,6 +422,14 @@ public class BasicSyncProductFactory implements SyncProductFactory<Transition> {
 				}
 			}
 
+		}
+
+		for (int e = 0; e < outputPlaces.length; e++) {
+			if (outputPlaces[e] == 0) {
+				// no output place recorded.
+				outputPlaces[e] = -p2name.size() - 1;
+				p2name.add("p_" + e + "-output");
+			}
 		}
 
 		int[] ranks = new int[t2eid.size()];
@@ -444,20 +458,26 @@ public class BasicSyncProductFactory implements SyncProductFactory<Transition> {
 		product.setInitialMarking(Arrays.copyOf(initMarking, p2name.size()));
 		product.setFinalMarking(Arrays.copyOf(finMarking, p2name.size()));
 
+		for (int e = 0; e < outputPlaces.length; e++) {
+			if (outputPlaces[e] < 0) {
+				product.addToFinalMarking(-outputPlaces[e] - 1);
+			}
+		}
 		// TODO: Handle the sync product ranking properly. Currently, a random sequence
 		// of events is ranked and the assumption is that events are ordered, i.e. that 
 		// the predecessors of the event at index e are a index < e .
 
-		int minRank = SyncProduct.NORANK;
+		int minRank = -1;
 		int p = places;
 		for (int e = 0; e < trace.getSize(); e++) {
+
 			int cid = trace.get(e); // c2id.get(clazz);
 
 			int[] predecessors = trace.getPredecessors(e);
 			if (predecessors == null) {
 				// initial place
 				// add a place
-				if (minRank == SyncProduct.NORANK) {
+				if (minRank == -1) {
 					product.setRankOf(e2t[e], ++minRank);
 				}
 				product.setInput(e2t[e], p);
@@ -489,6 +509,9 @@ public class BasicSyncProductFactory implements SyncProductFactory<Transition> {
 			}
 		}
 		for (int e = 0; e < trace.getSize(); e++) {
+			if (outputPlaces[e] < 0) {
+				product.addToOutput(e2t[e], -outputPlaces[e] - 1);
+			}
 			int cid = trace.get(e); // c2id.get(clazz);
 			t++;
 			TIntSet set = c2t.get(cid);
@@ -504,6 +527,20 @@ public class BasicSyncProductFactory implements SyncProductFactory<Transition> {
 					product.addToOutput(t, product.getOutput(e2t[e]));
 
 					t++;
+				}
+			}
+		}
+		for (int e = 1; e < trace.getSize(); e++) {
+			// for the log moves, put a test arc on the output of the predecessor which is marked
+			// by either a log or a sync move.
+			int[] predecessors = trace.getPredecessors(e);
+			if (predecessors != null && predecessors[predecessors.length - 1] < e - 1) {
+				if (outputPlaces[e - 1] < 0) {
+					product.addToInput(e2t[e], -outputPlaces[e - 1] - 1);
+					product.addToOutput(e2t[e], -outputPlaces[e - 1] - 1);
+				} else {
+					product.addToInput(e2t[e], outputPlaces[e - 1]);
+					product.addToOutput(e2t[e], outputPlaces[e - 1]);
 				}
 			}
 		}
