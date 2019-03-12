@@ -477,9 +477,7 @@ public class BasicSyncProductFactory implements SyncProductFactory<Transition> {
 			if (predecessors == null) {
 				// initial place
 				// add a place
-				if (minRank == -1) {
-					product.setRankOf(e2t[e], ++minRank);
-				}
+				product.setRankOf(e2t[e], e);
 				product.setInput(e2t[e], p);
 				product.addToInitialMarking(p);
 				p++;
