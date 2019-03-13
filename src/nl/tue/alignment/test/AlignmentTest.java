@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 
 import org.deckfour.xes.classification.XEventClass;
@@ -45,7 +46,7 @@ import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 
 public class AlignmentTest {
 
-	private static final int THREADS = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
+	private static final int THREADS = 1;//Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
 
 	private static String FOLDER = "c:/temp/alignment/";
 	private static String SEP = Utils.SEP;
@@ -56,10 +57,10 @@ public class AlignmentTest {
 
 	public static enum Type {
 		DIJKSTRA(false), //
-		ASTAR(true), //
+		ASTAR(false), //
 		ASTARRED(false), //
-		INC0(true), //
-		INC0RED(false), //
+		INC0(false), //
+		INC0RED(true), //
 		INC3(false), //
 		INC10(false), //
 		INC_PLUS(false), //
@@ -91,8 +92,9 @@ public class AlignmentTest {
 		if (Type.PLANNING.include()) {
 			frame.setVisible(true);
 		}
-		mainFileFolder(Debug.DOT, Integer.MAX_VALUE, "CCC19-complete", "CCC19"); // Planner runs out of memory
+		mainFileFolder(Debug.STATS, Integer.MAX_VALUE, "CCC19-complete", "CCC19");
 		System.exit(0);
+		mainFileFolder(Debug.STATS, Integer.MAX_VALUE, "software");
 
 		//		mainFileFolder(Debug.STATS, "bpi12");//"pr1151_l4_noise","pr1912_l4_noise");
 		//		mainFileFolder(Debug.STATS, "test");//"pr1151_l4_noise","pr1912_l4_noise");
@@ -255,8 +257,19 @@ public class AlignmentTest {
 				log = parser.parse(new File(folder + ".mxml")).get(0);
 			} else {
 				XesXmlParser parser = new XesXmlParser();
-				eventClassifier = new XEventNameClassifier();
-				//				eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
+
+				Iterator<Transition> it = net.getTransitions().iterator();
+				Transition t;
+				do {
+					t = it.next();
+
+				} while (t.isInvisible() && it.hasNext());
+
+				if (t.getLabel().contains("+")) {
+					eventClassifier = XLogInfoImpl.STANDARD_CLASSIFIER;
+				} else {
+					eventClassifier = new XEventNameClassifier();
+				}
 				log = parser.parse(new File(folder + ".xes")).get(0);
 			}
 
@@ -335,7 +348,7 @@ public class AlignmentTest {
 		boolean queueSort = true;
 		ReplayerParameters parameters;
 		boolean preProcessUsingPlaceBasedConstraints = true;
-		int maxReducedSequenceLength = 2;
+		int maxReducedSequenceLength = 1;
 
 		switch (type) {
 			case DIJKSTRA :

@@ -44,8 +44,8 @@ public class BasicCodeSnippet {
 		// INITIALIZE LpSolve for stdout
 		LpSolve.lpSolveVersion();
 
-		String petrinetFile = "C:\\temp\\dot\\test.pnml";
-		String logFile = "C:\\temp\\dot\\test.mxml";
+		String petrinetFile = "C:\\temp\\dot\\test2.pnml";
+		String logFile = "C:\\temp\\dot\\test3.mxml";
 
 		Petrinet net = constructNet(petrinetFile);
 		Marking initialMarking = getInitialMarking(net);
@@ -106,12 +106,17 @@ public class BasicCodeSnippet {
 
 		int maximumNumberOfStates = Integer.MAX_VALUE;
 		ReplayerParameters parameters;
+
+		parameters = new ReplayerParameters.Full(true, false, nThreads, Debug.DOT, timeoutMilliseconds,
+				maximumNumberOfStates, costUpperBound, false, 2);
+
 		//Current: 
-		parameters = new ReplayerParameters.IncrementalAStar(false, nThreads, false, Debug.DOT, timeoutMilliseconds,
-				maximumNumberOfStates, costUpperBound, false, false, 0, 3);
+		//		parameters = new ReplayerParameters.IncrementalAStar(false, nThreads, false, Debug.DOT, timeoutMilliseconds,
+		//				maximumNumberOfStates, costUpperBound, false, false, 0, 3);
+
 		//		//BPM2018: 
-//		parameters = new ReplayerParameters.IncrementalAStar(false, nThreads, false, Debug.DOT,
-//						timeoutMilliseconds, maximumNumberOfStates, costUpperBound, false, false);
+		//		parameters = new ReplayerParameters.IncrementalAStar(false, nThreads, false, Debug.DOT,
+		//						timeoutMilliseconds, maximumNumberOfStates, costUpperBound, false, false);
 		//Traditional
 		//		parameters = new ReplayerParameters.AStar(true, true, true, nThreads, true, Debug.NONE,
 		//				timeoutMilliseconds, maximumNumberOfStates, costUpperBound, false);

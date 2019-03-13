@@ -5,7 +5,7 @@ import nl.tue.alignment.algorithms.ReplayAlgorithm.Debug;
 public abstract class ReplayerParameters {
 
 	public static enum Algorithm {
-		DIJKSTRA, ASTAR, INCREMENTALASTAR;
+		DIJKSTRA, ASTAR, INCREMENTALASTAR, FULL;
 	}
 
 	public final Algorithm algorithm; // which algorithm
@@ -146,6 +146,31 @@ public abstract class ReplayerParameters {
 				int maximumNumberOfStates, int costUpperBound, boolean partiallyOrderEvents,
 				int maxReducedSequenceLength) {
 			super(Algorithm.DIJKSTRA, moveSort, queueSort, true, nThreads, false, debug, timeoutMilliseconds,
+					maximumNumberOfStates, costUpperBound, partiallyOrderEvents, false, 0, maxReducedSequenceLength);
+		}
+	}
+
+	public final static class Full extends ReplayerParameters {
+		public Full() {
+			super(Algorithm.FULL, false, true, true, 1, false, Debug.NONE, Integer.MAX_VALUE, Integer.MAX_VALUE,
+					Integer.MAX_VALUE, false, false, 0, 1);
+		}
+
+		public Full(Debug debug) {
+			super(Algorithm.FULL, false, true, true, 1, false, debug, Integer.MAX_VALUE, Integer.MAX_VALUE,
+					Integer.MAX_VALUE, false, false, 0, 1);
+		}
+
+		public Full(boolean moveSort, boolean queueSort, int nThreads, Debug debug, int timeoutMilliseconds,
+				int maximumNumberOfStates, int costUpperBound, boolean partiallyOrderEvents) {
+			super(Algorithm.FULL, moveSort, queueSort, true, nThreads, false, debug, timeoutMilliseconds,
+					maximumNumberOfStates, costUpperBound, partiallyOrderEvents, false, 0, 1);
+		}
+
+		public Full(boolean moveSort, boolean queueSort, int nThreads, Debug debug, int timeoutMilliseconds,
+				int maximumNumberOfStates, int costUpperBound, boolean partiallyOrderEvents,
+				int maxReducedSequenceLength) {
+			super(Algorithm.FULL, moveSort, queueSort, true, nThreads, false, debug, timeoutMilliseconds,
 					maximumNumberOfStates, costUpperBound, partiallyOrderEvents, false, 0, maxReducedSequenceLength);
 		}
 	}

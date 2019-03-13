@@ -183,6 +183,8 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 				}
 			case DIJKSTRA :
 				return new Dijkstra(product, parameters.moveSort, parameters.queueSort, parameters.debug);
+			case FULL :
+				return new Dijkstra.Full(product, parameters.moveSort, parameters.queueSort, parameters.debug);
 		}
 		assert false;
 		return null;

@@ -307,8 +307,8 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 				if (!queue.isEmpty()) {
 					alignment = handleFinalMarkingReached(startTime, queue.peek());
 				} else {
+					alignment = getAlignmentWhenEmptyQueueReached(startTime);
 					runTime = (int) ((System.nanoTime() - startTime) / 1000);
-					alignment = new int[0];
 				}
 				return alignment;
 			} finally {
@@ -334,6 +334,10 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		} while ((alignmentResult & Utils.OPTIMALALIGNMENT) == 0 && //
 				(alignmentResult & Utils.FAILEDALIGNMENT) == 0);
 		return null;
+	}
+
+	protected int[] getAlignmentWhenEmptyQueueReached(long startTime) {
+		return new int[0];
 	}
 
 	protected int expandMarking(int m, byte[] marking_m, int bm, int im) {
@@ -948,9 +952,9 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		if (marking == NOPREDECESSOR) {
 			return 0;
 		} else {
-			return net.getTransitionPathLength(getPredecessorTransition(marking)) + getPathLength(getPredecessor(marking));
+			return net.getTransitionPathLength(getPredecessorTransition(marking))
+					+ getPathLength(getPredecessor(marking));
 		}
 	}
 
-	
 }
