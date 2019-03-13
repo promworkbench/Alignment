@@ -329,6 +329,7 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 						// base case, we're done.
 						return;
 					}
+
 					if (trace.get(eventIndex) == list.getEventClassSequence()[seqIndex]) {
 						// match so add transition to model
 						t2name.add("t" + t2name.size() + "<br/>" + Arrays.toString(list.getEventClassSequence()) + "["
@@ -368,14 +369,11 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 
 							// and continue with predecessor either
 							// by matching predecessor events
-							for (int i = 1; i <= eventIndex; i++) {
-								match(list, newPlaceToProduceIn, cost, seqIndex - 1, eventIndex - i);
-							}
+							match(list, newPlaceToProduceIn, cost, seqIndex - 1, eventIndex - 1);
 						}
 
 					}
 					match(list, placeToProduceIn, cost, seqIndex, eventIndex - 1);
-
 				}
 
 				public boolean execute(TransitionEventClassList list, int cost) {

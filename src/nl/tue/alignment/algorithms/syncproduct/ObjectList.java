@@ -2,7 +2,7 @@ package nl.tue.alignment.algorithms.syncproduct;
 
 import java.util.Arrays;
 
-class ObjectList<T> {
+public class ObjectList<T> {
 
 	private Object[] list;
 	private int size = 0;
@@ -60,6 +60,10 @@ class ObjectList<T> {
 				return b.append(']').toString();
 			b.append(", ");
 		}
+	}
+
+	public void set(int index, T value) {
+		list[index] = value;
 	}
 
 }
