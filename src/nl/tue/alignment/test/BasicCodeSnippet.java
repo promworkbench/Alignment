@@ -45,7 +45,7 @@ public class BasicCodeSnippet {
 		LpSolve.lpSolveVersion();
 
 		String petrinetFile = "C:\\temp\\dot\\test2.pnml";
-		String logFile = "C:\\temp\\dot\\test3.mxml";
+		String logFile = "C:\\temp\\dot\\test2.mxml";
 
 		Petrinet net = constructNet(petrinetFile);
 		Marking initialMarking = getInitialMarking(net);
@@ -107,8 +107,8 @@ public class BasicCodeSnippet {
 		int maximumNumberOfStates = Integer.MAX_VALUE;
 		ReplayerParameters parameters;
 
-		parameters = new ReplayerParameters.Full(true, false, nThreads, Debug.DOT, timeoutMilliseconds,
-				maximumNumberOfStates, costUpperBound, false, 2);
+		parameters = new ReplayerParameters.Dijkstra(false, false, nThreads, Debug.DOT, timeoutMilliseconds,
+				maximumNumberOfStates, costUpperBound, false, 2, true);
 
 		//Current: 
 		//		parameters = new ReplayerParameters.IncrementalAStar(false, nThreads, false, Debug.DOT, timeoutMilliseconds,

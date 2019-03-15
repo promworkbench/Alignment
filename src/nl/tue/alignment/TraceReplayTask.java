@@ -171,20 +171,37 @@ public class TraceReplayTask implements Callable<TraceReplayTask> {
 	private ReplayAlgorithm getAlgorithm(SyncProduct product) throws LPMatrixException {
 		switch (parameters.algorithm) {
 			case ASTAR :
-				return new AStar(product, parameters.moveSort, parameters.queueSort, parameters.preferExact, //
-						parameters.useInt, parameters.debug);
-			case INCREMENTALASTAR :
-				if (parameters.initialSplits > 0 && eventsWithErrors.length == 0) {
-					return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.initialSplits,
-							parameters.debug);
+				if (parameters.buildFullStatespace) {
+					return new AStar.Full(product, parameters.moveSort, parameters.queueSort, parameters.preferExact, //
+							parameters.useInt, parameters.debug);
 				} else {
-					return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.debug,
-							eventsWithErrors);
+					return new AStar(product, parameters.moveSort, parameters.queueSort, parameters.preferExact, //
+							parameters.useInt, parameters.debug);
+				}
+			case INCREMENTALASTAR :
+				if (parameters.buildFullStatespace) {
+					if (parameters.initialSplits > 0 && eventsWithErrors.length == 0) {
+						return new AStarLargeLP.Full(product, parameters.moveSort, parameters.useInt,
+								parameters.initialSplits, parameters.debug);
+					} else {
+						return new AStarLargeLP.Full(product, parameters.moveSort, parameters.useInt, parameters.debug,
+								eventsWithErrors);
+					}
+				} else {
+					if (parameters.initialSplits > 0 && eventsWithErrors.length == 0) {
+						return new AStarLargeLP(product, parameters.moveSort, parameters.useInt,
+								parameters.initialSplits, parameters.debug);
+					} else {
+						return new AStarLargeLP(product, parameters.moveSort, parameters.useInt, parameters.debug,
+								eventsWithErrors);
+					}
 				}
 			case DIJKSTRA :
-				return new Dijkstra(product, parameters.moveSort, parameters.queueSort, parameters.debug);
-			case FULL :
-				return new Dijkstra.Full(product, parameters.moveSort, parameters.queueSort, parameters.debug);
+				if (parameters.buildFullStatespace) {
+					return new Dijkstra.Full(product, parameters.moveSort, parameters.queueSort, parameters.debug);
+				} else {
+					return new Dijkstra(product, parameters.moveSort, parameters.queueSort, parameters.debug);
+				}
 		}
 		assert false;
 		return null;

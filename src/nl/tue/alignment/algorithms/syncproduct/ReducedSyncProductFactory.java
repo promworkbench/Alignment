@@ -286,6 +286,17 @@ public class ReducedSyncProductFactory implements SyncProductFactory<ReducedTran
 			final ArrayList<? super ReducedTransition> transitionList) {
 		transitionList.clear();
 
+		//		// Compute the direct succession relation inside the trace
+		//		int[][] succ = new int[classCount][classCount];
+		//		for (int e2 = 1; e2 < trace.getSize(); e2++) {
+		//			for (int e1 = Math.max(0, e2 - 3 * maxSequenceLength); e1 < e2; e1++) {
+		//				succ[trace.get(e1)][trace.get(e2)]++;
+		//			}
+		//		}
+		//
+		//		// we sequence-reduce transitions <a,b>, only if succ[b][a] > 0
+		//		// so only if we actually 
+		
 		// set the ranks of the model moves to NORANK
 		final TIntList ranks = new TIntArrayList();
 		final TIntList pathLengths = new TIntArrayList();

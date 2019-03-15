@@ -28,6 +28,54 @@ import nl.tue.astar.util.ilp.LPMatrixException;
  */
 public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 
+	/**
+	 * Special version of AStarLargeLP that builds the entire search space, i.e.
+	 * this version never terminates correctly, but the search simply stops when the
+	 * queueis empty.
+	 * 
+	 * @author bfvdonge
+	 *
+	 */
+	public static class Full extends AStarLargeLP {
+
+		private int firstFinal = -1;
+
+		public Full(SyncProduct product) {
+			super(product);
+		}
+
+		public Full(SyncProduct product, boolean moveSorting, boolean queueSorting, Debug debug) {
+			super(product, moveSorting, queueSorting, debug);
+		}
+
+		public Full(SyncProduct product, boolean moveSorting, boolean useInteger, Debug debug, int[] splitpoints) {
+			super(product, moveSorting, useInteger, debug, splitpoints);
+		}
+
+		public Full(SyncProduct product, boolean moveSorting, boolean useInteger, int initialSplits, Debug debug) {
+			super(product, moveSorting, useInteger, initialSplits, debug);
+		}
+
+		@Override
+		protected boolean isFinal(int marking) {
+			if (firstFinal < 0 && super.isFinal(marking)) {
+				firstFinal = marking;
+			}
+			return false;
+		}
+
+		@Override
+		protected int[] getAlignmentWhenEmptyQueueReached(long startTime) {
+			if (this.firstFinal < 0) {
+				return super.getAlignmentWhenEmptyQueueReached(startTime);
+			} else {
+				alignmentResult &= ~Utils.FAILEDALIGNMENT;
+				alignmentResult |= Utils.OPTIMALALIGNMENT;
+				return handleFinalMarkingReached(startTime, this.firstFinal);
+			}
+		}
+	}
+
 	private static Random random = new Random(41343);
 
 	protected int heuristicsComputedInRun = 0;

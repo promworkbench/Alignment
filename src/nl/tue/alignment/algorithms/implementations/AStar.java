@@ -21,6 +21,47 @@ import nl.tue.astar.util.ilp.LPMatrixException;
  */
 public class AStar extends AbstractLPBasedAlgorithm {
 
+	/**
+	 * Special version of AStar that builds the entire search space, i.e. this
+	 * version never terminates correctly, but the search simply stops when the
+	 * queueis empty.
+	 * 
+	 * @author bfvdonge
+	 *
+	 */
+	public static class Full extends AStar {
+
+		private int firstFinal = -1;
+
+		public Full(SyncProduct product) throws LPMatrixException {
+			super(product);
+		}
+
+		public Full(SyncProduct product, boolean moveSorting, boolean queueSorting, boolean preferExact,
+				boolean isInteger, Debug debug) throws LPMatrixException {
+			super(product, moveSorting, queueSorting, preferExact, isInteger, debug);
+		}
+
+		@Override
+		protected boolean isFinal(int marking) {
+			if (firstFinal < 0 && super.isFinal(marking)) {
+				firstFinal = marking;
+			}
+			return false;
+		}
+
+		@Override
+		protected int[] getAlignmentWhenEmptyQueueReached(long startTime) {
+			if (this.firstFinal < 0) {
+				return super.getAlignmentWhenEmptyQueueReached(startTime);
+			} else {
+				alignmentResult &= ~Utils.FAILEDALIGNMENT;
+				alignmentResult |= Utils.OPTIMALALIGNMENT;
+				return handleFinalMarkingReached(startTime, this.firstFinal);
+			}
+		}
+	}
+
 	protected final double[] rhf;
 
 	private LPSOLVE matrix;

@@ -263,6 +263,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 				debug.println(Debug.DOT, "subgraph cluster_" + iteration);
 				debug.println(Debug.DOT, "{");
 				debug.println(Debug.DOT, "label=<Iteration " + iteration + ">;");
+				debug.println(Debug.DOT, "rankdir=LR;");
 				debug.println(Debug.DOT, "color=black;");
 
 				assert queue.size() == markingsReachedInRun - closedActionsInRun;
@@ -432,9 +433,32 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		return markingsReachedInExpand;
 	}
 
+	//	private transient TIntObjectMap<TIntSet> logMove2states = null;
+
 	protected void writeEdgeTraversed(ReplayAlgorithm algorithm, int fromMarking, int transition, int toMarking,
 			String extra) {
+		if (debug == Debug.DOT) {
+			if (transition >= 0) {
+				extra = ",weight=" + (1000 - net.getTransitionPathLength(transition)) + extra;
+			}
+			//			if (logMove2states == null) {
+			//				logMove2states = new TIntObjectHashMap<>(algorithm.getNet().numEvents());
+			//			}
+			// keep track of logMoves
+			if (transition >= 0 && algorithm.getNet().getTypeOf(transition) == SyncProduct.LOG_MOVE) {
+				//				int[] evts = algorithm.getNet().getEventOf(transition);
+				//				logMove2states.putIfAbsent(evts[0], new TIntHashSet());
+				//				logMove2states.get(evts[0]).add(fromMarking);
+				//				if (evts.length > 1) {
+				//					logMove2states.putIfAbsent(evts[evts.length - 1], new TIntHashSet());
+				//					logMove2states.get(evts[evts.length - 1]).add(toMarking);
+				//				}
+				debug.println(debug,
+						"{rank=same; i" + iteration + "m" + fromMarking + "; i" + iteration + "m" + toMarking + "  }");
+			}
+		}
 		debug.writeEdgeTraversed(algorithm, fromMarking, transition, toMarking, extra);
+
 	}
 
 	protected CloseResult closeOrUpdateMarking(int m, byte[] marking_m, int bm, int im) {
@@ -626,9 +650,39 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 	protected void writeEndOfAlignmentDot(int[] alignment, int markingsReachedInRun, int closedActionsInRun) {
 		// close the graph
 
-		for (int m = 0; m < markingsReachedInRun; m++) {
+		//		if (debug == Debug.DOT) {
+		//			final boolean[] done = new boolean[markingsReachedInRun];
+		//			logMove2states.forEachEntry(new TIntObjectProcedure<TIntSet>() {
+		//				public boolean execute(final int a, TIntSet b) {
+		//					debug.print(debug, "subgraph cluster_event_");
+		//					debug.println(debug, a + " {");
+		//					debug.println(debug, "ordering=out;");
+		//					debug.println(debug, "label=<Event " + a + ">;");
+		//					b.forEach(new TIntProcedure() {
+		//
+		//						public boolean execute(int value) {
+		//							debug.writeMarkingReached(AbstractReplayAlgorithm.this, value);
+		//							done[value] = true;
+		//							return true;
+		//						}
+		//					});
+		//					debug.println(debug, "}");
+		//					return true;
+		//				}
+		//			});
+		//			debug.print(debug, "subgraph cluster_event_" + logMove2states.size() + " {");
+		//			debug.println(debug, "label=<Event_" + logMove2states.size() + ">;");
+		//			for (int m = 0; m < markingsReachedInRun; m++) {
+		//				if (!done[m]) {
+		//					debug.writeMarkingReached(this, m);
+		//				}
+		//			}
+		//			debug.println(debug, "}");
+		//		} else {
+		for (int m = markingsReachedInRun; m-- > 0;) {
 			debug.writeMarkingReached(this, m);
 		}
+		//		}
 		// close the subgraph
 		debug.println(Debug.DOT, "}");
 
@@ -651,6 +705,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 	}
 
 	protected void terminateIteration(int[] alignment, int markingsReachedInRun, int closedActionsInRun) {
+		// keep track of logMoves
 		if (alignment != null) {
 			fillStatistics(alignment);
 		}
@@ -665,6 +720,10 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 				writeEndOfAlignmentStats(alignment, markingsReachedInRun, closedActionsInRun);
 			}
 		}
+		//		if (logMove2states != null) {
+		//			logMove2states.clear();
+		//			logMove2states = null;
+		//		}
 	}
 
 	protected abstract void deriveOrEstimateHValue(int from, int fromBlock, int fromIndex, int transition, int to,
