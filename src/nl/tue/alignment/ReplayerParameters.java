@@ -47,18 +47,18 @@ public abstract class ReplayerParameters {
 
 	public final static class Default extends ReplayerParameters {
 		public Default() {
-			super(Algorithm.INCREMENTALASTAR, false, true, true,
+			super(Algorithm.INCREMENTALASTAR, true, true, true,
 					Math.max(1, Runtime.getRuntime().availableProcessors() / 4), false, Debug.NONE, Integer.MAX_VALUE,
 					Integer.MAX_VALUE, Integer.MAX_VALUE, false, true, 0, 2, false);
 		}
 
 		public Default(int nThreads, Debug debug) {
-			super(Algorithm.INCREMENTALASTAR, false, true, true, nThreads, false, debug, Integer.MAX_VALUE,
+			super(Algorithm.INCREMENTALASTAR, true, true, true, nThreads, false, debug, Integer.MAX_VALUE,
 					Integer.MAX_VALUE, Integer.MAX_VALUE, false, false, 0, 2, false);
 		}
 
 		public Default(int nThreads, int costUpperBound, Debug debug) {
-			super(Algorithm.INCREMENTALASTAR, false, true, true, nThreads, false, debug, Integer.MAX_VALUE,
+			super(Algorithm.INCREMENTALASTAR, true, true, true, nThreads, false, debug, Integer.MAX_VALUE,
 					Integer.MAX_VALUE, costUpperBound, false, false, 0, 2, false);
 		}
 
@@ -101,13 +101,13 @@ public abstract class ReplayerParameters {
 
 	public final static class IncrementalAStar extends ReplayerParameters {
 		public IncrementalAStar() {
-			super(Algorithm.INCREMENTALASTAR, false, true, true,
+			super(Algorithm.INCREMENTALASTAR, true, true, true,
 					Math.max(1, Runtime.getRuntime().availableProcessors() / 2), false, Debug.NONE, Integer.MAX_VALUE,
 					Integer.MAX_VALUE, Integer.MAX_VALUE, false, false, 0, 1, false);
 		}
 
 		public IncrementalAStar(Debug debug) {
-			super(Algorithm.INCREMENTALASTAR, false, true, true,
+			super(Algorithm.INCREMENTALASTAR, true, true, true,
 					Math.max(1, Runtime.getRuntime().availableProcessors() / 2), false, debug, Integer.MAX_VALUE,
 					Integer.MAX_VALUE, Integer.MAX_VALUE, false, false, 0, 1, false);
 		}
