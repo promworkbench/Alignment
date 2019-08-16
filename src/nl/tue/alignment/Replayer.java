@@ -201,7 +201,7 @@ public class Replayer {
 				//				System.out.println("Splitpoints:" + errorEvents.toString());
 				preprocessTime = (System.nanoTime() - start);
 			}
-			tr = new TraceReplayTask(this, parameters, trace, t, timeoutMilliseconds, parameters.maximumNumberOfStates,
+			tr = new TraceReplayTask(this, parameters, trace, t, parameters.timeoutMilliseconds, parameters.maximumNumberOfStates,
 					preprocessTime, errorEvents.toArray());
 			resultList.add(service.submit(tr));
 			t++;
