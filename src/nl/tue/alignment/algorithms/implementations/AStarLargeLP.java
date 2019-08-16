@@ -577,6 +577,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				// assume precision 1E-7 and round down
 				return (int) (c + 1E-7);
 			} else if (solverResult == LpSolve.INFEASIBLE) {
+				// we cannot easily conclude if infeasibility is due to the cost limit or due to unreachability of the marking
 				return HEURISTICINFINITE;
 			} else if (solverResult == LpSolve.TIMEOUT) {
 				//				System.out.println("Remaining was: "+remainingTime);

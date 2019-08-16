@@ -203,8 +203,9 @@ public class BasicCodeSnippet {
 					if ((exitCode & Utils.HEURISTICFUNCTIONOVERFLOW) == Utils.HEURISTICFUNCTIONOVERFLOW) {
 						// in some marking, the heuristic function went through the upper limit of 2^24
 					}
-					if ((exitCode & Utils.TIMEOUTREACHED) == Utils.TIMEOUTREACHED) {
-						// alignment failed with a timeout
+					if ((exitCode & Utils.TIMEOUTREACHED) == Utils.TIMEOUTREACHED
+							|| (exitCode & Utils.SOLVERTIMEOUTREACHED) == Utils.SOLVERTIMEOUTREACHED) {
+						// alignment failed with a timeout (caused in the solver if SOLVERTIMEOUTREACHED is set)
 					}
 					if ((exitCode & Utils.STATELIMITREACHED) == Utils.STATELIMITREACHED) {
 						// alignment failed due to reacing too many states.
