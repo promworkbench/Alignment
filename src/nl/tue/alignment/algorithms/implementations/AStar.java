@@ -75,11 +75,13 @@ public class AStar extends AbstractLPBasedAlgorithm {
 		super(product, moveSorting, queueSorting, preferExact, debug);
 		//		this.numberOfThreads = numberOfThreads;
 		//		this.numRows = net.numPlaces();
-		matrix = new LPMatrix.SPARSE.LPSOLVE(net.numPlaces(), net.numTransitions());
+		matrix = new LPMatrix.SPARSE.LPSOLVE(net.numPlaces() + 1, net.numTransitions());
 
 		// Set the objective to follow the cost function
 		for (int t = net.numTransitions(); t-- > 0;) {
 			matrix.setObjective(t, net.getCost(t));
+			// setup cost constraint
+			matrix.adjustMat(net.numPlaces(), t, net.getCost(t));
 
 			int[] input = net.getInput(t);
 			for (int i = input.length; i-- > 0;) {
@@ -104,10 +106,13 @@ public class AStar extends AbstractLPBasedAlgorithm {
 			if (debug != Debug.NONE) {
 				matrix.setColName(t, net.getTransitionLabel(t));
 			}
-
 		}
 
-		rhf = new double[net.numPlaces()];
+		// setup rightHandSide
+		rhf = new double[net.numPlaces() + 1];
+		rhf[net.numPlaces()] = costUpperLimit;
+		matrix.setConstrType(net.numPlaces(), LPMatrix.LE);
+
 		byte[] marking = net.getFinalMarking();
 		for (int p = net.numPlaces(); p-- > 0;) {
 			if (debug != Debug.NONE) {

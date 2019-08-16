@@ -131,7 +131,8 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 	private boolean queueSorting;
 	//	private boolean multiThreading;
 	protected long timeoutAtTimeInMillisecond;
-	private int maximumNumberOfStates;
+	protected int maximumNumberOfStates;
+	protected int costUpperLimit;
 	protected TObjectIntMap<Utils.Statistic> replayStatistics;
 
 	public AbstractReplayAlgorithm(SyncProduct product, boolean moveSorting, boolean queueSorting,
@@ -229,6 +230,11 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		} else {
 			this.maximumNumberOfStates = maximumNumberOfStates;
 		}
+		if (costUpperLimit <= 0) {
+			this.costUpperLimit = Integer.MAX_VALUE;
+		} else {
+			this.costUpperLimit = costUpperLimit;
+		}
 		pollActions = 0;
 		closedActions = 0;
 		queueActions = 0;
@@ -240,10 +246,10 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		iteration = -1;
 
 		return runReplayAlgorithm(canceller, System.nanoTime(),
-				timeoutMilliseconds <= 0 ? Integer.MAX_VALUE : timeoutMilliseconds, costUpperLimit);
+				timeoutMilliseconds <= 0 ? Integer.MAX_VALUE : timeoutMilliseconds);
 	}
 
-	protected int[] runReplayAlgorithm(Canceler canceller, long startTime, int timeoutMilliseconds, int costUpperBound)
+	protected int[] runReplayAlgorithm(Canceler canceller, long startTime, int timeoutMilliseconds)
 			throws LPMatrixException {
 
 		//		int[] trans = new int[net.numTransitions()];
@@ -282,7 +288,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 					f_Score = getFScore(bm, im);
 
 					// check cost upper limit
-					if (f_Score > costUpperBound) {
+					if (f_Score > costUpperLimit) {
 						break queueLoop;
 					}
 
@@ -302,7 +308,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 						case CLOSEDSUCCESSFUL :
 							closedActionsInRun++;
 					}
-					markingsReachedInRun += expandMarking(m, marking_m, bm, im, costUpperBound);
+					markingsReachedInRun += expandMarking(m, marking_m, bm, im);
 				} // end While
 				alignmentResult &= ~Utils.OPTIMALALIGNMENT;
 				alignmentResult |= Utils.FAILEDALIGNMENT;
@@ -321,7 +327,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 					alignmentResult |= Utils.STATELIMITREACHED;
 				}
 				if ((alignmentResult == Utils.FAILEDALIGNMENT && queue.isEmpty() && enabledBlockedByCost)
-						|| f_Score > costUpperBound) {
+						|| f_Score > costUpperLimit) {
 					alignmentResult |= Utils.COSTLIMITREACHED;
 				}
 				if (canceller.isCanceled()) {
@@ -343,7 +349,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		return new int[0];
 	}
 
-	protected int expandMarking(int m, byte[] marking_m, int bm, int im, int costUpperBound) {
+	protected int expandMarking(int m, byte[] marking_m, int bm, int im) {
 		int markingsReachedInExpand = 0;
 		// iterate over all transitions
 		for (int t = 0; t < net.numTransitions() && (System.currentTimeMillis() < timeoutAtTimeInMillisecond); t++) {
@@ -357,7 +363,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 				// compute the new G score of the marking reached if t would be fired;
 				int tmpG = getGScore(bm, im) + net.getCost(t);
 
-				if (tmpG > costUpperBound) {
+				if (tmpG > costUpperLimit) {
 					enabledBlockedByCost = true;
 					continue;
 				}
