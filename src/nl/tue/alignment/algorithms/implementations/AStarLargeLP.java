@@ -229,11 +229,11 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 			coefficients = 0;
 			synchronized (LpSolve.class) {
 				// reserve a row for randomsum to be minimized.
-				solver = LpSolve.makeLp(rows, 0);
+				solver = LpSolve.makeLp(rows + 1, 0);
 			}
 			solver.setAddRowmode(false);
 
-			double[] col = new double[1 + rows];
+			double[] col = new double[2 + rows];
 			int c = 0;
 
 			int start = 1;
@@ -283,6 +283,9 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 						- product.getInitialMarking()[(r - 2) % product.numPlaces()]);
 				coefficients++;
 			}
+
+			solver.setObj(col.length, costUpperLimit);
+			solver.setConstrType(col.length, LpSolve.LE);
 
 			solver.setMinim();
 			solver.setVerbose(0);
@@ -368,6 +371,9 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 						}
 					}
 				}
+				// add cost constraint
+				col[col.length - 1] = net.getCost(t);
+
 				solver.addColumn(col);
 				indexMap[c] = t;
 				c++;
@@ -419,6 +425,9 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 						coefficients++;
 					}
 				}
+				// add cost constraint
+				col[col.length - 1] = net.getCost(t);
+
 				solver.addColumn(col);
 				indexMap[c] = t;
 				c++;

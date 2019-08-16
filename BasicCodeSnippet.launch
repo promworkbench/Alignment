@@ -8,5 +8,5 @@
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="nl.tue.alignment.test.BasicCodeSnippet"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="Alignment"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-da -Xmx12G -Djava.library.path=.;./dll/"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea -Xmx12G -Djava.library.path=.;./dll/"/>
 </launchConfiguration>

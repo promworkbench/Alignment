@@ -22,6 +22,7 @@ import org.deckfour.xes.info.XLogInfoFactory;
 import org.deckfour.xes.info.impl.XLogInfoImpl;
 import org.deckfour.xes.model.XLog;
 import org.processmining.models.connections.GraphLayoutConnection;
+import org.processmining.models.graphbased.AttributeMap;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
@@ -60,9 +61,9 @@ public class AlignmentTest {
 		ASTAR(false), //
 		ASTARRED(false), //
 		INC0(false), //
-		INC0RED(true), //
+		INC0RED(false), //
 		INC3(false), //
-		INC10(false), //
+		INC10(true), //
 		INC_PLUS(false), //
 		PLANNING(false);
 
@@ -92,8 +93,9 @@ public class AlignmentTest {
 		if (Type.PLANNING.include()) {
 			frame.setVisible(true);
 		}
-		mainFileFolder(Debug.STATS, Integer.MAX_VALUE, "CCC19-complete", "CCC19");
+		mainFileFolder(Debug.DOT, Integer.MAX_VALUE, "eric");
 		System.exit(0);
+		mainFileFolder(Debug.STATS, Integer.MAX_VALUE, "CCC19-complete", "CCC19");
 		mainFileFolder(Debug.STATS, Integer.MAX_VALUE, "software");
 
 		//		mainFileFolder(Debug.STATS, "bpi12");//"pr1151_l4_noise","pr1912_l4_noise");
@@ -179,6 +181,18 @@ public class AlignmentTest {
 				GraphLayoutConnection layout = new GraphLayoutConnection(net);
 
 				pnml.convertToNet(net, initialMarking, layout);
+				// relabel tau's
+				int l = 0;
+				for (Transition t : net.getTransitions()) {
+					if (t.isInvisible()) {
+						t.getAttributeMap().put(AttributeMap.LABEL, "tau" + (l++));
+					}
+				}
+				// relabel places
+				l = 0;
+				for (Place p : net.getPlaces()) {
+					p.getAttributeMap().put(AttributeMap.LABEL, "p" + (l++));
+				}
 
 				//				Petrinet net = constructNet(FOLDER + folder + name + ".pnml");
 				//				Marking initialMarking = getInitialMarking(net);
@@ -244,6 +258,19 @@ public class AlignmentTest {
 			GraphLayoutConnection layout = new GraphLayoutConnection(net);
 
 			pnml.convertToNet(net, initialMarking, layout);
+
+			// relabel tau's
+			int l = 0;
+			for (Transition t : net.getTransitions()) {
+				if (t.isInvisible()) {
+					t.getAttributeMap().put(AttributeMap.LABEL, "tau" + (l++));
+				}
+			}
+			// relabel places
+			l = 0;
+			for (Place p : net.getPlaces()) {
+				p.getAttributeMap().put(AttributeMap.LABEL, "p" + (l++));
+			}
 
 			//			Petrinet net = constructNet(folder + ".pnml");
 			//			Marking initialMarking = getInitialMarking(net);
@@ -341,20 +368,21 @@ public class AlignmentTest {
 		int timeout = log.size() * timeoutPerTraceInSec * 1000 / 10;
 		int maxNumberOfStates = Integer.MAX_VALUE;
 
-		boolean moveSort = false;
+		boolean moveSort = true;
 		boolean useInt = false;
-		boolean partialOrder = true;
+		boolean partialOrder = false;
 		boolean preferExact = true;
 		boolean queueSort = true;
 		ReplayerParameters parameters;
 		boolean preProcessUsingPlaceBasedConstraints = true;
-		int maxReducedSequenceLength = 1;
+		int maxReducedSequenceLength = 2;
+		int costUpperBound = 0;
 
 		switch (type) {
 			case DIJKSTRA :
 				if (type.include()) {
 					parameters = new ReplayerParameters.Dijkstra(moveSort, queueSort, threads, debug, timeout,
-							maxNumberOfStates, Integer.MAX_VALUE, partialOrder);
+							maxNumberOfStates, costUpperBound, partialOrder);
 					doReplay(debug, folder, "Dijkstra", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
 				}
@@ -363,7 +391,7 @@ public class AlignmentTest {
 			case ASTAR :
 				if (type.include()) {
 					parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug,
-							timeout, maxNumberOfStates, Integer.MAX_VALUE, partialOrder);
+							timeout, maxNumberOfStates, costUpperBound, partialOrder);
 					doReplay(debug, folder, "AStar", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
 				}
@@ -371,7 +399,7 @@ public class AlignmentTest {
 			case ASTARRED :
 				if (type.include()) {
 					parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug,
-							timeout, maxNumberOfStates, Integer.MAX_VALUE, partialOrder, maxReducedSequenceLength);
+							timeout, maxNumberOfStates, costUpperBound, partialOrder, maxReducedSequenceLength);
 					doReplay(debug, folder, "AStarReduced-" + maxReducedSequenceLength, net, initialMarking,
 							finalMarking, log, mapping, classes, parameters);
 				}
@@ -380,7 +408,7 @@ public class AlignmentTest {
 			case INC0 :
 				if (type.include()) {
 					parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, debug, timeout,
-							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, 0);
+							maxNumberOfStates, costUpperBound, partialOrder, 0);
 					doReplay(debug, folder, "Incre0", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
 				}
@@ -388,7 +416,7 @@ public class AlignmentTest {
 			case INC0RED :
 				if (type.include()) {
 					parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, debug, timeout,
-							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, false, 0, maxReducedSequenceLength);
+							maxNumberOfStates, costUpperBound, partialOrder, false, 0, maxReducedSequenceLength);
 					doReplay(debug, folder, "Incre0Reduced" + maxReducedSequenceLength, net, initialMarking,
 							finalMarking, log, mapping, classes, parameters);
 				}
@@ -396,7 +424,7 @@ public class AlignmentTest {
 			case INC3 :
 				if (type.include()) {
 					parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, debug, timeout,
-							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, 3);
+							maxNumberOfStates, costUpperBound, partialOrder, 3);
 					doReplay(debug, folder, "Incre3", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
 				}
@@ -404,7 +432,7 @@ public class AlignmentTest {
 			case INC10 :
 				if (type.include()) {
 					parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, debug, timeout,
-							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, 10);
+							maxNumberOfStates, costUpperBound, partialOrder, 10);
 					doReplay(debug, folder, "Incre10", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
 				}
@@ -413,7 +441,7 @@ public class AlignmentTest {
 			case INC_PLUS :
 				if (type.include()) {
 					parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, debug, timeout,
-							maxNumberOfStates, Integer.MAX_VALUE, partialOrder, true);
+							maxNumberOfStates, costUpperBound, partialOrder, true);
 					doReplay(debug, folder, "Incre++", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
 				}

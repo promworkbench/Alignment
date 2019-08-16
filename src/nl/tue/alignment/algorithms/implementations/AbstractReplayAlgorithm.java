@@ -230,7 +230,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		} else {
 			this.maximumNumberOfStates = maximumNumberOfStates;
 		}
-		if (costUpperLimit <= 0) {
+		if (costUpperLimit < 0) {
 			this.costUpperLimit = Integer.MAX_VALUE;
 		} else {
 			this.costUpperLimit = costUpperLimit;
