@@ -58,7 +58,8 @@ public class AlignmentTest {
 
 	public static enum Type {
 		DIJKSTRA(false), //
-		ASTAR(false), //
+		ASTAR(true), //
+		ASTARINT(true), //
 		ASTARRED(false), //
 		INC0(false), //
 		INC0RED(false), //
@@ -93,7 +94,7 @@ public class AlignmentTest {
 		if (Type.PLANNING.include()) {
 			frame.setVisible(true);
 		}
-		mainFileFolder(Debug.DOT, Integer.MAX_VALUE, "eric");
+		mainFileFolder(Debug.STATS, Integer.MAX_VALUE, "eric");
 		System.exit(0);
 		mainFileFolder(Debug.STATS, Integer.MAX_VALUE, "CCC19-complete", "CCC19");
 		mainFileFolder(Debug.STATS, Integer.MAX_VALUE, "software");
@@ -365,7 +366,7 @@ public class AlignmentTest {
 		}
 
 		// timeout  per trace 
-		int timeout = log.size() * timeoutPerTraceInSec * 1000 / 10;
+		int timeout = timeoutPerTraceInSec * 1000;
 		int maxNumberOfStates = Integer.MAX_VALUE;
 
 		boolean moveSort = true;
@@ -391,6 +392,14 @@ public class AlignmentTest {
 			case ASTAR :
 				if (type.include()) {
 					parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, useInt, debug,
+							timeout, maxNumberOfStates, costUpperBound, partialOrder);
+					doReplay(debug, folder, "AStar", net, initialMarking, finalMarking, log, mapping, classes,
+							parameters);
+				}
+				break;
+			case ASTARINT :
+				if (type.include()) {
+					parameters = new ReplayerParameters.AStar(moveSort, queueSort, preferExact, threads, true, debug,
 							timeout, maxNumberOfStates, costUpperBound, partialOrder);
 					doReplay(debug, folder, "AStar", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
@@ -432,7 +441,7 @@ public class AlignmentTest {
 			case INC10 :
 				if (type.include()) {
 					parameters = new ReplayerParameters.IncrementalAStar(moveSort, threads, useInt, debug, timeout,
-							maxNumberOfStates, costUpperBound, partialOrder, 10);
+							maxNumberOfStates, costUpperBound, partialOrder, 20);
 					doReplay(debug, folder, "Incre10", net, initialMarking, finalMarking, log, mapping, classes,
 							parameters);
 				}

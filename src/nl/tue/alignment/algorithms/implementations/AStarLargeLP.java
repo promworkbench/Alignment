@@ -542,6 +542,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				solver.setRh(r, product.getFinalMarking()[(r - 2) % product.numPlaces()]
 						- markingArray[(r - 2) % product.numPlaces()]);
 			}
+			solver.setRh(r, costUpperLimit - getGScore(markingBlock, markingIndex));
 
 			solver.defaultBasis();
 			// set timeout in seconds;
@@ -583,6 +584,7 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				//				System.out.println("Remaining is:  "+remainingTime);
 				assert remainingTime <= 0;
 				alignmentResult |= Utils.TIMEOUTREACHED;
+				alignmentResult |= Utils.SOLVERTIMEOUTREACHED;
 
 				return HEURISTICINFINITE;
 			} else {

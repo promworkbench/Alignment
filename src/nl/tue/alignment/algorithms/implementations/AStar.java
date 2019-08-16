@@ -168,6 +168,7 @@ public class AStar extends AbstractLPBasedAlgorithm {
 				// set right hand side to final marking 
 				solver.setRh(p + 1, rhf[p] - markingArray[p]);
 			}
+			solver.setRh(net.numPlaces(), costUpperLimit - getGScore(markingBlock, markingIndex));
 
 			solver.defaultBasis();
 			long remainingTime = timeoutAtTimeInMillisecond - System.currentTimeMillis();
@@ -204,10 +205,11 @@ public class AStar extends AbstractLPBasedAlgorithm {
 				return HEURISTICINFINITE;
 			} else if (solverResult == LpSolve.TIMEOUT) {
 				assert timeoutAtTimeInMillisecond - System.currentTimeMillis() <= 0;
+				alignmentResult |= Utils.SOLVERTIMEOUTREACHED;
 				alignmentResult |= Utils.TIMEOUTREACHED;
 				return HEURISTICINFINITE;
 			} else {
-				solver.writeLp("C:/temp/alignment/loopdouble_500K/debugLP-Alignment.lp");
+//				solver.writeLp("C:/temp/alignment/loopdouble_500K/debugLP-Alignment.lp");
 				System.err.println("Error code from LpSolve solver:" + solverResult);
 				System.exit(1);
 				return HEURISTICINFINITE;

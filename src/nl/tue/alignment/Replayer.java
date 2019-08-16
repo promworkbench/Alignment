@@ -160,9 +160,6 @@ public class Replayer {
 
 		}
 
-		// compute timeout per trace
-		int timeoutMilliseconds = (int) ((10.0 * parameters.timeoutMilliseconds) / (log.size() + 1));
-		timeoutMilliseconds = Math.min(timeoutMilliseconds, parameters.timeoutMilliseconds);
 
 		ExecutorService service;
 		//		if (parameters.algorithm == Algorithm.ASTAR) {
@@ -175,7 +172,7 @@ public class Replayer {
 
 		List<Future<TraceReplayTask>> resultList = new ArrayList<>();
 
-		TraceReplayTask tr = new TraceReplayTask(this, parameters, timeoutMilliseconds,
+		TraceReplayTask tr = new TraceReplayTask(this, parameters, parameters.timeoutMilliseconds,
 				parameters.maximumNumberOfStates, 0l);
 		resultList.add(service.submit(tr));
 
