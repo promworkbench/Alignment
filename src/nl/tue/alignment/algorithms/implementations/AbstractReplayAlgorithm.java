@@ -115,6 +115,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 	protected int closedActions;
 	protected int queueActions;
 	protected int edgesTraversed;
+	protected boolean enabledBlockedByCost;
 	protected int markingsReached;
 	protected int heuristicsComputed;
 	protected int heuristicsEstimated;
@@ -301,7 +302,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 						case CLOSEDSUCCESSFUL :
 							closedActionsInRun++;
 					}
-					markingsReachedInRun += expandMarking(m, marking_m, bm, im);
+					markingsReachedInRun += expandMarking(m, marking_m, bm, im, costUpperBound);
 				} // end While
 				alignmentResult &= ~Utils.OPTIMALALIGNMENT;
 				alignmentResult |= Utils.FAILEDALIGNMENT;
@@ -319,13 +320,14 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 				if (markingsReachedInRun >= maximumNumberOfStates) {
 					alignmentResult |= Utils.STATELIMITREACHED;
 				}
-				if (f_Score > costUpperBound) {
+				if ((alignmentResult == Utils.FAILEDALIGNMENT && queue.isEmpty() && enabledBlockedByCost)
+						|| f_Score > costUpperBound) {
 					alignmentResult |= Utils.COSTLIMITREACHED;
 				}
 				if (canceller.isCanceled()) {
 					alignmentResult |= Utils.CANCELLED;
 				}
-				if (alignmentResult == Utils.FAILEDALIGNMENT && queue.isEmpty()) {
+				if (alignmentResult == Utils.FAILEDALIGNMENT && queue.isEmpty() && !enabledBlockedByCost) {
 					// no final marking found, no timeout, state limit, cost limit, or cancellation...
 					// queue must be empty because final marking is unreachable.
 					alignmentResult |= Utils.FINALMARKINGUNREACHABLE;
@@ -341,7 +343,7 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 		return new int[0];
 	}
 
-	protected int expandMarking(int m, byte[] marking_m, int bm, int im) {
+	protected int expandMarking(int m, byte[] marking_m, int bm, int im, int costUpperBound) {
 		int markingsReachedInExpand = 0;
 		// iterate over all transitions
 		for (int t = 0; t < net.numTransitions() && (System.currentTimeMillis() < timeoutAtTimeInMillisecond); t++) {
@@ -351,6 +353,14 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 			// check for enabling
 			if (isEnabled(marking_m, t, bm, im)) {
 				edgesTraversed++;
+
+				// compute the new G score of the marking reached if t would be fired;
+				int tmpG = getGScore(bm, im) + net.getCost(t);
+
+				if (tmpG > costUpperBound) {
+					enabledBlockedByCost = true;
+					continue;
+				}
 
 				// t is allowed to fire.
 				byte[] marking_n = fire(marking_m, t, bm, im);
@@ -375,7 +385,6 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 					if (!isClosed(bn, in)) {
 						// n is a fresh marking, not in the closed set
 						// compute the F score on this path
-						int tmpG = getGScore(bm, im) + net.getCost(t);
 
 						if (tmpG < getGScore(bn, in)) {
 							writeEdgeTraversed(this, m, t, n, "");
@@ -534,6 +543,9 @@ abstract class AbstractReplayAlgorithm extends AbstractReplayAlgorithmDataStore 
 
 	protected void initializeIterationInternal() {
 		super.initializeIterationInternal();
+
+		enabledBlockedByCost = false;
+
 		iteration++;
 
 		this.visited = new VisitedHashSet(this, Utils.DEFAULTVISITEDSIZE);
