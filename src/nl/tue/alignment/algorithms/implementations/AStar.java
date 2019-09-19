@@ -168,7 +168,7 @@ public class AStar extends AbstractLPBasedAlgorithm {
 				// set right hand side to final marking 
 				solver.setRh(p + 1, rhf[p] - markingArray[p]);
 			}
-			solver.setRh(net.numPlaces(), costUpperLimit - getGScore(markingBlock, markingIndex));
+			solver.setRh(net.numPlaces()+1, costUpperLimit - getGScore(markingBlock, markingIndex));
 
 			solver.defaultBasis();
 			long remainingTime = timeoutAtTimeInMillisecond - System.currentTimeMillis();
