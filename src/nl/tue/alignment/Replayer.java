@@ -58,7 +58,7 @@ public class Replayer {
 	private Progress progress;
 	final boolean mergeDuplicateTraces;
 
-	private TObjectIntMap<XEventClass> class2id;
+	protected TObjectIntMap<XEventClass> class2id;
 
 	private ConstraintSet constraintSet;
 
@@ -124,18 +124,25 @@ public class Replayer {
 			constraintSet = null;
 		}
 
-		if (parameters.maxReducedSequenceLength > 1) {
-			factory = new ReducedSyncProductFactory(net, classes, class2id, mapping, costMM, costLM, costSM,
-					initialMarking, finalMarking, parameters.maxReducedSequenceLength);
-		} else {
-			factory = new BasicSyncProductFactory(net, classes, class2id, mapping, costMM, costLM, costSM,
-					initialMarking, finalMarking);
-		}
+		factory = createSyncProductFactory(parameters, net, initialMarking, finalMarking, classes, costMM, costLM, costSM,
+				mapping);
 
 		if (mergeDuplicateTraces) {
 			trace2FirstIdenticalTrace = new TObjectIntHashMap<>(10, 0.7f, -1);
 		} else {
 			trace2FirstIdenticalTrace = null;
+		}
+	}
+
+	protected SyncProductFactory<?> createSyncProductFactory(ReplayerParameters parameters, Petrinet net, Marking initialMarking,
+			Marking finalMarking, XEventClasses classes, Map<Transition, Integer> costMM,
+			Map<XEventClass, Integer> costLM, Map<Transition, Integer> costSM, TransEvClassMapping mapping) {
+		if (parameters.maxReducedSequenceLength > 1) {
+			return new ReducedSyncProductFactory(net, classes, class2id, mapping, costMM, costLM, costSM,
+					initialMarking, finalMarking, parameters.maxReducedSequenceLength);
+		} else {
+			return new BasicSyncProductFactory(net, classes, class2id, mapping, costMM, costLM, costSM,
+					initialMarking, finalMarking);
 		}
 	}
 
