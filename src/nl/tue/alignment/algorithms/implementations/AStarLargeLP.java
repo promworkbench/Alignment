@@ -284,8 +284,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				coefficients++;
 			}
 
-			solver.setRh(col.length, costUpperLimit);
-			solver.setConstrType(col.length, LpSolve.LE);
+			solver.setRh(rows + 1, costUpperLimit);
+			solver.setConstrType(rows + 1, LpSolve.LE);
 
 			solver.setMinim();
 			solver.setVerbose(0);
