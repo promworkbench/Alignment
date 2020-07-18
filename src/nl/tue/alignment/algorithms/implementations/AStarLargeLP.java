@@ -284,6 +284,8 @@ public class AStarLargeLP extends AbstractLPBasedAlgorithm {
 				coefficients++;
 			}
 
+			// cost is stored in the last row (i.e. at rows+1 as there are rows+1 rows...)
+			// this should be LE to the upper limit.
 			solver.setRh(rows + 1, costUpperLimit);
 			solver.setConstrType(rows + 1, LpSolve.LE);
 
