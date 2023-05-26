@@ -208,7 +208,7 @@ public class BasicCodeSnippet {
 						// alignment failed with a timeout (caused in the solver if SOLVERTIMEOUTREACHED is set)
 					}
 					if ((exitCode & Utils.STATELIMITREACHED) == Utils.STATELIMITREACHED) {
-						// alignment failed due to reacing too many states.
+						// alignment failed due to reaching too many states.
 					}
 					if ((exitCode & Utils.COSTLIMITREACHED) == Utils.COSTLIMITREACHED) {
 						// no optimal alignment found with cost less or equal to the given limit.
@@ -282,8 +282,7 @@ public class BasicCodeSnippet {
 		Map<org.jbpt.petri.Transition, Transition> t2t = new HashMap<org.jbpt.petri.Transition, Transition>();
 		for (org.jbpt.petri.Transition t : sys.getTransitions()) {
 			Transition tt = net.addTransition(t.getLabel());
-			if (t.isSilent() || t.getLabel().startsWith("tau") || t.getLabel().equals("t2") || t.getLabel().equals("t8")
-					|| t.getLabel().equals("complete")) {
+			if (t.isSilent() || t.getLabel().startsWith("tau")) {
 				tt.setInvisible(true);
 			}
 			t2t.put(t, tt);
