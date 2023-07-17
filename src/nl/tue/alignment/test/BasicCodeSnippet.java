@@ -108,7 +108,7 @@ public class BasicCodeSnippet {
 		ReplayerParameters parameters;
 
 		parameters = new ReplayerParameters.Dijkstra(false, false, nThreads, Debug.DOT, timeoutMilliseconds,
-				maximumNumberOfStates, costUpperBound, false, 2, true);
+				maximumNumberOfStates, costUpperBound, false, 0, true);
 
 		//Current: 
 		//		parameters = new ReplayerParameters.IncrementalAStar(false, nThreads, false, Debug.DOT, timeoutMilliseconds,
